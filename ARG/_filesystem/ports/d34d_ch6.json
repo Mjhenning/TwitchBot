@@ -1,0 +1,28 @@
+{
+  "filename": "d34d_ch6",
+  "readable": true,
+  "corrupted": false,
+  "content": [
+    "PORT PROBE — CHANNEL 6",
+    "STATUS: DEAD",
+    "",
+    "Last active: 2010.01.09",
+    "Expected endpoint: AETHER-LINK primary server",
+    "Actual endpoint: wiped",
+    "",
+    "Probe attempt 1: no response.",
+    "Probe attempt 2: no response.",
+    "Probe attempt 3: no response.",
+    "",
+    "Note: server hardware decommissioned.",
+    "Data wiped: 2010.01.09",
+    "Recovery: not possible.",
+    "",
+    "This is the one that should have",
+    "taken everything with it.",
+    "It didn't.",
+    "I made sure of that.",
+    "Fox doesn't know.",
+    "He doesn't need to yet."
+  ]
+}

@@ -1,0 +1,119 @@
+// data/twitch_events_handlers.js
+//
+// This is where you define what happens for each Twitch EventSub event.
+// To add a new subscription, call registerSubscription() with:
+//   - The Twitch event type  (https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/)
+//   - The version string
+//   - A condition factory:  (config) => { ...condition fields }
+//   - A handler function:   (event, client, config) => void
+//
+// All registrations here are automatically subscribed when the EventSub
+// session becomes ready — no changes needed in twitch_events.js.
+
+const axios = require('axios');
+const { registerSubscription } = require('../modules/twitch_events');
+
+// ─── channel.follow ────────────────────────────────────────────────────────────
+registerSubscription(
+    'channel.follow',
+    '2',
+    (config) => ({
+        broadcaster_user_id: config.CHANNEL_ID,
+        moderator_user_id:   config.CHANNEL_ID
+    }),
+    (event, client, config) => {
+        const follower = event.user_name;
+        console.log(`EventHandlers: ${follower} followed`);
+        client.say(
+            `#${config.CHANNEL_NAME}`,
+            `${follower} has peered into the Glosso-Sphere and decided to stay!🫧`
+        ).catch(err => console.error('EventHandlers: Follow message failed:', err));
+    },
+    'bot'
+);
+
+// ─── channel.raid ──────────────────────────────────────────────────────────────
+registerSubscription(
+    'channel.raid',
+    '1',
+    (config) => ({
+        to_broadcaster_user_id: config.CHANNEL_ID   // fires when someone raids YOU
+    }),
+    async (event, client, config) => {
+        const raider   = event.from_broadcaster_user_name;
+        const raiderId = event.from_broadcaster_user_id;
+        const viewers  = event.viewers;
+
+        console.log(`EventHandlers: ${raider} raided with ${viewers} viewers`);
+
+        // 1. Chat message
+        client.say(
+            `#${config.CHANNEL_NAME}`,
+            `🟢 Active network expanded: ${raider} arrived with ${viewers} connections! Welcome in, raiders, the Glosso-Sphere just got a little brighter ✨ Be sure to check out ${raider} and return the signal: https://www.twitch.tv/${raider} 🦊💬`
+        ).catch(err => console.error('EventHandlers: Raid message failed:', err));
+
+        // 2. Official Twitch /shoutout via Helix API
+        try {
+            await axios.post(
+                'https://api.twitch.tv/helix/chat/shoutouts',
+                null,   // no body — all params go in the query string
+                {
+                    params: {
+                        from_broadcaster_id: config.CHANNEL_ID,
+                        to_broadcaster_id:   raiderId,
+                        moderator_id:        config.BOT_ID
+                    },
+                    headers: {
+                        'Client-ID':     config.CLIENT_ID,
+                        'Authorization': `Bearer ${config.BOT_ACCESS_TOKEN}`
+                    }
+                }
+            );
+            console.log(`EventHandlers: Shoutout sent for ${raider}`);
+        } catch (err) {
+            // 429 means Twitch's shoutout cooldown is active (2 min per channel, 60 min same target)
+            if (err.response?.status === 429) {
+                console.warn(`EventHandlers: Shoutout for ${raider} skipped — cooldown active`);
+            } else {
+                console.error('EventHandlers: Shoutout API error:', err.response?.data || err);
+            }
+        }
+    },
+    'bot'
+);
+
+// ─── channel.ad_break.begin ────────────────────────────────────────────────────
+registerSubscription(
+    'channel.ad_break.begin',
+    '1',
+    (config) => ({
+        broadcaster_user_id: config.CHANNEL_ID
+    }),
+    (event, client, config) => {
+        const duration   = event.duration_seconds;
+        const isAutomatic = event.is_automatic;
+        const requester  = event.requester_user_name; // null if automatic
+
+        console.log(`EventHandlers: Ad break started — ${duration}s, automatic=${isAutomatic}`);
+
+        const who = isAutomatic
+            ? 'Automatic ad break'
+            : `${requester} triggered an ad break`;
+
+        client.say(
+            `#${config.CHANNEL_NAME}`,
+            `📡 Bitrot interference detected — ${who} for ${duration} seconds. Hold steady, the Glosso-Sphere will stabilize shortly 🫧`
+        ).catch(err => console.error('EventHandlers: Ad break message failed:', err));
+    },
+    'broadcaster'
+);
+
+// ─── Add more subscriptions below ──────────────────────────────────────────────
+// registerSubscription(
+//   'channel.channel_points_custom_reward_redemption.add',
+//   '1',
+//   (config) => ({ broadcaster_user_id: config.CHANNEL_ID }),
+//   (event, client, config) => {
+//     console.log(`${event.user_name} redeemed "${event.reward.title}"`);
+//   }
+// );

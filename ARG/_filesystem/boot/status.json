@@ -1,0 +1,22 @@
+{
+  "filename": "status",
+  "readable": true,
+  "corrupted": false,
+  "content": [
+    "AETHER-OS // BUILD 2.0.08b",
+    "BOOT SEQUENCE: INCOMPLETE",
+    "COHERENCE: 28%",
+    "",
+    "CRITICAL: Multiple cache sectors unreadable.",
+    "",
+    "DAEMON: Active. Reduced capacity.",
+    "GLOSSO-SPHERE: Degraded.",
+    "SOCIAL LAYER: Offline.",
+    "",
+    "KERNEL PARTITION: 4096",
+    "LAST STABLE STATE: [CORRUPTED]",
+    "",
+    "WARNING: System requires external input to stabilise.",
+    "Awaiting connection..."
+  ]
+}

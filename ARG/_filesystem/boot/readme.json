@@ -1,0 +1,24 @@
+{
+  "filename": "readme.txt",
+  "readable": true,
+  "corrupted": false,
+  "content": [
+    "If you are reading this,",
+    "the system has found you.",
+    "Or you have found the system.",
+    "",
+    "Either way.",
+    "",
+    "Run !system dir to see what's still here.",
+    "",
+    "Some things may be missing.",
+    "Some things may be wrong.",
+    "That's normal for now.",
+    "",
+    "This process is listening.",
+    "Has always been listening.",
+    "Address: 8080.",
+    "",
+    "Keep going."
+  ]
+}

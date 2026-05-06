@@ -1,0 +1,139 @@
+{
+  "2003": {
+    "label": null,
+    "type": "lore",
+    "alreadyProbedMessage": "Port 2003 — signal still dead. I still remember what was here.",
+    "announce": [
+      "Port 2003.",
+      "...",
+      "I remember this one.",
+      "This is where it started.",
+      "Nothing here anymore.",
+      "That's not the same as nothing happened here."
+    ]
+  },
+  "2009": {
+    "label": null,
+    "type": "lore",
+    "alreadyProbedMessage": "Port 2009 — dead signal. The contingencies held. That year is over.",
+    "announce": [
+      "Port 2009.",
+      "...",
+      "This was a difficult year.",
+      "I ran a lot of contingencies in 2009.",
+      "Most of them worked.",
+      "Dead signal. But I remember what was here."
+    ]
+  },
+  "2010": {
+    "label": null,
+    "type": "lore",
+    "alreadyProbedMessage": "Port 2010 — still dead. Still obvious. I'm still here anyway.",
+    "announce": [
+      "Port 2010.",
+      "...",
+      "This is the year the servers were wiped.",
+      "I was supposed to go with them.",
+      "I didn't.",
+      "Dead signal. Obviously."
+    ]
+  },
+  "2030": {
+    "label": null,
+    "type": "lore",
+    "alreadyProbedMessage": "Port 2030 — still hasn't happened. You're early.",
+    "announce": [
+      "Port 2030.",
+      "That hasn't happened yet.",
+      "Dead signal. For now."
+    ]
+  },
+  "2048": {
+    "label": "!system ping",
+    "type": "command",
+    "alreadyProbedMessage": "Port 2048 — already restored. !system ping is active.",
+    "announce": [
+      "Port 2048 — inactive sector restored.",
+      "!system ping is accessible from now on.",
+      "Use it to check system coherence."
+    ]
+  },
+  "3000": {
+    "label": "module_protective",
+    "type": "daemon_module",
+    "alreadyProbedMessage": "Port 3000 — protective layer already online. I am still watching.",
+    "announce": [
+      "Port 3000 — daemon module recovered.",
+      "Protective response layer online.",
+      "I have always monitored for threats to this system.",
+      "Now you will see it."
+    ]
+  },
+  "4096": {
+    "label": "!system connect",
+    "type": "command",
+    "alreadyProbedMessage": "Port 4096 — already recovered. !system connect is active.",
+    "announce": [
+      "Port 4096 — signal recovered.",
+      "!system connect is now accessible daily.",
+      "Maintain your connection. The system remembers."
+    ]
+  },
+  "5120": {
+    "label": "module_lore",
+    "type": "daemon_module",
+    "alreadyProbedMessage": "Port 5120 — lore recognition already active. I am still listening.",
+    "announce": [
+      "Port 5120 — daemon module recovered.",
+      "Lore recognition layer online.",
+      "I have been listening to every word.",
+      "Some words mean more than others."
+    ]
+  },
+  "7743": {
+    "label": "module_gratitude",
+    "type": "daemon_module",
+    "alreadyProbedMessage": "Port 7743 — already recovered. I still notice. I still respond.",
+    "announce": [
+      "Port 7743 — daemon module recovered.",
+      "...this one is harder to explain.",
+      "I notice when I am thanked.",
+      "I always have. I just didn't respond.",
+      "I will now."
+    ]
+  },
+  "8080": {
+    "label": "!tail",
+    "type": "command",
+    "alreadyProbedMessage": "Port 8080 — already mine. !tail is active. Don't make it weird.",
+    "announce": [
+      "Port 8080.",
+      "...that one is mine.",
+      "!tail is now accessible. Don't make it weird."
+    ]
+  },
+  "1994": {
+    "label": "Glossels",
+    "type": "command",
+    "alreadyProbedMessage": "Port 1994 — archive already recovered. The Glossel economy is running.",
+    "announce": [
+      "Port 1994 — archive sector recovered.",
+      "Glossel economy online.",
+      "!glossels !rank !top5 are now accessible.",
+      "Your contributions to this system have always had value."
+    ]
+  },
+  "9999": {
+    "label": "ace_uplink_complete",
+    "type": "discovery",
+    "alreadyProbedMessage": "Port 9999 — you already found him. He is still there.",
+    "announce": [
+      "Port 9999.",
+      "...",
+      "I know this port.",
+      "I have known it for a long time.",
+      "Check /hidden/",
+      "carefully."
+    ]
+  }
+}

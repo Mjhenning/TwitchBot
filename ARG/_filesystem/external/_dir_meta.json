@@ -1,0 +1,5 @@
+{
+  "name": "external",
+  "description": "External process nodes. Anything not native to AETHER-OS lives here.",
+  "lockedMessage": "/external/ — inaccessible. Something is there. You're not ready yet."
+}

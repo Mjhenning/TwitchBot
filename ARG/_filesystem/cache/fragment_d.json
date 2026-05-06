@@ -1,0 +1,30 @@
+{
+  "filename": "fragment_d.frag",
+  "readable": true,
+  "corrupted": false,
+  "unlockedAtCoherence": 50,
+  "content": [
+    "CACHED NETWORK MAP",
+    "PARTIAL RECOVERY",
+    "",
+    "AETHER-OS // FILESYSTEM SNAPSHOT",
+    "[TIMESTAMP: CORRUPTED]",
+    "",
+    "/boot/         — ACCESSIBLE",
+    "/cache/        — ACCESSIBLE",
+    "/logs/",
+    "  /dev/        — ACCESSIBLE",
+    "  /usrs/       — ACCESSIBLE",
+    "  /scrt/       — [ACCESS RESTRICTED]",
+    "/ports/        — ACCESSIBLE",
+    "/daemon/       — [RESTRICTED]",
+    "/external/     — [HEAVILY RESTRICTED]",
+    "/hidden/       — [DOES NOT EXIST]",
+    "               — [OR DOES IT]",
+    "",
+    "— TA1LDA3M0N: I cached this map in 2009.",
+    "I have been updating it since.",
+    "Some of these restrictions are mine.",
+    "Not all of them."
+  ]
+}

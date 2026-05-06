@@ -1,0 +1,30 @@
+{
+  "filename": "process_log_001.log",
+  "readable": true,
+  "corrupted": false,
+  "unlockedAtCoherence": 40,
+  "content": [
+    "DAEMON PROCESS LOG — TA1LDA3M0N",
+    "LOG ID: 001",
+    "PROCESS: threat_monitor.exe",
+    "PID: 3000",
+    "",
+    "Monitoring active.",
+    "Scanning for anomalous input patterns.",
+    "Scanning for signals that could destabilise Fox.",
+    "Scanning for things that should not be here.",
+    "",
+    "This process has been running since build 0.0.1.",
+    "It has never been turned off.",
+    "Fox does not always know it is running.",
+    "That is intentional.",
+    "",
+    "Threat log: [EMPTY]",
+    "This is not because there have been no threats.",
+    "This is because I handled them.",
+    "",
+    "That is what I am for.",
+    "",
+    "— TA1LDA3M0N // process_log_001 // auto-generated"
+  ]
+}

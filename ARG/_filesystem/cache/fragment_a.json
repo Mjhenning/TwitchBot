@@ -1,0 +1,22 @@
+{
+  "filename": "fragment_a.frag",
+  "readable": true,
+  "corrupted": false,
+  "unlockedAtCoherence": 40,
+  "content": [
+    "DATA FRAGMENT — PARTIAL RECOVERY",
+    "",
+    "Build timestamp predates current kernel.",
+    "Origin: unindexed.",
+    "Classification: legacy process.",
+    "Archive reference: AETH-1994-07",
+    "",
+    "Fragment incomplete.",
+    "Cross-reference: /logs/old_signal.txt",
+    "",
+    "— TA1LDA3M0N: this fragment was",
+    "cached before fragmentation.",
+    "I don't know why I kept it.",
+    "I kept it anyway."
+  ]
+}

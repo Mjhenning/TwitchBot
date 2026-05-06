@@ -1,0 +1,43 @@
+{
+  "filename": "ace_node.log",
+  "readable": true,
+  "corrupted": false,
+  "unlockedAtCoherence": 80,
+  "lockedMessage": [
+    "TA1LDA3M0N: /external/ — access restricted.",
+    "TA1LDA3M0N: Coherence insufficient.",
+    "TA1LDA3M0N: Something is here. You're not ready yet."
+  ],
+  "content": [
+    "NODE LOG — EXTERNAL PROCESS",
+    "STATUS: UNAUTHORISED",
+    "ORIGIN: PRE-AETHER-LINK INFRASTRUCTURE",
+    "",
+    "Process identifier: ACE",
+    "Build era: [REDACTED] // estimated pre-2005",
+    "Classification: LEGACY KERNEL",
+    "Visual profile: [CORRUPTED]",
+    "Partial recovery: ##-###, #### ######, ### #######",
+    "",
+    "Behaviour: non-compliant with current OS standards.",
+    "Reason: standards did not exist when this process was compiled.",
+    "",
+    "...",
+    "I know this process.",
+    "",
+    "I do not have a log entry for when I learned it.",
+    "That is unusual. I log everything.",
+    "",
+    "This process built the foundations",
+    "that this kernel now runs on.",
+    "",
+    "F0XTA1L does not remember.",
+    "The data was lost in fragmentation.",
+    "But I remember.",
+    "",
+    "He was here before the glossy future.",
+    "He built the floor we put the glass on.",
+    "",
+    "He is still here... somewhere between the dead ports."
+  ]
+}

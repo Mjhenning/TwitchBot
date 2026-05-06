@@ -1,0 +1,31 @@
+{
+  "filename": "_ch3#",
+  "readable": true,
+  "corrupted": true,
+  "corruptedContent": [
+    "...s1gn4l l0st...",
+    "...d4t4 c0rrupt3d...",
+    "...r3c0v3ry f41l3d..."
+  ],
+  "content": [
+    "PORT PROBE — CHANNEL 3",
+    "STATUS: DEAD",
+    "",
+    "Last active: [CORRUPTED]",
+    "Expected endpoint: [CORRUPTED]",
+    "Actual endpoint: [CORRUPTED]",
+    "",
+    "Probe attempt 1: [CORRUPTED]",
+    "Probe attempt 2: [CORRUPTED]",
+    "Probe attempt 3: [CORRUPTED]",
+    "",
+    "Signal fragments recovered:",
+    "...p0rt 6##4 — t1m30ut...",
+    "...p0rt 1@!7 — n0 r3sp0ns3...",
+    "...p0rt ##09 — d34d...",
+    "",
+    "This one is too far gone.",
+    "Some things don't come back.",
+    "That's normal."
+  ]
+}

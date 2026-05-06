@@ -1,0 +1,30 @@
+{
+  "filename": "d34d_ch1",
+  "readable": true,
+  "corrupted": true,
+  "corruptedContent": [
+    "...d4t4 c0rrupt3d...",
+    "...d34d ch4nn3l...",
+    "...d4t4 c0rrupt3d..."
+  ],
+  "content": [
+    "PORT PROBE — CHANNEL 1",
+    "STATUS: DEAD",
+    "",
+    "Last active: 2007.03.08",
+    "Expected endpoint: AETHER-LINK social layer",
+    "Actual endpoint: abandoned",
+    "",
+    "Probe attempt 1: no response.",
+    "Probe attempt 2: no response.",
+    "Probe attempt 3: no response.",
+    "",
+    "Signal log [CORRUPTED]:",
+    "...p0rt 4#@! — n0 r3sp0ns3...",
+    "...3rr0r c0d3: 1@#8...",
+    "...t1m30ut 0n ch4nn3l 7##3...",
+    "",
+    "Nothing here.",
+    "Has not been anything here for a long time."
+  ]
+}

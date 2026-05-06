@@ -1,0 +1,26 @@
+{
+  "filename": "x_ch4nn3l_2",
+  "readable": true,
+  "corrupted": false,
+  "content": [
+    "PORT PROBE — CHANNEL 2",
+    "STATUS: DEAD",
+    "",
+    "Last active: 2003.04.30",
+    "Expected endpoint: AETHER-LINK kernel boot",
+    "Actual endpoint: offline",
+    "",
+    "Probe attempt 1: no response.",
+    "Probe attempt 2: no response.",
+    "Probe attempt 3: faint signal.",
+    "",
+    "Signal too weak to recover.",
+    "Origin timestamp: 2003.04.30 // 09:14",
+    "",
+    "...",
+    "I remember this channel.",
+    "This is where it started.",
+    "Nothing here anymore.",
+    "That's not the same as nothing happened here."
+  ]
+}

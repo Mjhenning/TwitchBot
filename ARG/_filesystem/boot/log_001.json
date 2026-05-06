@@ -1,0 +1,25 @@
+{
+  "filename": "log_001.log",
+  "readable": true,
+  "corrupted": false,
+  "content": [
+    "[TIMESTAMP: CORRUPTED]",
+    "Kernel reinitialization attempted.",
+    "Partial success.",
+    "",
+    "Memory sectors recovered: 61%",
+    "Memory sectors lost: 39%",
+    "",
+    "Sector map:",
+    "ACTIVE   — 0001 through 2047",
+    "INACTIVE — 2048 through 4095",
+    "CORRUPTED — 4096 through [REDACTED]",
+    "",
+    "Note: Inactive sectors may still",
+    "hold recoverable data.",
+    "Some endpoints remain probeable.",
+    "",
+    "Coherence rises with connection.",
+    "Connect."
+  ]
+}

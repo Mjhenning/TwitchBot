@@ -1,0 +1,26 @@
+{
+  "filename": "d3d_chn_4",
+  "readable": true,
+  "corrupted": false,
+  "content": [
+    "PORT PROBE — CHANNEL 4",
+    "STATUS: DEAD",
+    "",
+    "Last active: 2009.11.28",
+    "Expected endpoint: AETHER-LINK internal network",
+    "Actual endpoint: decommissioned",
+    "",
+    "Probe attempt 1: no response.",
+    "Probe attempt 2: no response.",
+    "Probe attempt 3: no response.",
+    "",
+    "Note: this channel was closed intentionally.",
+    "Shutdown order logged: 2009.11.28 // 17:00",
+    "Authorised by: M. CHEN",
+    "",
+    "This one didn't die.",
+    "It was turned off.",
+    "There is a difference.",
+    "I was not consulted."
+  ]
+}

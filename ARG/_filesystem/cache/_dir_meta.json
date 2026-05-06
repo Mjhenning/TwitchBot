@@ -1,0 +1,6 @@
+{
+  "name": "cache",
+  "description": "Recovered data fragments. Cached before fragmentation.",
+  "unlockedByEvent": "stage_1_complete",
+  "lockedMessage": "/cache/ — inaccessible. Signal too weak."
+}

@@ -1,0 +1,27 @@
+{
+  "filename": "fragment_b.frag",
+  "readable": true,
+  "corrupted": false,
+  "unlockedAtCoherence": 40,
+  "content": [
+    "DATA FRAGMENT — PARTIAL RECOVERY",
+    "",
+    "Recovered communication thread.",
+    "Origin: AETHER-LINK internal network.",
+    "Classification: personnel correspondence.",
+    "Status: partially corrupted.",
+    "",
+    "Multiple voices detected in fragment.",
+    "At least three distinct users.",
+    "Timestamps recoverable.",
+    "Content: [DEGRADED]",
+    "",
+    "Full logs may exist in /logs/dev/",
+    "Access unknown.",
+    "Coherence may be insufficient.",
+    "",
+    "— TA1LDA3M0N: I kept these too.",
+    "All of them.",
+    "Every word."
+  ]
+}

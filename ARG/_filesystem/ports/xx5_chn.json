@@ -1,0 +1,30 @@
+{
+  "filename": "xx5_chn",
+  "readable": true,
+  "corrupted": true,
+  "corruptedContent": [
+    "...s1gn4l d3gr4d3d...",
+    "...p4rt14l r3c0v3ry...",
+    "...st4nd1ng by..."
+  ],
+  "content": [
+    "PORT PROBE — CHANNEL 5",
+    "STATUS: DEGRADED",
+    "",
+    "Last active: [CORRUPTED]",
+    "Expected endpoint: GLOSSO-SPHERE social layer",
+    "Actual endpoint: fragmented",
+    "",
+    "Partial signal log:",
+    "...p0rt 3##7 — fr4gm3nt3d...",
+    "...p0rt 8#!1 — t1m30ut...",
+    "...p0rt 4@#2 — p4rt14l...",
+    "",
+    "Some fragments recoverable.",
+    "Most are not.",
+    "",
+    "This one is still trying.",
+    "It hasn't accepted that it's dead yet.",
+    "I understand that."
+  ]
+}
