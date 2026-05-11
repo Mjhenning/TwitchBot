@@ -31,5 +31,13 @@
     "interval": "60m",
     "offsetMin": "1s",
     "offsetMax": "10m"
+  },
+  {
+    "id": "checkin",
+    "type": "message",
+    "function": "🫧 Remember to checkin daily with !system connect to grow your glossels and keep your connection! Other currency commands include !glossels, !top5 and !rank 🫧",
+    "interval": "20m",
+    "offsetMin": "1s",
+    "offsetMax": "5m"
   }
 ]
