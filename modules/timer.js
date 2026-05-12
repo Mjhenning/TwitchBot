@@ -1,8 +1,8 @@
 // modules/timer.js
 const fs = require('fs');
 const path = require('path');
-const { getIsOnline, onOnline, onOffline } = require('./stream-state');
-const { discordCommand, ytCommand, devCommand, getSsrEnabled } = require('../commands/registry');
+const {getIsOnline, onOnline, onOffline} = require('./stream-state');
+const {discordCommand, ytCommand, getSsrEnabled} = require('../commands/registry');
 
 const COMMANDS_FILE = path.join(__dirname, '../data/timed_commands.json');
 
@@ -12,7 +12,6 @@ const conditionMap = {
 
 const functionMap = {
     discordCommand,
-    devCommand,
     ytCommand
 };
 
@@ -22,7 +21,7 @@ function parseTime(value) {
     if (!match) throw new Error(`[Timer] Invalid time format: "${value}"`);
     const num = parseInt(match[1]);
     const unit = match[2];
-    const multipliers = { ms: 1, s: 1000, m: 60000, h: 3600000 };
+    const multipliers = {ms: 1, s: 1000, m: 60000, h: 3600000};
     return num * multipliers[unit];
 }
 
@@ -110,4 +109,4 @@ function startTimers(client, channel) {
     console.log(`[Timer] ${entries.length} timed command(s) scheduled`);
 }
 
-module.exports = { startTimers };
+module.exports = {startTimers};
