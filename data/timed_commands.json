@@ -8,20 +8,12 @@
     "offsetMax": "5s"
   },
   {
-    "id": "dev",
-    "type": "function",
-    "function": "devCommand",
-    "interval": "60m",
-    "offsetMin": "1s",
-    "offsetMax": "10m"
-  },
-  {
     "id": "ssr_reminder",
     "type": "message",
     "message": "🎶 Want to request a song? Use !ssr followed by a song name or YouTube link! ✧",
-    "interval": "30m",
+    "interval": "120m",
     "offsetMin": "1s",
-    "offsetMax": "15s",
+    "offsetMax": "60s",
     "condition": "ssrEnabled"
   },
   {
