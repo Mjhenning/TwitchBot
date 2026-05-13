@@ -1,6 +1,0 @@
-{
-  "name": "ports",
-  "description": "Dead channel endpoints. Most of these go nowhere.",
-  "unlockedByEvent": "redeems_announced",
-  "lockedMessage": "/ports/ — inaccessible. Not yet."
-}
