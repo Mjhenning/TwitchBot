@@ -1,6 +1,6 @@
 // modules/cooldown.js
 const cooldowns = new Map(); // key: userId:command → timestamp
-const COMMAND_COOLDOWN = 120000; // 2 minutes
+const COMMAND_COOLDOWN = 30000; // 30 seconds
 
 function getCooldownRemaining(userId, command) {
     const key = `${userId}:${command}`;
@@ -45,4 +45,4 @@ function handleCooldown(userId, senderName, command, tags, client, channel) {
     return false;
 }
 
-module.exports = { handleCooldown, isModOrBroadcaster, formatTime };
+module.exports = {handleCooldown, isModOrBroadcaster, formatTime};

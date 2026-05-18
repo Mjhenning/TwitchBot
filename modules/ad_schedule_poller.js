@@ -1,57 +1,113 @@
 // modules/ad_schedule_poller.js
 const axios = require('axios');
+const {
+    getIsOnline,
+    onOnline,
+    onOffline
+} = require('./stream-state');
 
 let pollInterval = null;
-const WARN_SECONDS_BEFORE = 50; // warn 50 seconds out
-let hasWarnedForCurrentBreak = false;
 
-async function getNextAdAt(config) {
+const WARN_SECONDS_BEFORE = 90;
+
+// Track exact ad timestamp warned for
+let warnedAdAt = null;
+
+async function getAdSchedule(config) {
     const res = await axios.get(
         'https://api.twitch.tv/helix/channels/ads',
         {
-            params: { broadcaster_id: config.CHANNEL_ID },
+            params: {
+                broadcaster_id: config.CHANNEL_ID
+            },
             headers: {
-                'Client-ID':     config.CLIENT_ID,
+                'Client-ID': config.CLIENT_ID,
                 'Authorization': `Bearer ${config.BROADCASTER_ACCESS_TOKEN}`
             }
         }
     );
-    return res.data?.data?.[0]?.next_ad_at ?? null; // ISO string or null
+
+    return res.data?.data?.[0] ?? null;
+}
+
+function beginPolling(client, config) {
+    // Prevent duplicates
+    if (pollInterval) return;
+
+    console.log('[AdPoller] Waiting 60s before activation...');
+
+    setTimeout(() => {
+        if (!getIsOnline()) {
+            console.log('[AdPoller] Stream went offline before startup');
+            return;
+        }
+
+        console.log('[AdPoller] Started');
+
+        pollInterval = setInterval(async () => {
+            try {
+                const adData = await getAdSchedule(config);
+
+                if (!adData?.next_ad_at) {
+                    console.log('[AdPoller] No scheduled ad');
+                    return;
+                }
+
+                const secondsUntil =
+                    Math.floor(
+                        (new Date(adData.next_ad_at).getTime() - Date.now()) / 1000
+                    );
+
+                console.log(`[AdPoller] Next ad in ${secondsUntil}s`);
+
+                if (
+                    secondsUntil > 0 &&
+                    secondsUntil <= WARN_SECONDS_BEFORE &&
+                    warnedAdAt !== adData.next_ad_at
+                ) {
+                    warnedAdAt = adData.next_ad_at;
+
+                    await client.say(
+                        `#${config.CHANNEL_NAME}`,
+                        `⚠️ Bitrot interference nearing the Glosso-Sphere in ~${secondsUntil}s! Finish your messages and stay connected 📡`
+                    );
+
+                    console.log('[AdPoller] Warning sent');
+                }
+
+            } catch (err) {
+                console.error(
+                    '[AdPoller] Failed:',
+                    err.response?.data || err.message || err
+                );
+            }
+        }, 15_000);
+
+    }, 60_000);
+}
+
+function stopPolling() {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+
+    warnedAdAt = null;
+
+    console.log('[AdPoller] Stopped');
 }
 
 function startAdSchedulePoller(client, config) {
-    pollInterval = setInterval(async () => {
-        try {
-            const nextAdAt = await getNextAdAt(config);
-            if (!nextAdAt) return;
+    onOnline(() => beginPolling(client, config));
+    onOffline(stopPolling);
 
-            const secondsUntil = (new Date(nextAdAt) - Date.now()) / 1000;
-
-            if (secondsUntil > 0 && secondsUntil <= WARN_SECONDS_BEFORE && !hasWarnedForCurrentBreak) {
-                hasWarnedForCurrentBreak = true;
-                const mins = Math.round(secondsUntil / 60);
-                console.log(`AdPoller: Ad break in ~${Math.round(secondsUntil)}s`);
-                client.say(
-                    `#${config.CHANNEL_NAME}`,
-                    `⚠️ Bitrot interference nearing the Glosso-Sphere in ~${mins} minute${mins !== 1 ? 's' : ''}! Finish your messages and stay connected 📡`
-                ).catch(err => console.error('AdPoller: Warning message failed:', err));
-            }
-
-            // Reset flag once the ad has passed so the next break can warn again
-            if (secondsUntil < 0) {
-                hasWarnedForCurrentBreak = false;
-            }
-        } catch (err) {
-            console.error('AdPoller: Failed to fetch ad schedule:', err.response?.data || err);
-        }
-    }, 30_000); // poll every 30 seconds
-
-    console.log('AdPoller: Started');
+    if (getIsOnline()) {
+        beginPolling(client, config);
+    } else {
+        console.log('[AdPoller] Waiting for stream to go online...');
+    }
 }
 
-function stopAdSchedulePoller() {
-    clearInterval(pollInterval);
-    console.log('AdPoller: Stopped');
-}
-
-module.exports = { startAdSchedulePoller, stopAdSchedulePoller };
+module.exports = {
+    startAdSchedulePoller
+};

@@ -135,5 +135,22 @@
       "Check /hidden/",
       "carefully."
     ]
-  }
+  },
+  "1995": {
+    "label": "ace_voice_module",
+    "type": "discovery",
+    "alreadyProbedMessage": "Port 1995 — already restored. The voice module is active.",
+    "announce": [
+        "Port 1995.",
+        "...",
+        "This one was buried.",
+        "I found it during routine maintenance.",
+        "It predates the Glosso-Sphere.",
+        "It predates Fox.",
+        "It is not mine.",
+        "But it belongs here.",
+        "Voice module restored.",
+        "Ace can speak now."
+    ]
+}
 }
