@@ -419,7 +419,7 @@ function handleSysConnect(client, channel, userId, username) {
 }
 
 function handleSysPing(client, channel) {
-    const coherence = sysAddCoherence(1);
+    const coherence = sysAddCoherence(2);
 
     const tier = coherence >= 70 ? 'high' : coherence >= 40 ? 'mid' : 'low';
 
