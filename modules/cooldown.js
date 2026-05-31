@@ -1,12 +1,13 @@
 // modules/cooldown.js
 const cooldowns = new Map(); // key: userId:command → timestamp
-const COMMAND_COOLDOWN = 30000; // 30 seconds
+const COMMAND_COOLDOWN = 5; // fallabck 30 seconds
 
-function getCooldownRemaining(userId, command) {
+function getCooldownRemaining(userId, command, customCooldown = null) {
     const key = `${userId}:${command}`;
     if (!cooldowns.has(key)) return 0;
     const elapsed = Date.now() - cooldowns.get(key);
-    return Math.max(0, COMMAND_COOLDOWN - elapsed);
+    const duration = (customCooldown ?? COMMAND_COOLDOWN) * 1000;
+    return Math.max(0, duration - elapsed);
 }
 
 function setCooldown(userId, command) {
@@ -26,10 +27,10 @@ function isModOrBroadcaster(tags) {
     return tags.mod || tags.badges?.broadcaster === '1';
 }
 
-function handleCooldown(userId, senderName, command, tags, client, channel) {
+function handleCooldown(userId, senderName, command, tags, client, channel, customCooldown = null) {
     if (isModOrBroadcaster(tags)) return false;
 
-    const remaining = getCooldownRemaining(userId, command);
+    const remaining = getCooldownRemaining(userId, command, customCooldown);
     if (remaining > 0) {
         const cooldownMsgs = [
             `${senderName}... that process is still cooling (${formatTime(remaining)}) 🫧`,

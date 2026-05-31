@@ -127,7 +127,7 @@ function setupChatCommands(client, config) {
             return;
         }
 
-        if (lower.startsWith('!ssr')) {
+        if (lower.startsWith('!ssr', 30)) {
             await ssrCommand(client, channel, senderName, msg, isBroadcaster);
             return;
         }
