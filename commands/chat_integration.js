@@ -76,8 +76,8 @@ function setupChatCommands(client, config) {
 
         //--------------------------------- FUNCTIONAL HELPERS ------------------------------------
 
-        function handleCooldown(command, customcooldown = null) {
-            return _handleCooldown(userId, senderName, command, tags, client, channel, customcooldown);
+        function handleCooldown(command, customCooldown = null) {
+            return _handleCooldown(userId, senderName, command, tags, client, channel, customCooldown);
         }
 
         // ------------------- auto-unlurk -------------------
