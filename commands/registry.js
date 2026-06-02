@@ -1,22 +1,31 @@
 const axios = require('axios');
 
-const { config } = require('../config');
+const {config} = require('../config');
 
 
-const { createClip } = require('../modules/clipping');
-const { getFollowage } = require('../modules/followage');
-const { startLurk, isLurking } = require('../modules/lurk_tracker');
-const { simulateFollow, simulateRaid, simulateAdBreak } = require("../modules/testing_events");
+const {createClip} = require('../modules/clipping');
+const {getFollowage} = require('../modules/followage');
+const {startLurk, isLurking} = require('../modules/lurk_tracker');
+const {simulateFollow, simulateRaid, simulateAdBreak} = require("../modules/testing_events");
 
-const { clearQueue } = require('../modules/ssr-queue');
-const { getCurrentSong, getQueueWithCurrent, searchSong, getSongByVideoId, addSongToSSRQueue, skipSong } = require('../modules/pear-desktop-music');
+const {clearQueue} = require('../modules/ssr-queue');
+const {
+    getCurrentSong,
+    getQueueWithCurrent,
+    searchSong,
+    getSongByVideoId,
+    addSongToSSRQueue,
+    skipSong
+} = require('../modules/pear-desktop-music');
 
-const{ retrieveGlossels, getUserRank, getTop5 } = require('../modules/glossels');
+const {retrieveGlossels, getUserRank, getTop5} = require('../modules/glossels');
 
-const{ handleSys, handleSysHelp, handleSysDir, handleSysRead
+const {
+    handleSys, handleSysHelp, handleSysDir, handleSysRead
     , sysHandleProbe, handleSysConnect
     , handleSysPing, handleSysLs, sysAddCoherence, handleSysCwd,
-    sysIsTerminalActive, sysResetSession } = require('../ARG/modules/arg_main')
+    sysIsTerminalActive, sysResetSession
+} = require('../ARG/modules/arg_main')
 
 
 //--------------------------------- HELPERS ------------------------------------
@@ -29,7 +38,9 @@ function formatTime(ms) {
     return `${sec}s`;
 }
 
-function getSsrEnabled() { return ssrEnabled; }
+function getSsrEnabled() {
+    return ssrEnabled;
+}
 
 //--------------------------------- STRING COMMANDS ------------------------------------
 
@@ -91,7 +102,7 @@ function lurkCommand(client, channel, userId, senderName) {
     client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
 }
 
-function tailCommand(client){
+function tailCommand(client) {
     let warmResponse = false;
     const tailResponses = [
         `I/O management. Port monitoring. System integrity. That is what I am for.`,
@@ -113,7 +124,7 @@ function tailCommand(client){
         warmResponse = !warmResponse;
     }
 
-    warmResponse? client.say(config.CHANNEL_NAME, warmResponses[Math.floor(Math.random() * warmResponses.length)]) : 
+    warmResponse ? client.say(config.CHANNEL_NAME, warmResponses[Math.floor(Math.random() * warmResponses.length)]) :
         client.say(config.CHANNEL_NAME, tailResponses[Math.floor(Math.random() * tailResponses.length)]);
 }
 
@@ -179,7 +190,7 @@ async function followAgeCommand(client, channel, userId, senderName, msg) {
 
 //--------------------------------- TWITCH TEST COMMANDS ------------------------------------
 
-function followTestCommand(client, senderName){
+function followTestCommand(client, senderName) {
     simulateFollow(client, config, senderName);
 }
 
@@ -195,8 +206,6 @@ function adBreakTestCommand(client, durationSeconds = 30, isAutomatic = true, re
 //--------------------------------- SSR & MUSIC COMMANDS ------------------------------------
 
 // ------------------- SSR global cooldown -------------------
-let lastSSRTime = 0;
-const SSR_COOLDOWN = 4 * 60 * 1000; // 4 minutes
 let ssrEnabled = false;
 
 async function ssrCommand(client, channel, senderName, msg, isBroadcaster) {
@@ -210,15 +219,6 @@ async function ssrCommand(client, channel, senderName, msg, isBroadcaster) {
     if (!query) {
         client.say(channel, `${senderName}... provide a song name or YouTube link ✧`);
         return;
-    }
-
-    // global cooldown check — broadcaster bypasses entirely
-    if (!isBroadcaster) {
-        const remaining = SSR_COOLDOWN - (Date.now() - lastSSRTime);
-        if (remaining > 0) {
-            client.say(channel, `⚠️ Song requests are on cooldown... try again in ${formatTime(remaining)} ✧`);
-            return;
-        }
     }
 
     const urlMatch = query.match(/(?:youtube\.com\/watch\?v=|music\.youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -259,7 +259,7 @@ async function qCommand(client, channel) {
     }
 }
 
-async function currentSongCommand(client, channel){
+async function currentSongCommand(client, channel) {
     const song = await getCurrentSong();
     if (song) {
         client.say(channel, `🎶 ${song.artist} - ${song.title} 🎶`);
@@ -268,31 +268,31 @@ async function currentSongCommand(client, channel){
     }
 }
 
-function clearQCommand(client, channel){
+function clearQCommand(client, channel) {
     clearQueue();
     client.say(channel, `🗑️ SSR queue cleared ✧`);
 }
 
-function closeQCommand(client, channel){
+function closeQCommand(client, channel) {
     ssrEnabled = false;
     clearQueue();
     client.say(channel, `🛑 Song requests closed and queue cleared ✧`);
 }
 
-function openQCommand(client, channel){
+function openQCommand(client, channel) {
     ssrEnabled = true;
     client.say(channel, `✅ Song requests are now open! Use !ssr to request a song 🎶`);
 }
 
 //--------------------------------- GLOSSELS ------------------------------------
 
-function getBalanceCommand(client, channel, userId, senderName){
+function getBalanceCommand(client, channel, userId, senderName) {
     const amount = retrieveGlossels(userId, senderName);
 
     client.say(channel, `${senderName} has acquired a total of ${amount} Glossels by maintaining their connection! 🫧`);
 }
 
-function getRankCommand(client, channel, userId, senderName){
+function getRankCommand(client, channel, userId, senderName) {
     const rank = getUserRank(userId);
 
     if (!rank) {
@@ -303,7 +303,7 @@ function getRankCommand(client, channel, userId, senderName){
     client.say(channel, `${senderName} is ranked #${rank}, thank you for your continued support in keeping us online! 💾`);
 }
 
-function getTop5Command(client, channel){
+function getTop5Command(client, channel) {
     const top = getTop5();
 
     if (top.length === 0) {
@@ -320,12 +320,15 @@ function getTop5Command(client, channel){
 
 //--------------------------------- ARG ------------------------------------
 
-function argSystemCommand(client, channel, userId, senderName, tags, msg){
+function argSystemCommand(client, channel, userId, senderName, tags, msg) {
     const parts = msg.trim().split(/\s+/);
-    const sub   = parts[1]?.toLowerCase();
-    const args  = parts.slice(2).join(' ') || null;
+    const sub = parts[1]?.toLowerCase();
+    const args = parts.slice(2).join(' ') || null;
 
-    if (!sub) { handleSys(client, channel); return true; }
+    if (!sub) {
+        handleSys(client, channel);
+        return true;
+    }
 
     // terminal must be activated first
     // allow !system (no subcommand) through always so they can activate it
@@ -335,27 +338,46 @@ function argSystemCommand(client, channel, userId, senderName, tags, msg){
     }
 
     switch (sub) {
-        case 'help':    handleSysHelp(client, channel);                        break;
-        case 'ls' :     handleSysLs(client, channel);                          break;
-        case 'cwd':     handleSysCwd(client, channel);                         break;
-        case 'dir':     handleSysDir(client, channel, args);                   break;
-        case 'read':    handleSysRead(client, channel, args);                  break;
-        case 'probe':   sysHandleProbe(client, channel, args);                   break;
-        case 'connect': handleSysConnect(client, channel, userId, senderName); break;
-        case 'ping':    handleSysPing(client, channel);                        break;
+        case 'help':
+            handleSysHelp(client, channel);
+            break;
+        case 'ls' :
+            handleSysLs(client, channel);
+            break;
+        case 'cwd':
+            handleSysCwd(client, channel);
+            break;
+        case 'dir':
+            handleSysDir(client, channel, args);
+            break;
+        case 'read':
+            handleSysRead(client, channel, args);
+            break;
+        case 'probe':
+            sysHandleProbe(client, channel, args);
+            break;
+        case 'connect':
+            handleSysConnect(client, channel, userId, senderName);
+            break;
+        case 'ping':
+            handleSysPing(client, channel);
+            break;
         default:
             client.say(channel, `Unknown subcommand — ${sub}. Run !system help.`);
     }
 }
 
-function argSystemAdminCommand(client, channel, userId, senderName, tags, msg){ //specifically for mods
+function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) { //specifically for mods
     const parts = msg.trim().split(/\s+/);
-    const sub   = parts[1]?.toLowerCase();
+    const sub = parts[1]?.toLowerCase();
 
     // !arg probe [port]
     if (sub === 'probe') {
         const port = parseInt(parts[2]);
-        if (isNaN(port)) { client.say(channel, `Usage — !arg probe [port]`); return true; }
+        if (isNaN(port)) {
+            client.say(channel, `Usage — !arg probe [port]`);
+            return true;
+        }
         sysHandleProbe(client, channel, parts[2]);
         return true;
     }
@@ -363,7 +385,10 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg){ 
     // !arg coherence [amount]
     if (sub === 'coherence') {
         const amount = parseInt(parts[2]);
-        if (isNaN(amount)) { client.say(channel, `Usage — !arg coherence [amount]`); return true; }
+        if (isNaN(amount)) {
+            client.say(channel, `Usage — !arg coherence [amount]`);
+            return true;
+        }
         const newCoherence = sysAddCoherence(amount);
         client.say(channel, `Coherence manually adjusted. Current: ${newCoherence}%`);
         return true;
@@ -388,30 +413,30 @@ module.exports = {
     backseatCommand,
     lurkCommand,
     tailCommand,
-    
-    
+
+
     clipCommand,
     followAgeCommand,
-    
+
     followTestCommand,
     raidTestCommand,
     adBreakTestCommand,
-    
+
     ssrCommand,
     skipCommand,
     qCommand,
     currentSongCommand,
-    
+
     clearQCommand,
     closeQCommand,
     openQCommand,
 
     getSsrEnabled,
-    
+
     getBalanceCommand,
     getRankCommand,
     getTop5Command,
-    
+
     argSystemCommand,
     argSystemAdminCommand
 };

@@ -46,4 +46,4 @@ function handleCooldown(userId, senderName, command, tags, client, channel, cust
     return false;
 }
 
-module.exports = {handleCooldown, isModOrBroadcaster, formatTime};
+module.exports = {handleCooldown};

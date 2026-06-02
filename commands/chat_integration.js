@@ -76,8 +76,8 @@ function setupChatCommands(client, config) {
 
         //--------------------------------- FUNCTIONAL HELPERS ------------------------------------
 
-        function handleCooldown(command) {
-            return _handleCooldown(userId, senderName, command, tags, client, channel);
+        function handleCooldown(command, customcooldown = null) {
+            return _handleCooldown(userId, senderName, command, tags, client, channel, customcooldown);
         }
 
         // ------------------- auto-unlurk -------------------
@@ -127,7 +127,8 @@ function setupChatCommands(client, config) {
             return;
         }
 
-        if (lower.startsWith('!ssr', 30)) {
+        if (lower.startsWith('!ssr')) {
+            if (handleCooldown('ssr', 30)) return;
             await ssrCommand(client, channel, senderName, msg, isBroadcaster);
             return;
         }
