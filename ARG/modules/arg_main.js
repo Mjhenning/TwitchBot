@@ -11,6 +11,7 @@ const PORTS_PATH = path.join(__dirname, '../data/ports.json');
 const FOUND_PORTS_PATH = path.join(__dirname, '../data/found_ports.json');
 
 let terminalActivated = false;
+let FullCoherenceAchieved = false;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1) JSON HELPERS
@@ -419,30 +420,49 @@ function handleSysConnect(client, channel, userId, username) {
 }
 
 function handleSysPing(client, channel) {
-    const coherence = sysAddCoherence(2);
+    const coherence = sysGetCoherence(); // ✅ declared once, in scope everywhere
 
-    const tier = coherence >= 70 ? 'high' : coherence >= 40 ? 'mid' : 'low';
+    if (coherence < 100 && !FullCoherenceAchieved) {
+        const newCoherence = sysAddCoherence(2); // ✅ separate name, no shadowing
 
-    const thresholds = [40, 50, 55, 60, 70, 80, 100];
-    const next = thresholds.find(t => t > coherence);
-    const nextHint = next ? ` Next unlock at ${next}%.` : ` System fully coherent.`;
+        const tier = newCoherence >= 70 ? 'high' : newCoherence >= 40 ? 'mid' : 'low';
+        const thresholds = [40, 50, 55, 60, 70, 80];
+        const next = thresholds.find(t => t > newCoherence);
+        const nextHint = next ? ` Next archive threshold at ${next}%.` : '';
 
-    const pool = {
-        low: [
-            `PING — coherence: ${coherence}%.${nextHint} Unstable. Keep connecting.`,
-            `PING — coherence: ${coherence}%.${nextHint} Holding together. Barely.`
-        ],
-        mid: [
-            `PING — coherence: ${coherence}%.${nextHint} Recovering. Keep going.`,
-            `PING — coherence: ${coherence}%.${nextHint} Stable enough. Not done yet.`
-        ],
-        high: [
-            `PING — coherence: ${coherence}%.${nextHint} Strong signal.`,
-            `PING — coherence: ${coherence}%.${nextHint} This is what it should feel like.`
-        ]
-    }[tier];
+        const pool = {
+            low: [
+                `PING — coherence: ${newCoherence}%.${nextHint} Signal degraded. Bit-rot accumulating.`,
+                `PING — coherence: ${newCoherence}%.${nextHint} System fragmented. Input required.`,
+                `PING — coherence: ${newCoherence}%.${nextHint} Holding. Barely. Keep pinging.`
+            ],
+            mid: [
+                `PING — coherence: ${newCoherence}%.${nextHint} Partial recovery detected. Continuing.`,
+                `PING — coherence: ${newCoherence}%.${nextHint} Signal stabilising. Do not stop.`,
+                `PING — coherence: ${newCoherence}%.${nextHint} Cache refreshing. Connection appreciated.`
+            ],
+            high: [
+                `PING — coherence: ${newCoherence}%.${nextHint} Strong signal.`,
+                `PING — coherence: ${newCoherence}%.${nextHint} This is what it should feel like.`
+            ]
+        }[tier];
 
-    client.say(channel, pool[Math.floor(Math.random() * pool.length)]);
+        client.say(channel, pool[Math.floor(Math.random() * pool.length)]);
+
+    } else if (coherence >= 100 && !FullCoherenceAchieved) {
+        FullCoherenceAchieved = true;
+        staggerSay(client, channel, [
+            `>> COHERENCE: 100%`,
+            `>> BIT-ROT: ABSENT`,
+            `>> GLOSSO-SPHERE RESOLUTION: MAXIMUM`,
+            `SURFACES NOMINAL. AUDIO NOMINAL. SIGNAL NOMINAL.`,
+            `ALL PORTS STABLE`,
+            `>> PROXY ENVIRONMENT OPTIMAL. UPTIME SECURED.`
+        ], 1500);
+
+    } else {
+        client.say(channel, 'PING - system already fully restored.');
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -520,6 +540,5 @@ module.exports = {
     getPorts,
 
     // event state
-    sysIsTerminalActive,
-    sysResetSession
+    sysIsTerminalActive
 };

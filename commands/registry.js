@@ -24,7 +24,7 @@ const {
     handleSys, handleSysHelp, handleSysDir, handleSysRead
     , sysHandleProbe, handleSysConnect
     , handleSysPing, handleSysLs, sysAddCoherence, handleSysCwd,
-    sysIsTerminalActive, sysResetSession
+    sysIsTerminalActive
 } = require('../ARG/modules/arg_main')
 
 
@@ -394,12 +394,12 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
         return true;
     }
 
-    // !arg reset
-    if (sub === 'reset') {
-        sysResetSession();
-        client.say(channel, `ARG event state reset. Starting fresh.`);
-        return true;
-    }
+    // // !arg reset
+    // if (sub === 'reset') {
+    //     sysResetSession();
+    //     client.say(channel, `ARG event state reset. Starting fresh.`);
+    //     return true;
+    // }
 
     return false;
 }
