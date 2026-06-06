@@ -27,7 +27,8 @@ const {
     skipCommand,
     qCommand,
     currentSongCommand,
-    tailCommand
+    tailCommand,
+    fishCommand
 } = require('./registry');
 
 const {getBalanceCommand, getRankCommand, getTop5Command} = require('./registry');
@@ -205,6 +206,11 @@ function setupChatCommands(client, config) {
 
         if (lower.startsWith('!sysAdmin')) {
             argSystemAdminCommand(client, channel, userId, senderName, tags, msg);
+            return
+        }
+
+        if (hasCommand(lower, '!fish') || hasCommand(lower, '!feesh') || hasCommand(lower, '!fih')) {
+            fishCommand(client);
             return
         }
 

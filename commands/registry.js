@@ -128,6 +128,23 @@ function tailCommand(client) {
         client.say(config.CHANNEL_NAME, tailResponses[Math.floor(Math.random() * tailResponses.length)]);
 }
 
+function fishCommand(client) {
+    const pool = [
+        `fih`,
+        `F I H`,
+        `f i h`,
+        `fih.`,
+        `...fih`,
+        `fih 🐟`,
+        `F I H 🐟`,
+        `fih fih fih`,
+        `the fih has been acknowledged.`,
+        `[fih detected]`,
+        'ENTITY DETECTED: fih'
+    ];
+    client.say(channel, pool[Math.floor(Math.random() * pool.length)]);
+}
+
 
 //--------------------------------- TWITCH FUNCTION COMMANDS ------------------------------------
 async function clipCommand(client, channel, senderName) {
@@ -413,6 +430,7 @@ module.exports = {
     backseatCommand,
     lurkCommand,
     tailCommand,
+    fishCommand,
 
 
     clipCommand,
