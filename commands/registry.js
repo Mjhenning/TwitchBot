@@ -128,7 +128,7 @@ function tailCommand(client) {
         client.say(config.CHANNEL_NAME, tailResponses[Math.floor(Math.random() * tailResponses.length)]);
 }
 
-function fishCommand(client) {
+function fishCommand(client, channel) {
     const pool = [
         `fih`,
         `F I H`,

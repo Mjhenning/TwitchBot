@@ -210,7 +210,7 @@ function setupChatCommands(client, config) {
         }
 
         if (hasCommand(lower, '!fish') || hasCommand(lower, '!feesh') || hasCommand(lower, '!fih')) {
-            fishCommand(client);
+            fishCommand(client, channel);
             return
         }
 
