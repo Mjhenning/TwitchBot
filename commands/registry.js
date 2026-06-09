@@ -256,8 +256,6 @@ async function ssrCommand(client, channel, senderName, msg, isBroadcaster) {
 
     await addSongToSSRQueue(result.videoId, result.title, senderName);
 
-    if (!isBroadcaster) lastSSRTime = Date.now();
-
     client.say(channel, `✅ ${senderName}, queued: ${result.title} → https://music.youtube.com/watch?v=${result.videoId} 💾`);
 }
 
