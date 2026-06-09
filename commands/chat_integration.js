@@ -128,8 +128,8 @@ function setupChatCommands(client, config) {
             return;
         }
 
-        if (lower.startsWith('!ssr')) {
-            if (handleCooldown('ssr', 30)) return;
+        if (lower.startsWith('!sr')) {
+            if (handleCooldown('sr', 30)) return;
             await ssrCommand(client, channel, senderName, msg, isBroadcaster);
             return;
         }
