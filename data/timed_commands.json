@@ -10,7 +10,7 @@
   {
     "id": "ssr_reminder",
     "type": "message",
-    "message": "🎶 Want to request a song? Use !ssr followed by a song name or YouTube link! ✧",
+    "message": "🎶 Want to request a song? Use !sr followed by a song name or YouTube link! ✧",
     "interval": "120m",
     "offsetMin": "1s",
     "offsetMax": "60s",
