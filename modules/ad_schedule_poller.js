@@ -110,5 +110,5 @@ function startAdSchedulePoller(client, config) {
 
 module.exports = {
     startAdSchedulePoller,
-    stopAdSchedulePoller: stopPollig
+    stopAdSchedulePoller: stopPolling
 };
