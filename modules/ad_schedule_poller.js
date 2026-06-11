@@ -60,6 +60,7 @@ function beginPolling(client, config) {
 
                 console.log(`[AdPoller] Next ad in ${secondsUntil}s`);
 
+                // Warn any time we're within the window, regardless of exact poll timing
                 if (
                     secondsUntil > 0 &&
                     secondsUntil <= WARN_SECONDS_BEFORE &&
@@ -75,13 +76,15 @@ function beginPolling(client, config) {
                     console.log('[AdPoller] Warning sent');
                 }
 
+                // Reset warnedAdAt once the ad has passed so next one works
+                if (secondsUntil <= 0 && warnedAdAt === adData.next_ad_at) {
+                    warnedAdAt = null;
+                }
+
             } catch (err) {
-                console.error(
-                    '[AdPoller] Failed:',
-                    err.response?.data || err.message || err
-                );
+                console.error('[AdPoller] Failed:', err.response?.data || err.message || err);
             }
-        }, 15_000);
+        }, 5_000); // ← 5s instead of 15s
 
     }, 60_000);
 }
