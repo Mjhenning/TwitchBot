@@ -214,12 +214,14 @@ async function initPearToken() {
     if (!config.PEAR_ACCESS_TOKEN) {
         try {
             const res = await axios.post(
-                `${config.PEAR_HOST}:${config.PEAR_PORT}/auth/${config.PEAR_ID}`
+                `${config.PEAR_HOST}:${config.PEAR_PORT}/auth/${config.PEAR_ID}`,
+                {},
+                {timeout: 3000}  // ← give up after 3 seconds
             );
             config.PEAR_ACCESS_TOKEN = res.data.accessToken;
             if (config.DEBUG) console.log('[DEBUG] Pear token fetched');
         } catch (err) {
-            console.error('[ERROR] Pear auth failed:', err.message);
+            console.warn('[WARN] Pear unavailable, SSR features disabled:', err.message);
         }
     }
 }
@@ -253,4 +255,4 @@ async function initTokens() {
     return config;
 }
 
-module.exports = {config, initTokens};
+module.exports = {config, initTokens, initPearToken};

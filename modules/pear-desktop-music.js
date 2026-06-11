@@ -1,5 +1,5 @@
 // modules/pear-desktop-music.js
-const {config, initTokens} = require('../config');
+const {config, initTokens, initPearToken} = require('../config');
 const axios = require('axios');
 const {pushToQueue, shiftQueue, getQueue, getQueueLength} = require('./ssr-queue');
 
@@ -12,7 +12,7 @@ function getBaseUrl() {
 
 async function apiGet(endpoint) {
     if (!config.PEAR_ACCESS_TOKEN) {
-        await initTokens();
+        await initPearToken();
         if (!config.PEAR_ACCESS_TOKEN) {
             console.error('[ERROR] No Pear access token available');
             return null;
@@ -26,6 +26,9 @@ async function apiGet(endpoint) {
         });
         return res.data;
     } catch (err) {
+        if (err.response?.status === 401) {
+            config.PEAR_ACCESS_TOKEN = null;  // ← force re-auth on next call
+        }
         console.error(`[ERROR] API GET ${endpoint} failed:`, err.response?.status, err.response?.data || err.message);
         return null;
     }
@@ -33,7 +36,7 @@ async function apiGet(endpoint) {
 
 async function apiPost(endpoint, body = {}) {
     if (!config.PEAR_ACCESS_TOKEN) {
-        await initTokens();
+        await initPearToken();
         if (!config.PEAR_ACCESS_TOKEN) {
             console.error('[ERROR] No Pear access token available');
             return null;
@@ -47,6 +50,9 @@ async function apiPost(endpoint, body = {}) {
         });
         return res.data;
     } catch (err) {
+        if (err.response?.status === 401) {
+            config.PEAR_ACCESS_TOKEN = null;  // ← force re-auth on next call
+        }
         console.error(`[ERROR] API POST ${endpoint} failed:`, err.response?.status, err.response?.data || err.message);
         return null;
     }
@@ -54,7 +60,7 @@ async function apiPost(endpoint, body = {}) {
 
 async function apiPatch(endpoint, body = {}) {
     if (!config.PEAR_ACCESS_TOKEN) {
-        await initTokens();
+        await initPearToken();
         if (!config.PEAR_ACCESS_TOKEN) {
             console.error('[ERROR] No Pear access token available');
             return null;
@@ -68,6 +74,9 @@ async function apiPatch(endpoint, body = {}) {
         });
         return res.data;
     } catch (err) {
+        if (err.response?.status === 401) {
+            config.PEAR_ACCESS_TOKEN = null;  // ← force re-auth on next call
+        }
         console.error(`[ERROR] API PATCH ${endpoint} failed:`, err.response?.status, err.response?.data || err.message);
         return null;
     }
