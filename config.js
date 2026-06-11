@@ -10,7 +10,7 @@ const BROADCASTER_REFRESH_PATH = path.join(__dirname, 'data', 'broadcaster_refre
 // ---------- Config object ----------
 const config = {
     // ---------- Static info ----------
-    BOT_NAME: 'TA1LDA3MON',
+    BOT_NAME: 'TA1LDA3M0N',
     CHANNEL_NAME: 'F0XTA1L',
     CLIENT_ID: 'REDACTED_CLIENT_ID',
     CLIENT_SECRET: 'REDACTED_CLIENT_SECRET',
