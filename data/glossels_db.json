@@ -1,21 +1,15 @@
 [
   {
-    "usrName": "F0XTA1L",
-    "usrId": "202188873",
-    "amount": 4105,
-    "lastCheckin": "2026-04-28"
-  },
-  {
     "usrName": "stillinluke",
     "usrId": "457080514",
-    "amount": 3464,
-    "lastCheckin": "2026-05-15"
+    "amount": 3872,
+    "lastCheckin": "2026-06-10"
   },
   {
     "usrName": "crystal_klear",
     "usrId": "786321711",
-    "amount": 3432,
-    "lastCheckin": "2026-05-15"
+    "amount": 3648,
+    "lastCheckin": "2026-06-10"
   },
   {
     "usrName": "iKleinduimpie",
@@ -26,31 +20,61 @@
   {
     "usrName": "MuteTenTailes",
     "usrId": "157562947",
-    "amount": 72,
-    "lastCheckin": "2026-05-16"
+    "amount": 3216,
+    "lastCheckin": "2026-06-07"
   },
   {
     "usrName": "Calcifern7",
     "usrId": "721608579",
-    "amount": 56,
-    "lastCheckin": "2026-05-15"
+    "amount": 3520,
+    "lastCheckin": "2026-06-10"
   },
   {
     "usrName": "SoulfulMarch",
     "usrId": "533018696",
-    "amount": 8,
+    "amount": 3080,
     "lastCheckin": "2026-05-10"
   },
   {
     "usrName": "siigynn",
     "usrId": "1002878275",
-    "amount": 32,
-    "lastCheckin": "2026-05-10"
+    "amount": 2600,
+    "lastCheckin": "2026-05-28"
   },
   {
     "usrName": "gomer61291",
     "usrId": "850542898",
+    "amount": 224,
+    "lastCheckin": "2026-06-10"
+  },
+  {
+    "usrName": "InnocentOfSin",
+    "usrId": "1287006110",
+    "amount": 8,
+    "lastCheckin": "2026-05-18"
+  },
+  {
+    "usrName": "nul1_m0th",
+    "usrId": "796432894",
+    "amount": 104,
+    "lastCheckin": "2026-06-10"
+  },
+  {
+    "usrName": "Ruluan",
+    "usrId": "68190581",
     "amount": 16,
-    "lastCheckin": "2026-05-14"
+    "lastCheckin": "2026-06-04"
+  },
+  {
+    "usrName": "reystorm76",
+    "usrId": "704968567",
+    "amount": 8,
+    "lastCheckin": "2026-06-08"
+  },
+  {
+    "usrName": "clancyx_",
+    "usrId": "1306897875",
+    "amount": 16,
+    "lastCheckin": "2026-06-10"
   }
 ]

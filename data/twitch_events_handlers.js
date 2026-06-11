@@ -11,7 +11,7 @@
 // session becomes ready — no changes needed in twitch_events.js.
 
 const axios = require('axios');
-const { registerSubscription } = require('../modules/twitch_events');
+const {registerSubscription} = require('../modules/twitch_events');
 
 // ─── channel.follow ────────────────────────────────────────────────────────────
 registerSubscription(
@@ -19,7 +19,7 @@ registerSubscription(
     '2',
     (config) => ({
         broadcaster_user_id: config.CHANNEL_ID,
-        moderator_user_id:   config.CHANNEL_ID
+        moderator_user_id: config.CHANNEL_ID
     }),
     (event, client, config) => {
         const follower = event.user_name;
@@ -37,12 +37,13 @@ registerSubscription(
     'channel.raid',
     '1',
     (config) => ({
-        to_broadcaster_user_id: config.CHANNEL_ID   // fires when someone raids YOU
+        to_broadcaster_user_id: config.CHANNEL_ID,  // fires when someone raids YOU
+        moderator_user_id: config.CHANNEL_ID
     }),
     async (event, client, config) => {
-        const raider   = event.from_broadcaster_user_name;
+        const raider = event.from_broadcaster_user_name;
         const raiderId = event.from_broadcaster_user_id;
-        const viewers  = event.viewers;
+        const viewers = event.viewers;
 
         console.log(`EventHandlers: ${raider} raided with ${viewers} viewers`);
 
@@ -60,11 +61,11 @@ registerSubscription(
                 {
                     params: {
                         from_broadcaster_id: config.CHANNEL_ID,
-                        to_broadcaster_id:   raiderId,
-                        moderator_id:        config.BOT_ID
+                        to_broadcaster_id: raiderId,
+                        moderator_id: config.BOT_ID
                     },
                     headers: {
-                        'Client-ID':     config.CLIENT_ID,
+                        'Client-ID': config.CLIENT_ID,
                         'Authorization': `Bearer ${config.BOT_ACCESS_TOKEN}`
                     }
                 }
@@ -90,9 +91,9 @@ registerSubscription(
         broadcaster_user_id: config.CHANNEL_ID
     }),
     (event, client, config) => {
-        const duration   = event.duration_seconds;
+        const duration = event.duration_seconds;
         const isAutomatic = event.is_automatic;
-        const requester  = event.requester_user_name; // null if automatic
+        const requester = event.requester_user_name; // null if automatic
 
         console.log(`EventHandlers: Ad break started — ${duration}s, automatic=${isAutomatic}`);
 

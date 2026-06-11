@@ -1,7 +1,7 @@
 // modules/shield_system.js
 const WebSocket = require('ws');
 const axios = require('axios');
-const { setOnline, setOffline } = require('./stream-state');
+const {setOnline, setOffline} = require('./stream-state');
 
 function startShieldSystem(client, config) {
     const ws = new WebSocket('wss://eventsub.wss.twitch.tv/ws');
@@ -82,16 +82,16 @@ async function subscribe(sessionId, config) {
         await axios.post('https://api.twitch.tv/helix/eventsub/subscriptions', {
             type: 'stream.online',
             version: '1',
-            condition: { broadcaster_user_id: config.CHANNEL_ID },
-            transport: { method: 'websocket', session_id: sessionId }
-        }, { headers });
+            condition: {broadcaster_user_id: config.CHANNEL_ID},
+            transport: {method: 'websocket', session_id: sessionId}
+        }, {headers});
 
         await axios.post('https://api.twitch.tv/helix/eventsub/subscriptions', {
             type: 'stream.offline',
             version: '1',
-            condition: { broadcaster_user_id: config.CHANNEL_ID },
-            transport: { method: 'websocket', session_id: sessionId }
-        }, { headers });
+            condition: {broadcaster_user_id: config.CHANNEL_ID},
+            transport: {method: 'websocket', session_id: sessionId}
+        }, {headers});
 
         console.log('[ShieldDaemon] Subscribed to stream.online & stream.offline');
     } catch (err) {
@@ -106,7 +106,7 @@ async function syncShieldState(config) {
                 'Client-ID': config.CLIENT_ID,
                 'Authorization': `Bearer ${config.BOT_ACCESS_TOKEN}`
             },
-            params: { user_id: config.CHANNEL_ID }
+            params: {user_id: config.CHANNEL_ID}
         });
 
         const isLive = res.data.data && res.data.data.length > 0;
@@ -134,11 +134,11 @@ async function enableShieldMode(config) {
             {
                 headers: {
                     'Client-ID': config.CLIENT_ID,
-                    'Authorization': `Bearer ${config.BOT_ACCESS_TOKEN}`
+                    'Authorization': `Bearer ${config.BROADCASTER_ACCESS_TOKEN}`
                 },
                 params: {
                     broadcaster_id: config.CHANNEL_ID,
-                    moderator_id: config.BOT_ID,
+                    moderator_id: config.CHANNEL_ID,
                     is_active: true
                 }
             }
@@ -157,11 +157,11 @@ async function disableShieldMode(config) {
             {
                 headers: {
                     'Client-ID': config.CLIENT_ID,
-                    'Authorization': `Bearer ${config.BOT_ACCESS_TOKEN}`
+                    'Authorization': `Bearer ${config.BROADCASTER_ACCESS_TOKEN}`
                 },
                 params: {
                     broadcaster_id: config.CHANNEL_ID,
-                    moderator_id: config.BOT_ID,
+                    moderator_id: config.CHANNEL_ID,
                     is_active: false
                 }
             }
@@ -172,4 +172,4 @@ async function disableShieldMode(config) {
     }
 }
 
-module.exports = { startShieldSystem };
+module.exports = {startShieldSystem};

@@ -20,7 +20,7 @@ const config = {
     YT_LINK: 'https://www.youtube.com/@f0xta1l-vt',
 
     // ---------- Pear Desktop ----------
-    PEAR_HOST: 'http://localhost',
+    PEAR_HOST: 'http://192.168.1.71',
     PEAR_PORT: 26538,
     PEAR_ACCESS_TOKEN: null,
     PEAR_ID: 'YOUR_PEAR_AUTH_ID',
@@ -174,7 +174,7 @@ async function fetchUserIds() {
         console.error('[ERROR] Channel not found for login:', config.CHANNEL_NAME);
         return;
     }
-  
+
     config.CHANNEL_ID = channel.data.data[0].id;
 
     // Bot
