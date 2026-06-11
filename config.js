@@ -28,6 +28,11 @@ const config = {
     // ---------- Google API ----------
     YOUTUBE_ACCESS_KEY: 'REDACTED_YOUTUBE_KEY',
 
+    // ----------- OBS Websocket --------
+    OBS_WS_URL: "ws://192.168.1.71:4455",
+    OBS_WS_PASSWORD: "REDACTED_OBS_PASSWORD",
+
+
     // ---------- BOT AUTH ----------
     BOT_ACCESS_TOKEN: null,
     BOT_REFRESH_TOKEN: null,

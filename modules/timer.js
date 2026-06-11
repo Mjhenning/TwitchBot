@@ -15,6 +15,8 @@ const functionMap = {
     ytCommand
 };
 
+let activeStopFunctions = [];
+
 function parseTime(value) {
     if (typeof value === 'number') return value;
     const match = value.match(/^(\d+)(ms|s|m|h)$/);
@@ -77,12 +79,14 @@ function scheduleCommand(entry, client, channel) {
         if (activeTimeout) {
             clearTimeout(activeTimeout);
             activeTimeout = null;
-            console.log(`[Timer] "${entry.id}" stopped — stream offline`);
+            console.log(`[Timer] "${entry.id}" stopped`);
         }
     };
 
     onOffline(stop);
     onOnline(startSequence);
+
+    activeStopFunctions.push(stop);  // ← register for module-level stop
 
     if (getIsOnline()) {
         startSequence();
@@ -92,6 +96,7 @@ function scheduleCommand(entry, client, channel) {
 }
 
 function startTimers(client, channel) {
+    activeStopFunctions = [];
     let entries;
     try {
         entries = JSON.parse(fs.readFileSync(COMMANDS_FILE, 'utf8'));
@@ -109,4 +114,10 @@ function startTimers(client, channel) {
     console.log(`[Timer] ${entries.length} timed command(s) scheduled`);
 }
 
-module.exports = {startTimers};
+function stopTimers() {
+    activeStopFunctions.forEach(fn => fn());
+    activeStopFunctions = [];
+    console.log('[Timer] All timers stopped');
+}
+
+module.exports = {startTimers, stopTimers};

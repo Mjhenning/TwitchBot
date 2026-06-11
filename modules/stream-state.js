@@ -1,6 +1,6 @@
 // modules/stream-state.js
 let isOnline = false;
-const listeners = { online: [], offline: [] };
+const listeners = {online: [], offline: []};
 
 function setOnline() {
     isOnline = true;
@@ -12,8 +12,21 @@ function setOffline() {
     listeners.offline.forEach(fn => fn());
 }
 
-function getIsOnline() { return isOnline; }
-function onOnline(fn) { listeners.online.push(fn); }
-function onOffline(fn) { listeners.offline.push(fn); }
+function resetListeners() {
+    listeners.online.length = 0;
+    listeners.offline.length = 0;
+}
 
-module.exports = { setOnline, setOffline, getIsOnline, onOnline, onOffline };
+function getIsOnline() {
+    return isOnline;
+}
+
+function onOnline(fn) {
+    listeners.online.push(fn);
+}
+
+function onOffline(fn) {
+    listeners.offline.push(fn);
+}
+
+module.exports = {setOnline, setOffline, getIsOnline, onOnline, onOffline, resetListeners};

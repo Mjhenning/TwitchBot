@@ -1,7 +1,9 @@
 // modules/pear-desktop-music.js
-const { config, initTokens } = require('../config');
+const {config, initTokens} = require('../config');
 const axios = require('axios');
-const { pushToQueue, shiftQueue, getQueue, getQueueLength } = require('./ssr-queue');
+const {pushToQueue, shiftQueue, getQueue, getQueueLength} = require('./ssr-queue');
+
+let ssrPollInterval = null;
 
 // ---------- Helper ----------
 function getBaseUrl() {
@@ -20,7 +22,7 @@ async function apiGet(endpoint) {
     if (config.DEBUG) console.log('[DEBUG] Requesting Pear API:', url);
     try {
         const res = await axios.get(url, {
-            headers: { 'Authorization': `Bearer ${config.PEAR_ACCESS_TOKEN}` }
+            headers: {'Authorization': `Bearer ${config.PEAR_ACCESS_TOKEN}`}
         });
         return res.data;
     } catch (err) {
@@ -41,7 +43,7 @@ async function apiPost(endpoint, body = {}) {
     if (config.DEBUG) console.log('[DEBUG] Posting Pear API:', url, body);
     try {
         const res = await axios.post(url, body, {
-            headers: { 'Authorization': `Bearer ${config.PEAR_ACCESS_TOKEN}` }
+            headers: {'Authorization': `Bearer ${config.PEAR_ACCESS_TOKEN}`}
         });
         return res.data;
     } catch (err) {
@@ -62,7 +64,7 @@ async function apiPatch(endpoint, body = {}) {
     if (config.DEBUG) console.log('[DEBUG] Patching Pear API:', url, body);
     try {
         const res = await axios.patch(url, body, {
-            headers: { 'Authorization': `Bearer ${config.PEAR_ACCESS_TOKEN}` }
+            headers: {'Authorization': `Bearer ${config.PEAR_ACCESS_TOKEN}`}
         });
         return res.data;
     } catch (err) {
@@ -77,10 +79,10 @@ function parseDuration(iso) {
     const hours = parseInt(match[1] || 0);
     const minutes = parseInt(match[2] || 0);
     const seconds = parseInt(match[3] || 0);
-    return { hours, minutes, seconds, totalSeconds: hours * 3600 + minutes * 60 + seconds };
+    return {hours, minutes, seconds, totalSeconds: hours * 3600 + minutes * 60 + seconds};
 }
 
-function formatDuration({ hours, minutes, seconds }) {
+function formatDuration({hours, minutes, seconds}) {
     const m = hours ? hours * 60 + minutes : minutes;
     return `${String(m).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
@@ -99,7 +101,7 @@ async function getSongByVideoId(videoId) {
 
         const duration = parseDuration(item.contentDetails.duration);
         if (duration.totalSeconds > 10 * 60) {
-            return { tooLong: true, durationText: formatDuration(duration) };
+            return {tooLong: true, durationText: formatDuration(duration)};
         }
 
         return {
@@ -179,13 +181,13 @@ async function addSongToSSRQueue(videoId, title, requester) {
     await waitIfSongEnding();
 
     // 1. insert right after current — always lands at currentIndex + 1
-    await apiPost('/queue', { videoId, insertPosition: 'INSERT_AFTER_CURRENT_VIDEO' });
+    await apiPost('/queue', {videoId, insertPosition: 'INSERT_AFTER_CURRENT_VIDEO'});
 
     // 2. wait briefly for Pear to register
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 3. push to SSR queue
-    pushToQueue({ videoId, title, requester });
+    pushToQueue({videoId, title, requester});
     const ssrLength = getQueueLength();
     const arrayPosition = ssrLength - 1;
 
@@ -202,7 +204,7 @@ async function addSongToSSRQueue(videoId, title, requester) {
 
     // 5. only patch if it needs to move (i.e. more than one SSR song queued)
     if (songIndex !== targetIndex) {
-        await apiPatch(`/queue/${songIndex}`, { toIndex: targetIndex });
+        await apiPatch(`/queue/${songIndex}`, {toIndex: targetIndex});
     }
 
     console.log(`[SSR] ${requester} queued "${title}" at position ${targetIndex}`);
@@ -253,12 +255,13 @@ async function getQueueWithCurrent(limit = 5) {
 async function skipSong() {
     return await apiPost('/next', {});
 }
+
 // ---------- SSR Polling ----------
 let lastPolledVideoId = null;
 
 function startSSRPolling(client, channel) {
     const formattedChannel = channel.startsWith('#') ? channel : `#${channel}`;
-    setInterval(async () => {
+    ssrPollInterval = setInterval(async () => {
         try {
             const ssrQueue = getQueue();
             if (ssrQueue.length === 0) return;
@@ -290,4 +293,22 @@ function startSSRPolling(client, channel) {
     }, 5000);
 }
 
-module.exports = { getCurrentSong, getQueueWithCurrent, searchSong, getSongByVideoId, addSongToSSRQueue, startSSRPolling, skipSong };
+function stopSSRPolling() {
+    if (ssrPollInterval) {
+        clearInterval(ssrPollInterval);
+        ssrPollInterval = null;
+    }
+    lastPolledVideoId = null;
+    console.log('[SSR] Polling stopped');
+}
+
+module.exports = {
+    getCurrentSong,
+    getQueueWithCurrent,
+    searchSong,
+    getSongByVideoId,
+    addSongToSSRQueue,
+    startSSRPolling,
+    stopSSRPolling,
+    skipSong
+};

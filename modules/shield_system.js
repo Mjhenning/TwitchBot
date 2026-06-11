@@ -3,8 +3,11 @@ const WebSocket = require('ws');
 const axios = require('axios');
 const {setOnline, setOffline} = require('./stream-state');
 
+let shieldWs = null;  // ← save handle
+
 function startShieldSystem(client, config) {
     const ws = new WebSocket('wss://eventsub.wss.twitch.tv/ws');
+    shieldWs = ws;  // ← store it
     let sessionId = null;
 
     ws.on('open', async () => {
@@ -16,7 +19,6 @@ function startShieldSystem(client, config) {
         const msg = JSON.parse(data);
 
         switch (msg.metadata?.message_type) {
-
             case 'session_welcome':
                 sessionId = msg.payload.session.id;
                 console.log('[ShieldDaemon] Session ready');
@@ -30,28 +32,20 @@ function startShieldSystem(client, config) {
                     console.log('[ShieldDaemon] Stream online detected');
                     setOnline();
                     await disableShieldMode(config);
-                    client.say(
-                        `#${config.CHANNEL_NAME}`,
-                        `🟢 Stream detected... lifting protection ✧`
-                    );
+                    client.say(`#${config.CHANNEL_NAME}`, `🟢 Stream detected... lifting protection ✧`);
                 }
 
                 if (type === 'stream.offline') {
                     console.log('[ShieldDaemon] Stream offline detected');
                     setOffline();
                     await enableShieldMode(config);
-
                     const messages = [
                         `🛡️ Stream ended... protection protocols engaged ✧`,
                         `Shield Mode activated... system integrity preserved 💾`,
                         `Incoming silence detected... defensive systems online 🫧`,
                         `Stream offline... entering protected state ✨`
                     ];
-
-                    client.say(
-                        `#${config.CHANNEL_NAME}`,
-                        messages[Math.floor(Math.random() * messages.length)]
-                    );
+                    client.say(`#${config.CHANNEL_NAME}`, messages[Math.floor(Math.random() * messages.length)]);
                 }
                 break;
 
@@ -69,6 +63,14 @@ function startShieldSystem(client, config) {
 
     ws.on('close', () => console.log('[ShieldDaemon] Closed'));
     ws.on('error', (err) => console.error('[ShieldDaemon] Error:', err));
+}
+
+function stopShieldSystem() {
+    if (shieldWs) {
+        shieldWs.close();
+        shieldWs = null;
+    }
+    console.log('[ShieldDaemon] Stopped');
 }
 
 async function subscribe(sessionId, config) {
@@ -172,4 +174,4 @@ async function disableShieldMode(config) {
     }
 }
 
-module.exports = {startShieldSystem};
+module.exports = {startShieldSystem, stopShieldSystem};
