@@ -1,17 +1,37 @@
 // bot.js
 const tmi = require('tmi.js');
-const {config, initTokens} = require('./config');
+const {config, initTokens, refreshBroadcasterToken} = require('./config');
 const {startShieldSystem, stopShieldSystem} = require('./modules/shield_system');
 const {startTimers, stopTimers} = require('./modules/timer');
 const {startAdSchedulePoller, stopAdSchedulePoller} = require('./modules/ad_schedule_poller');
 const {startEventSub, stopEventSub} = require('./modules/twitch_events');
-const {resetListeners} = require('./modules/stream-state');           // ← new
-const {stopSSRPolling} = require('./modules/pear-desktop-music');     // ← new
+const {resetListeners} = require('./modules/stream-state');
+const {stopSSRPolling} = require('./modules/pear-desktop-music');
 
 const {setupChatCommands} = require('./commands/chat_integration');
 const {startARGElements} = require('./ARG/modules/arg_main');
 const {startOBSWatcher} = require('./obs_watcher');
 require('./data/twitch_events_handlers');
+
+// ── Auth retry wrapper ────────────────────────────────────────────────────────
+// Wraps any Twitch API call — if it gets a 401, refreshes the token and retries
+// once. Same pattern as TwitchClient.ExecuteAsync in the Discord bot.
+async function withTokenRetry(apiCall) {
+    try {
+        return await apiCall();
+    } catch (err) {
+        const status = err.response?.status;
+        const msg = err.response?.data?.message ?? err.message ?? '';
+
+        if (status === 401 || msg.toLowerCase().includes('invalid oauth token')) {
+            console.warn('[Auth] 401 detected — refreshing broadcaster token and retrying...');
+            await refreshBroadcasterToken();
+            return await apiCall();
+        }
+
+        throw err;
+    }
+}
 
 let tmiClient = null;
 let isRunning = false;
@@ -26,6 +46,16 @@ async function startBot() {
 
     try {
         const cfg = await initTokens();
+
+        // Proactively refresh every 3 hours so long streams don't hit token expiry
+        setInterval(async () => {
+            try {
+                await refreshBroadcasterToken();
+                console.log('[Auth] Broadcaster token proactively refreshed');
+            } catch (err) {
+                console.error('[Auth] Broadcaster token refresh failed:', err.message);
+            }
+        }, 1000 * 60 * 60 * 3);
 
         tmiClient = new tmi.Client({
             identity: {
@@ -52,7 +82,7 @@ async function startBot() {
 
         startShieldSystem(tmiClient, cfg);
         await startEventSub(tmiClient, cfg);
-        startAdSchedulePoller(tmiClient, cfg);
+        startAdSchedulePoller(tmiClient, cfg, withTokenRetry);
         startTimers(tmiClient, cfg.CHANNEL_NAME);
         setupChatCommands(tmiClient, cfg);
         startARGElements(tmiClient, cfg);

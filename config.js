@@ -255,4 +255,4 @@ async function initTokens() {
     return config;
 }
 
-module.exports = {config, initTokens, initPearToken};
+module.exports = {config, initTokens, initPearToken, refreshBroadcasterToken};
