@@ -231,7 +231,7 @@ async function ssrCommand(client, channel, senderName, msg, isBroadcaster) {
         return;
     }
 
-    const query = msg.slice('!ssr'.length).trim();
+    const query = msg.slice('!sr'.length).trim();
 
     if (!query) {
         client.say(channel, `${senderName}... provide a song name or YouTube link ✧`);
@@ -285,7 +285,7 @@ async function currentSongCommand(client, channel) {
 
 function clearQCommand(client, channel) {
     clearQueue();
-    client.say(channel, `🗑️ SSR queue cleared ✧`);
+    client.say(channel, `🗑️ SR queue cleared ✧`);
 }
 
 function closeQCommand(client, channel) {
@@ -296,7 +296,7 @@ function closeQCommand(client, channel) {
 
 function openQCommand(client, channel) {
     ssrEnabled = true;
-    client.say(channel, `✅ Song requests are now open! Use !ssr to request a song 🎶`);
+    client.say(channel, `✅ Song requests are now open! Use !sr to request a song 🎶`);
 }
 
 //--------------------------------- GLOSSELS ------------------------------------
