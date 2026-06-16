@@ -55,6 +55,7 @@ function startShieldSystem(client, config) {
 
             case 'session_reconnect':
                 console.log('[ShieldDaemon] Reconnecting...');
+                ws.removeAllListeners();
                 ws.close();
                 startShieldSystem(client, config);
                 break;
@@ -67,6 +68,7 @@ function startShieldSystem(client, config) {
 
 function stopShieldSystem() {
     if (shieldWs) {
+        shieldWs.removeAllListeners();
         shieldWs.close();
         shieldWs = null;
     }

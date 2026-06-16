@@ -124,12 +124,17 @@ async function startEventSub(client, config) {
 function stopEventSub() {
     stopped = true; // prevents reconnect handler from re-opening
     sessionId = null;
+    clearSubscriptions();
     if (_client?._ws) {
         _client._ws.close();
         _client._ws = null;
     }
     _client = null;
     console.log('TwitchEvents: Stopped');
+}
+
+function clearSubscriptions() {
+    subscriptionRegistry.length = 0;
 }
 
 module.exports = {startEventSub, stopEventSub, handleEventSubMessage, registerSubscription};
