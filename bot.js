@@ -35,6 +35,7 @@ async function withTokenRetry(apiCall) {
 
 let tmiClient = null;
 let isRunning = false;
+let tokenRefreshInterval = null;
 
 async function startBot() {
     if (isRunning) {
@@ -48,14 +49,16 @@ async function startBot() {
         const cfg = await initTokens();
 
         // Proactively refresh every 3 hours so long streams don't hit token expiry
-        setInterval(async () => {
-            try {
-                await refreshBroadcasterToken();
-                console.log('[Auth] Broadcaster token proactively refreshed');
-            } catch (err) {
-                console.error('[Auth] Broadcaster token refresh failed:', err.message);
-            }
-        }, 1000 * 60 * 60 * 3);
+        if (!tokenRefreshInterval) {
+            tokenRefreshInterval = setInterval(async () => {
+                try {
+                    await refreshBroadcasterToken();
+                    console.log('[Auth] Broadcaster token proactively refreshed');
+                } catch (err) {
+                    console.error('[Auth] Broadcaster token refresh failed:', err.message);
+                }
+            }, 1000 * 60 * 60 * 3);
+        }
 
         tmiClient = new tmi.Client({
             identity: {
@@ -128,7 +131,12 @@ async function stopBot() {
         console.error('[Bot] stopSSRPolling error:', e);
     }  // ← new
 
-    resetListeners(); // ← new: clear stream-state listener arrays before next startBot()
+    resetListeners(); //clear stream-state listener arrays before next startBot()
+
+    if (tokenRefreshInterval) {
+        clearInterval(tokenRefreshInterval);
+        tokenRefreshInterval = null;
+    }
 
     if (tmiClient) {
         try {
