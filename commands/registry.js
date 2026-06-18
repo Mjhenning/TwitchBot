@@ -1,3 +1,5 @@
+//modules/registry.js
+
 const axios = require('axios');
 
 const {config} = require('../config');
@@ -145,8 +147,53 @@ function fishCommand(client, channel) {
     client.say(channel, pool[Math.floor(Math.random() * pool.length)]);
 }
 
+function hugCommand(client, channel, senderName, msg) {
+    const parts = msg.trim().split(/\s+/);
+    const targetRaw = parts.slice(1).join(' ');
+
+    if (!targetRaw) {
+        const noTargetMessages = [
+            `${senderName} sends a hug out into the void... is anyone there? 🫧`,
+            `${senderName} hugs the air. The air does not respond. ✧`,
+            `${senderName} broadcasts a hug on all channels... no recipient specified 💾`
+        ];
+        client.say(channel, noTargetMessages[Math.floor(Math.random() * noTargetMessages.length)]);
+        return;
+    }
+
+    const target = targetRaw.replace(/^@/, '');
+    const specialKey = target.toLowerCase();
+
+    const specialHugs = {
+        'layavulpes': [
+            `${senderName} wraps Laya in a hug... signal holds steady 🫧`,
+            `${senderName} hugs Laya — coherence stabilizes, no static today ✧`,
+            `A hug from ${senderName} reaches Laya through the line... always a steady connection 💾`,
+            `${senderName} wraps Laya in a hug... signal holds steady, the perimeter stays quiet 🫧`,
+            `${senderName} hugs Laya — coherence stabilizes, the space stays safe under her watch ✧`,
+            `A hug from ${senderName} reaches Laya through the line... she keeps the static out for the rest of us 💾`
+        ]
+    };
+
+    if (specialHugs[specialKey]) {
+        const messages = specialHugs[specialKey];
+        client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
+        return;
+    }
+
+    const defaultMessages = [
+        `${senderName} hugs ${target} ✧`,
+        `${senderName} wraps ${target} in a warm signal 🫧`,
+        `A hug packet was sent from ${senderName} to ${target}... delivery confirmed 💾`,
+        `${senderName} reaches out and hugs ${target} 🦊`,
+        `Connection established... ${senderName} hugs ${target} 📡`
+    ];
+
+    client.say(channel, defaultMessages[Math.floor(Math.random() * defaultMessages.length)]);
+}
 
 //--------------------------------- TWITCH FUNCTION COMMANDS ------------------------------------
+
 async function clipCommand(client, channel, senderName) {
     const clipUrl = await createClip(config);
 
@@ -429,6 +476,7 @@ module.exports = {
     lurkCommand,
     tailCommand,
     fishCommand,
+    hugCommand,
 
 
     clipCommand,

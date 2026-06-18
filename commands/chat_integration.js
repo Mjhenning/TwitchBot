@@ -28,7 +28,8 @@ const {
     qCommand,
     currentSongCommand,
     tailCommand,
-    fishCommand
+    fishCommand,
+    hugCommand
 } = require('./registry');
 
 const {getBalanceCommand, getRankCommand, getTop5Command} = require('./registry');
@@ -209,11 +210,16 @@ function setupChatCommands(client, config) {
             return
         }
 
-        if (hasCommand(lower, '!fish') || hasCommand(lower, '!feesh') || hasCommand(lower, '!fih')) {
+        if (hasCommand(lower, 'fish') || hasCommand(lower, 'feesh') || hasCommand(lower, 'fih')) {
             fishCommand(client, channel);
             return
         }
 
+        if (lower.startsWith('!hug')) {
+            if (handleCooldown('hug')) return;
+            hugCommand(client, channel, senderName, msg);
+            return;
+        }
 
         // ------------------- MOD COMMANDS -------------------
         if (hasCommand(lower, '!skip')) {

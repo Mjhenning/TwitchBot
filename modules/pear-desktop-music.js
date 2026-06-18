@@ -291,9 +291,9 @@ function startSSRPolling(client, channel) {
 
                 const next = getQueue();
                 if (next.length > 0) {
-                    client.say(channel, `🎶 Now playing SSR request from ${played.requester}: ${played.title} ✧ Up next: ${next[0].title} (requested by ${next[0].requester})`);
+                    client.say(channel, `🎶 Now playing SR request from ${played.requester}: ${played.title} ✧ Up next: ${next[0].title} (requested by ${next[0].requester})`);
                 } else {
-                    client.say(channel, `🎶 Now playing SSR request from ${played.requester}: ${played.title} ✧`);
+                    client.say(channel, `🎶 Now playing SR request from ${played.requester}: ${played.title} ✧`);
                 }
             }
         } catch (err) {
