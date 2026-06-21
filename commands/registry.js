@@ -29,6 +29,8 @@ const {
     sysIsTerminalActive
 } = require('../ARG/modules/arg_main')
 
+const {shoutout} = require('../modules/shoutout');
+
 
 //--------------------------------- HELPERS ------------------------------------
 function formatTime(ms) {
@@ -249,6 +251,18 @@ async function followAgeCommand(client, channel, userId, senderName, msg) {
         console.error(err);
         client.say(channel, `Sorry ${senderName}, I couldn't fetch the followage.`);
     }
+}
+
+async function shoutoutCommand(client, msg) {
+    const parts = msg.trim().split(/\s+/);
+    const users = parts.slice(1); // everything after "!so"
+
+    if (users.length === 0) {
+        client.say(config.CHANNEL_NAME, `Usage — !so [username] or !so [username1] [username2] ...`);
+        return;
+    }
+
+    await shoutout(client, config, users);
 }
 
 
@@ -481,6 +495,7 @@ module.exports = {
 
     clipCommand,
     followAgeCommand,
+    shoutoutCommand,
 
     followTestCommand,
     raidTestCommand,

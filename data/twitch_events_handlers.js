@@ -12,7 +12,7 @@
 
 const axios = require('axios');
 const {registerSubscription} = require('../modules/twitch_events');
-const {EventShoutout} = require('../modules/shoutout')
+const {eventShoutout} = require('../modules/shoutout')
 
 // ─── channel.follow ────────────────────────────────────────────────────────────
 registerSubscription(
@@ -42,7 +42,7 @@ registerSubscription(
         moderator_user_id: config.CHANNEL_ID
     }),
     async (event, client, config) => {
-        await EventShoutout(event, client, config)
+        await eventShoutout(event, client, config)
     },
     'bot'
 );

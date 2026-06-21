@@ -1,27 +1,59 @@
 const axios = require("axios");
 
-async function EventShoutout(event, client, config) {
-    const raider = event.from_broadcaster_user_name;
-    const raiderId = event.from_broadcaster_user_id;
-    const viewers = event.viewers;
+//SHOUTOUT HELPERS
 
-    console.log(`EventHandlers: ${raider} raided with ${viewers} viewers`);
+async function getUsersByLogin(logins, config) {
+    const params = new URLSearchParams();
+    logins.forEach(login => params.append('login', login.replace(/^@/, '')));
 
-    // 1. Chat message
-    client.say(
-        `#${config.CHANNEL_NAME}`,
-        `🟢 Active network expanded: ${raider} arrived with ${viewers} connections! Welcome in, raiders, the Glosso-Sphere just got a little brighter ✨ Be sure to check out ${raider} and return the signal: https://www.twitch.tv/${raider} 🦊💬`
-    ).catch(err => console.error('EventHandlers: Raid message failed:', err));
+    const res = await axios.get('https://api.twitch.tv/helix/users', {
+        params,
+        headers: {
+            'Client-ID': config.CLIENT_ID,
+            'Authorization': `Bearer ${config.APP_TOKEN}`
+        }
+    });
+    return res.data.data;
+}
 
-    // 2. Official Twitch /shoutout via Helix API
+async function getChannelsByIds(ids, config) {
+    const params = new URLSearchParams();
+    ids.forEach(id => params.append('broadcaster_id', id));
+
+    const res = await axios.get('https://api.twitch.tv/helix/channels', {
+        params,
+        headers: {
+            'Client-ID': config.CLIENT_ID,
+            'Authorization': `Bearer ${config.APP_TOKEN}`
+        }
+    });
+    return res.data.data;
+}
+
+async function getUsersAndGames(usernames, config) {
+    const users = await getUsersByLogin(usernames, config);
+    if (users.length === 0) return [];
+
+    const channels = await getChannelsByIds(users.map(u => u.id), config);
+    const gameById = new Map(channels.map(c => [c.broadcaster_id, c.game_name]));
+
+    return users.map(u => ({
+        id: u.id,
+        user: u.display_name,
+        game: gameById.get(u.id) || 'something mysterious',
+        link: `https://www.twitch.tv/${u.login}`
+    }));
+}
+
+async function sendTwitchShoutout(targetId, targetName, config) {
     try {
         await axios.post(
             'https://api.twitch.tv/helix/chat/shoutouts',
-            null,   // no body — all params go in the query string
+            null,
             {
                 params: {
                     from_broadcaster_id: config.CHANNEL_ID,
-                    to_broadcaster_id: raiderId,
+                    to_broadcaster_id: targetId,
                     moderator_id: config.BOT_ID
                 },
                 headers: {
@@ -30,35 +62,86 @@ async function EventShoutout(event, client, config) {
                 }
             }
         );
-        console.log(`EventHandlers: Shoutout sent for ${raider}`);
+        console.log(`Shoutout: official /shoutout sent for ${targetName}`);
     } catch (err) {
-        // 429 means Twitch's shoutout cooldown is active (2 min per channel, 60 min same target)
         if (err.response?.status === 429) {
-            console.warn(`EventHandlers: Shoutout for ${raider} skipped — cooldown active`);
+            console.warn(`Shoutout: official /shoutout for ${targetName} skipped — cooldown active`);
         } else {
-            console.error('EventHandlers: Shoutout API error:', err.response?.data || err);
+            console.error('Shoutout: official /shoutout API error:', err.response?.data || err);
         }
     }
 }
 
-async function Shoutout(client, config, users) {
 
-    const soPool = [
-        `hey! go say hi to **{user}** 🦊💙 they were last streaming **{game}** — go give them some signal: {link}`,
-        `connection detected: **{user}** stopped by! last seen playing **{game}**. go check them out: {link}`,
-        `🦊 shoutout to **{user}**! catch their last stream of **{game}** here: {link}`
-    ];
-    
-    
-    if (users.length > 1) {
+//SHOUTOUT LOGIC
 
-    } else {
-        client.say(
-            `#${config.CHANNEL_NAME}`,
-            
-        )
-    }
+async function eventShoutout(event, client, config) {
+    const raider = event.from_broadcaster_user_name;
+    const raiderId = event.from_broadcaster_user_id;
+    const viewers = event.viewers;
 
+    console.log(`EventHandlers: ${raider} raided with ${viewers} viewers`);
+
+    client.say(
+        `#${config.CHANNEL_NAME}`,
+        `🟢 Active network expanded: ${raider} arrived with ${viewers} connections! Welcome in, raiders, the Glosso-Sphere just got a little brighter ✨ Be sure to check out ${raider} and return the signal: https://www.twitch.tv/${raider} 🦊💬`
+    ).catch(err => console.error('EventHandlers: Raid message failed:', err));
+
+    await sendTwitchShoutout(raiderId, raider, config);
 }
 
-module.exports = {EventShoutout};
+async function shoutout(client, config, users) {
+    const soPool = [
+        `hey! go say hi to {user} 🦊💙 they were last streaming {game} — go give them some signal: {link}`,
+        `connection worth checking out: {user}, last seen playing {game}. go reinforce it: {link}`,
+        `🦊 quick signal boost for {user}! catch their last stream of {game} here: {link}`,
+        `psst, go connect with {user} — last spotted streaming {game}: {link}`,
+        `{user} deserves some signal today 💙 they were last live with {game}: {link}`
+    ];
+
+    const massSoPool = [
+        `🦊 a few connections worth reinforcing today, go check them out:`,
+        `signal boost time, multiple nodes detected, go say hi to all of them:`,
+        `before we go, let's send some signal to a couple of friends of the Proxy:`,
+        `quick batch of connections worth your time today:`
+    ];
+
+    const massSoUserPool = [
+        `> {user}, last streaming {game}: {link}`,
+        `> {user} — last seen with {game}: {link}`,
+        `> {user}, signal reinforced. last playing {game}: {link}`
+    ];
+
+    const fillTemplate = (template, data) =>
+        template.replace('{user}', data.user).replace('{game}', data.game).replace('{link}', data.link);
+
+    const results = await getUsersAndGames(users, config);
+
+    if (results.length === 0) {
+        console.warn(`Shoutout: none of the provided usernames resolved`, users);
+        return;
+    }
+
+    if (results.length === 1) {
+        const line = soPool[Math.floor(Math.random() * soPool.length)];
+        await client.say(`#${config.CHANNEL_NAME}`, fillTemplate(line, results[0]))
+            .catch(err => console.error('Shoutout: message failed:', err));
+
+        // ✅ official Twitch shoutout for single-user case
+        await sendTwitchShoutout(results[0].id, results[0].user, config);
+        return;
+    }
+
+    await client.say(
+        `#${config.CHANNEL_NAME}`,
+        massSoPool[Math.floor(Math.random() * massSoPool.length)]
+    ).catch(err => console.error('Shoutout: opener failed:', err));
+
+    for (const data of results) {
+        const line = massSoUserPool[Math.floor(Math.random() * massSoUserPool.length)];
+        await client.say(`#${config.CHANNEL_NAME}`, fillTemplate(line, data))
+            .catch(err => console.error('Shoutout: user line failed:', err));
+    }
+}
+
+module.exports = {eventShoutout, shoutout};

@@ -17,6 +17,7 @@ const {
     clipCommand,
     lurkCommand,
     followAgeCommand,
+    shoutoutCommand,
     followTestCommand,
     raidTestCommand,
     adBreakTestCommand,
@@ -138,6 +139,12 @@ function setupChatCommands(client, config) {
         if (lower.startsWith('!followage')) {
             if (handleCooldown('followage')) return;
             await followAgeCommand(client, channel, userId, senderName, msg);
+            return;
+        }
+
+        if (lower.startsWith('!so')) {
+            if (handleCooldown('so')) return;
+            await shoutoutCommand(client, msg);
             return;
         }
 
