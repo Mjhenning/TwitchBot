@@ -159,6 +159,35 @@ async function refreshBroadcasterToken() {
     if (config.DEBUG) console.log('[DEBUG] Broadcaster token refreshed');
 }
 
+async function refreshAppToken() {
+    config.APP_TOKEN = await getAppToken();
+    if (config.DEBUG) console.log('[DEBUG] App token refreshed');
+}
+
+//
+// ========================
+// TOKEN RETRY WRAPPER
+// ========================
+//
+
+async function withTokenRetry(apiCall, refreshFn = refreshBroadcasterToken) {
+    try {
+        return await apiCall();
+    } catch (err) {
+        const status = err.response?.status;
+        const msg = err.response?.data?.message ?? err.message ?? '';
+
+        if (status === 401 || msg.toLowerCase().includes('invalid oauth token')) {
+            console.warn('[Auth] 401 detected — refreshing token and retrying...');
+            await refreshFn();
+            return await apiCall();
+        }
+
+        throw err;
+    }
+}
+
+
 //
 // ========================
 // USER IDS
@@ -255,4 +284,12 @@ async function initTokens() {
     return config;
 }
 
-module.exports = {config, initTokens, initPearToken, refreshBroadcasterToken};
+module.exports = {
+    config,
+    initTokens,
+    initPearToken,
+    refreshBroadcasterToken,
+    refreshBotToken,
+    refreshAppToken,
+    withTokenRetry
+};

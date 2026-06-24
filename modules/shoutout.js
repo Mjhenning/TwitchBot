@@ -1,4 +1,5 @@
 const axios = require("axios");
+const {refreshAppToken, refreshBotToken, withTokenRetry} = require('../config');
 
 //SHOUTOUT HELPERS
 
@@ -6,28 +7,32 @@ async function getUsersByLogin(logins, config) {
     const params = new URLSearchParams();
     logins.forEach(login => params.append('login', login.replace(/^@/, '')));
 
-    const res = await axios.get('https://api.twitch.tv/helix/users', {
-        params,
-        headers: {
-            'Client-ID': config.CLIENT_ID,
-            'Authorization': `Bearer ${config.APP_TOKEN}`
-        }
-    });
-    return res.data.data;
+    return withTokenRetry(async () => {
+        const res = await axios.get('https://api.twitch.tv/helix/users', {
+            params,
+            headers: {
+                'Client-ID': config.CLIENT_ID,
+                'Authorization': `Bearer ${config.APP_TOKEN}`
+            }
+        });
+        return res.data.data;
+    }, refreshAppToken);
 }
 
 async function getChannelsByIds(ids, config) {
     const params = new URLSearchParams();
     ids.forEach(id => params.append('broadcaster_id', id));
 
-    const res = await axios.get('https://api.twitch.tv/helix/channels', {
-        params,
-        headers: {
-            'Client-ID': config.CLIENT_ID,
-            'Authorization': `Bearer ${config.APP_TOKEN}`
-        }
-    });
-    return res.data.data;
+    return withTokenRetry(async () => {
+        const res = await axios.get('https://api.twitch.tv/helix/channels', {
+            params,
+            headers: {
+                'Client-ID': config.CLIENT_ID,
+                'Authorization': `Bearer ${config.APP_TOKEN}`
+            }
+        });
+        return res.data.data;
+    }, refreshAppToken);
 }
 
 async function getUsersAndGames(usernames, config) {
@@ -47,21 +52,23 @@ async function getUsersAndGames(usernames, config) {
 
 async function sendTwitchShoutout(targetId, targetName, config) {
     try {
-        await axios.post(
-            'https://api.twitch.tv/helix/chat/shoutouts',
-            null,
-            {
-                params: {
-                    from_broadcaster_id: config.CHANNEL_ID,
-                    to_broadcaster_id: targetId,
-                    moderator_id: config.BOT_ID
-                },
-                headers: {
-                    'Client-ID': config.CLIENT_ID,
-                    'Authorization': `Bearer ${config.BOT_ACCESS_TOKEN}`
+        await withTokenRetry(async () => {
+            await axios.post(
+                'https://api.twitch.tv/helix/chat/shoutouts',
+                null,
+                {
+                    params: {
+                        from_broadcaster_id: config.CHANNEL_ID,
+                        to_broadcaster_id: targetId,
+                        moderator_id: config.BOT_ID
+                    },
+                    headers: {
+                        'Client-ID': config.CLIENT_ID,
+                        'Authorization': `Bearer ${config.BOT_ACCESS_TOKEN}`
+                    }
                 }
-            }
-        );
+            );
+        }, refreshBotToken);
         console.log(`Shoutout: official /shoutout sent for ${targetName}`);
     } catch (err) {
         if (err.response?.status === 429) {

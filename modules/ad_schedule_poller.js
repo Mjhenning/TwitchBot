@@ -1,5 +1,6 @@
 // modules/ad_schedule_poller.js
 const axios = require('axios');
+const {withTokenRetry} = require('../config');
 const {
     getIsOnline,
     onOnline,
@@ -33,7 +34,7 @@ async function getAdSchedule(config) {
 
 // ── Poll Logic ────────────────────────────────────────────────────────────────
 
-async function doPoll(client, config, withTokenRetry) {
+async function doPoll(client, config,) {
     try {
         // withTokenRetry refreshes the broadcaster token and retries on 401
         const adData = await withTokenRetry(() => getAdSchedule(config));

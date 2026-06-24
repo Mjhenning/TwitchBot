@@ -1,6 +1,13 @@
 // bot.js
 const tmi = require('tmi.js');
-const {config, initTokens, refreshBroadcasterToken} = require('./config');
+const {
+    config,
+    initTokens,
+    refreshBroadcasterToken,
+    refreshBotToken,
+    refreshAppToken,
+    withTokenRetry
+} = require('./config');
 const {startShieldSystem, stopShieldSystem} = require('./modules/shield_system');
 const {startTimers, stopTimers} = require('./modules/timer');
 const {startAdSchedulePoller, stopAdSchedulePoller} = require('./modules/ad_schedule_poller');
@@ -16,23 +23,6 @@ require('./data/twitch_events_handlers');
 // ── Auth retry wrapper ────────────────────────────────────────────────────────
 // Wraps any Twitch API call — if it gets a 401, refreshes the token and retries
 // once. Same pattern as TwitchClient.ExecuteAsync in the Discord bot.
-async function withTokenRetry(apiCall) {
-    try {
-        return await apiCall();
-    } catch (err) {
-        const status = err.response?.status;
-        const msg = err.response?.data?.message ?? err.message ?? '';
-
-        if (status === 401 || msg.toLowerCase().includes('invalid oauth token')) {
-            console.warn('[Auth] 401 detected — refreshing broadcaster token and retrying...');
-            await refreshBroadcasterToken();
-            return await apiCall();
-        }
-
-        throw err;
-    }
-}
-
 let tmiClient = null;
 let isRunning = false;
 let tokenRefreshInterval = null;
