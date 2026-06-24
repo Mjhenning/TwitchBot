@@ -1,12 +1,8 @@
 // bot.js
 const tmi = require('tmi.js');
 const {
-    config,
     initTokens,
     refreshBroadcasterToken,
-    refreshBotToken,
-    refreshAppToken,
-    withTokenRetry
 } = require('./config');
 const {startShieldSystem, stopShieldSystem} = require('./modules/shield_system');
 const {startTimers, stopTimers} = require('./modules/timer');
@@ -75,7 +71,7 @@ async function startBot() {
 
         startShieldSystem(tmiClient, cfg);
         await startEventSub(tmiClient, cfg);
-        startAdSchedulePoller(tmiClient, cfg, withTokenRetry);
+        startAdSchedulePoller(tmiClient, cfg);
         startTimers(tmiClient, cfg.CHANNEL_NAME);
         setupChatCommands(tmiClient, cfg);
         startARGElements(tmiClient, cfg);
