@@ -13,7 +13,7 @@ let adaptiveInterval = null;
 let currentPollMs = 15_000; // starts slow, tightens once a real ad is detected
 let warnedAdAt = null;   // tracks which ad timestamp we've already warned for
 
-const WARN_SECONDS_BEFORE = 90;
+const WARN_SECONDS_BEFORE = 45;
 
 // Twitch returns a zero-value placeholder date (e.g. "0001-01-01T00:00:00Z")
 // when no ad is currently scheduled, rather than omitting the field. Anything
