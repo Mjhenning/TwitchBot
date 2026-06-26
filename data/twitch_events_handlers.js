@@ -19,7 +19,8 @@ registerSubscription(
     'channel.follow',
     '2',
     (config) => ({
-        broadcaster_user_id: config.CHANNEL_ID
+        broadcaster_user_id: config.CHANNEL_ID,
+        moderator_user_id: config.CHANNEL_ID
     }),
     (event, client, config) => {
         const follower = event.user_name;
