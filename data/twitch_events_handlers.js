@@ -19,8 +19,7 @@ registerSubscription(
     'channel.follow',
     '2',
     (config) => ({
-        broadcaster_user_id: config.CHANNEL_ID,
-        moderator_user_id: config.CHANNEL_ID
+        broadcaster_user_id: config.CHANNEL_ID
     }),
     (event, client, config) => {
         const follower = event.user_name;
@@ -38,8 +37,7 @@ registerSubscription(
     'channel.raid',
     '1',
     (config) => ({
-        to_broadcaster_user_id: config.CHANNEL_ID,  // fires when someone raids YOU
-        moderator_user_id: config.CHANNEL_ID
+        to_broadcaster_user_id: config.CHANNEL_ID  // fires when someone raids YOU
     }),
     async (event, client, config) => {
         await eventShoutout(event, client, config)

@@ -59,8 +59,7 @@ async function sendTwitchShoutout(targetId, targetName, config) {
                 {
                     params: {
                         from_broadcaster_id: config.CHANNEL_ID,
-                        to_broadcaster_id: targetId,
-                        moderator_id: config.BOT_ID
+                        to_broadcaster_id: targetId
                     },
                     headers: {
                         'Client-ID': config.CLIENT_ID,
