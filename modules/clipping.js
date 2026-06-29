@@ -11,7 +11,7 @@ async function createClip(config) {
                     'Authorization': `Bearer ${config.BOT_ACCESS_TOKEN}`
                 },
                 params: {
-                    broadcaster_id: config.CHANNEL_ID
+                    broadcaster_id: config.BROADCASTER_ID
                 }
             }
         );
@@ -29,4 +29,4 @@ async function createClip(config) {
     }
 }
 
-module.exports = { createClip };
+module.exports = {createClip};

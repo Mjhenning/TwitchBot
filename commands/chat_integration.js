@@ -65,7 +65,7 @@ function setupChatCommands(client, config) {
         if (self) return;
 
         const sourceRoomId = tags['source-room-id'] || tags['room-id'];
-        const isFromMyChannel = sourceRoomId === config.CHANNEL_ID;
+        const isFromMyChannel = sourceRoomId === config.BROADCASTER_ID;
 
         if (!isFromMyChannel) {
             return;

@@ -58,8 +58,9 @@ async function sendTwitchShoutout(targetId, targetName, config) {
                 null,
                 {
                     params: {
-                        from_broadcaster_id: config.CHANNEL_ID,
-                        to_broadcaster_id: targetId
+                        from_broadcaster_id: config.BROADCASTER_ID,
+                        to_broadcaster_id: targetId,
+                        moderator_id: config.BOT_ID,
                     },
                     headers: {
                         'Client-ID': config.CLIENT_ID,
@@ -98,18 +99,18 @@ async function eventShoutout(event, client, config) {
 
 async function shoutout(client, config, users) {
     const soPool = [
-        `hey! go say hi to {user} 🦊💙 they were last streaming {game} — go give them some signal: {link}`,
-        `connection worth checking out: {user}, last seen playing {game}. go reinforce it: {link}`,
-        `🦊 quick signal boost for {user}! catch their last stream of {game} here: {link}`,
-        `psst, go connect with {user} — last spotted streaming {game}: {link}`,
+        `Hey! go say hi to {user} 🦊💙 they were last streaming {game} — go give them some signal: {link}`,
+        `Connection worth checking out: {user}, last seen playing {game}. go reinforce it: {link}`,
+        `🦊 Quick signal boost for {user}! catch their last stream of {game} here: {link}`,
+        `Psst, go connect with {user} — last spotted streaming {game}: {link}`,
         `{user} deserves some signal today 💙 they were last live with {game}: {link}`
     ];
 
     const massSoPool = [
-        `🦊 a few connections worth reinforcing today, go check them out:`,
-        `signal boost time, multiple nodes detected, go say hi to all of them:`,
-        `before we go, let's send some signal to a couple of friends of the Proxy:`,
-        `quick batch of connections worth your time today:`
+        `🦊 A few connections worth reinforcing today, go check them out:`,
+        `Signal boost time, multiple nodes detected, go say hi to all of them:`,
+        `Before we go, let's send some signal to a couple of friends of the Proxy:`,
+        `Quick batch of connections worth your time today:`
     ];
 
     const massSoUserPool = [

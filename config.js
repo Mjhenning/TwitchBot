@@ -45,7 +45,7 @@ const config = {
 
     // ---------- General ----------
     APP_TOKEN: null,
-    CHANNEL_ID: null,
+    BROADCASTER_ID: null,
     BOT_ID: null,
 
     DEBUG: true
@@ -209,7 +209,7 @@ async function fetchUserIds() {
         return;
     }
 
-    config.CHANNEL_ID = channel.data.data[0].id;
+    config.BROADCASTER_ID = channel.data.data[0].id;
 
     // Bot
     const bot = await axios.get('https://api.twitch.tv/helix/users', {
@@ -228,7 +228,7 @@ async function fetchUserIds() {
     config.BOT_ID = bot.data.data[0].id;
 
     if (config.DEBUG) {
-        console.log('[DEBUG] CHANNEL_ID:', config.CHANNEL_ID);
+        console.log('[DEBUG] BROADCASTER_ID:', config.BROADCASTER_ID);
         console.log('[DEBUG] BOT_ID:', config.BOT_ID);
     }
 }
@@ -276,7 +276,7 @@ async function initTokens() {
         console.log('[DEBUG] READY:', {
             BOT: !!config.BOT_ACCESS_TOKEN,
             BROADCASTER: !!config.BROADCASTER_ACCESS_TOKEN,
-            CHANNEL_ID: config.CHANNEL_ID,
+            BROADCASTER_ID: config.BROADCASTER_ID,
             BOT_ID: config.BOT_ID
         });
     }

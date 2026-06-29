@@ -86,14 +86,14 @@ async function subscribe(sessionId, config) {
         await axios.post('https://api.twitch.tv/helix/eventsub/subscriptions', {
             type: 'stream.online',
             version: '1',
-            condition: {broadcaster_user_id: config.CHANNEL_ID},
+            condition: {broadcaster_user_id: config.BROADCASTER_ID},
             transport: {method: 'websocket', session_id: sessionId}
         }, {headers});
 
         await axios.post('https://api.twitch.tv/helix/eventsub/subscriptions', {
             type: 'stream.offline',
             version: '1',
-            condition: {broadcaster_user_id: config.CHANNEL_ID},
+            condition: {broadcaster_user_id: config.BROADCASTER_ID},
             transport: {method: 'websocket', session_id: sessionId}
         }, {headers});
 
@@ -110,7 +110,7 @@ async function syncShieldState(config) {
                 'Client-ID': config.CLIENT_ID,
                 'Authorization': `Bearer ${config.BOT_ACCESS_TOKEN}`
             },
-            params: {user_id: config.CHANNEL_ID}
+            params: {user_id: config.BROADCASTER_ID}
         });
 
         const isLive = res.data.data && res.data.data.length > 0;
@@ -141,8 +141,8 @@ async function enableShieldMode(config) {
                     'Authorization': `Bearer ${config.BROADCASTER_ACCESS_TOKEN}`
                 },
                 params: {
-                    broadcaster_id: config.CHANNEL_ID,
-                    moderator_id: config.CHANNEL_ID,
+                    broadcaster_id: config.BROADCASTER_ID,
+                    moderator_id: config.BROADCASTER_ID,
                     is_active: true
                 }
             }
@@ -164,8 +164,8 @@ async function disableShieldMode(config) {
                     'Authorization': `Bearer ${config.BROADCASTER_ACCESS_TOKEN}`
                 },
                 params: {
-                    broadcaster_id: config.CHANNEL_ID,
-                    moderator_id: config.CHANNEL_ID,
+                    broadcaster_id: config.BROADCASTER_ID,
+                    moderator_id: config.BROADCASTER_ID,
                     is_active: false
                 }
             }
