@@ -10,16 +10,22 @@ const {
 // ── State ─────────────────────────────────────────────────────────────────────
 
 let adaptiveInterval = null;
-let currentPollMs = 15_000; // starts slow, tightens once a real ad is detected
-let warnedAdAt = null;   // tracks which ad timestamp we've already warned for
-let pollCount = 0;       // for log correlation across the lifetime of a session
+let startupTimeout = null;   // held so we can cancel it if stopPolling fires during the 60s window
+let currentPollMs = 15_000;  // starts slow, tightens once a real ad is detected
+let warnedAdAt = null;       // Unix-second timestamp we've already warned for (number)
+let pollCount = 0;           // for log correlation across the lifetime of a session
+let lastLoggedSecondsUntil = null; // throttle the "next ad in Xs" log
 
 const WARN_SECONDS_BEFORE = 45;
 
-// Twitch returns a zero-value placeholder date (e.g. "0001-01-01T00:00:00Z")
-// when no ad is currently scheduled, rather than omitting the field. Anything
-// before this sanity boundary (~2001) is treated as "no ad scheduled."
+// Twitch returns next_ad_at as a Unix timestamp in *seconds* (not milliseconds),
+// and returns 0 when no ad is scheduled. Multiply by 1000 before comparing to
+// Date.now(). Anything before ~2001 in ms is treated as "no ad scheduled."
 const MIN_VALID_TIMESTAMP_MS = 1_000_000_000_000;
+
+// Only re-log "next ad in Xs" when the value changes by at least this many seconds,
+// to avoid spamming the console every 2s while an ad is still far away.
+const LOG_SECONDS_CHANGE_THRESHOLD = 30;
 
 // ── API Call ──────────────────────────────────────────────────────────────────
 
@@ -51,46 +57,63 @@ async function doPoll(client, config) {
     try {
         const adData = await withTokenRetry(() => getAdSchedule(config));
 
-        const nextAdTime = adData?.next_ad_at
-            ? new Date(adData.next_ad_at).getTime()
-            : 0;
+        // next_ad_at is Unix seconds — multiply by 1000 to get milliseconds
+        const nextAdAt = adData?.next_ad_at ?? 0;   // raw Unix seconds, kept as number
+        const nextAdTime = nextAdAt * 1000;           // ms for Date.now() comparison
+
+        // preroll_free_time > 0 means the broadcaster has earned ad-free time and
+        // the scheduled ad cannot fire yet, regardless of what next_ad_at says.
+        const prerollFreeSeconds = adData?.preroll_free_time ?? 0;
 
         console.log(
-            `[AdPoller] Parsed next_ad_at="${adData?.next_ad_at ?? 'null'}" → ` +
-            `nextAdTime=${nextAdTime} (MIN_VALID=${MIN_VALID_TIMESTAMP_MS})`
+            `[AdPoller] Parsed next_ad_at=${nextAdAt} → nextAdTime=${nextAdTime}ms, ` +
+            `preroll_free_time=${prerollFreeSeconds}s (MIN_VALID=${MIN_VALID_TIMESTAMP_MS})`
         );
 
         // ── No real ad scheduled yet ───────────────────────────────────────
-        // Twitch doesn't appear to populate next_ad_at until shortly before
-        // the ad actually fires, so most polls will land here.
         if (!nextAdTime || nextAdTime < MIN_VALID_TIMESTAMP_MS) {
             console.log('[AdPoller] No scheduled ad (placeholder or missing timestamp) — staying on slow tier');
             currentPollMs = 15_000;
+            lastLoggedSecondsUntil = null;
+            console.log(`[AdPoller] ── Poll #${pollCount} done. Next poll in ${currentPollMs / 1000}s ──`);
+            return;
+        }
+
+        // ── Preroll-free gate ──────────────────────────────────────────────
+        // Ad is scheduled but can't fire yet — don't warn, but do poll fast
+        // so we catch the transition when preroll_free_time reaches 0.
+        if (prerollFreeSeconds > 0) {
+            console.log(`[AdPoller] Ad scheduled but blocked by preroll_free_time=${prerollFreeSeconds}s — holding fast poll, no warning`);
+            currentPollMs = 2_000;
             console.log(`[AdPoller] ── Poll #${pollCount} done. Next poll in ${currentPollMs / 1000}s ──`);
             return;
         }
 
         const secondsUntil = Math.floor((nextAdTime - Date.now()) / 1000);
-        console.log(`[AdPoller] Now=${Date.now()}, secondsUntil=${secondsUntil}`);
 
         // ── Adaptive poll rate ─────────────────────────────────────────────
-        // Once a real ad timestamp shows up, poll quickly so we don't miss
-        // the warn window — Twitch tends to only give a short heads-up anyway.
         const previousTier = currentPollMs;
         if (secondsUntil <= 0) {
             currentPollMs = 15_000; // ad passed, back to slow
         } else {
-            currentPollMs = 2_000; // any valid upcoming ad — poll fast
+            currentPollMs = 2_000;  // valid upcoming ad — poll fast
         }
         if (previousTier !== currentPollMs) {
             console.log(`[AdPoller] Poll tier changed: ${previousTier / 1000}s → ${currentPollMs / 1000}s`);
         }
 
-        console.log(`[AdPoller] Next ad in ${secondsUntil}s (polling every ${currentPollMs / 1000}s)`);
+        // ── Throttled countdown log ────────────────────────────────────────
+        const secondsChanged = lastLoggedSecondsUntil === null ||
+            Math.abs(lastLoggedSecondsUntil - secondsUntil) >= LOG_SECONDS_CHANGE_THRESHOLD;
+
+        if (secondsChanged) {
+            console.log(`[AdPoller] Next ad in ${secondsUntil}s (polling every ${currentPollMs / 1000}s)`);
+            lastLoggedSecondsUntil = secondsUntil;
+        }
 
         // ── Warning ────────────────────────────────────────────────────────
         const inWarnWindow = secondsUntil > 0 && secondsUntil <= WARN_SECONDS_BEFORE;
-        const alreadyWarnedThisAd = warnedAdAt === adData.next_ad_at;
+        const alreadyWarnedThisAd = warnedAdAt === nextAdAt; // both plain Unix seconds numbers
 
         console.log(
             `[AdPoller] Warning check: inWarnWindow=${inWarnWindow} ` +
@@ -99,8 +122,8 @@ async function doPoll(client, config) {
         );
 
         if (inWarnWindow && !alreadyWarnedThisAd) {
-            warnedAdAt = adData.next_ad_at;
-            console.log(`[AdPoller] >>> FIRING warning for next_ad_at="${adData.next_ad_at}" (${secondsUntil}s out)`);
+            warnedAdAt = nextAdAt;
+            console.log(`[AdPoller] >>> FIRING warning for next_ad_at=${nextAdAt} (${secondsUntil}s out)`);
 
             await client.say(
                 `#${config.CHANNEL_NAME}`,
@@ -111,9 +134,10 @@ async function doPoll(client, config) {
         }
 
         // ── Reset after ad passes ──────────────────────────────────────────
-        if (secondsUntil <= 0 && warnedAdAt === adData.next_ad_at) {
-            console.log(`[AdPoller] Ad timestamp "${adData.next_ad_at}" has passed — resetting warnedAdAt`);
+        if (secondsUntil <= 0 && warnedAdAt === nextAdAt) {
+            console.log(`[AdPoller] Ad timestamp ${nextAdAt} has passed — resetting warnedAdAt`);
             warnedAdAt = null;
+            lastLoggedSecondsUntil = null;
         }
 
         console.log(`[AdPoller] ── Poll #${pollCount} done. Next poll in ${currentPollMs / 1000}s ──`);
@@ -131,7 +155,7 @@ function scheduleNextPoll(client, config) {
 
     adaptiveInterval = setTimeout(async () => {
         if (!getIsOnline()) {
-            console.log('[AdPoller] Stream is offline at scheduled poll time — skipping this cycle and NOT rescheduling. Poller is now idle until next onOnline().');
+            console.log('[AdPoller] Stream is offline at scheduled poll time — skipping and NOT rescheduling. Poller idle until next onOnline().');
             return;
         }
 
@@ -143,14 +167,16 @@ function scheduleNextPoll(client, config) {
 // ── Start / Stop ──────────────────────────────────────────────────────────────
 
 function beginPolling(client, config) {
-    if (adaptiveInterval) {
-        console.log('[AdPoller] beginPolling called but adaptiveInterval already set — ignoring');
+    if (adaptiveInterval || startupTimeout) {
+        console.log('[AdPoller] beginPolling called but already running or in startup window — ignoring');
         return;
     }
 
     console.log('[AdPoller] Waiting 60s before activation...');
 
-    setTimeout(() => {
+    startupTimeout = setTimeout(() => {
+        startupTimeout = null;
+
         if (!getIsOnline()) {
             console.log('[AdPoller] Stream went offline before startup — aborting');
             return;
@@ -158,12 +184,19 @@ function beginPolling(client, config) {
 
         pollCount = 0;
         currentPollMs = 15_000;
+        lastLoggedSecondsUntil = null;
         console.log('[AdPoller] Started');
         scheduleNextPoll(client, config);
     }, 60_000);
 }
 
 function stopPolling() {
+    if (startupTimeout) {
+        clearTimeout(startupTimeout);
+        startupTimeout = null;
+        console.log('[AdPoller] Cancelled startup window');
+    }
+
     if (adaptiveInterval) {
         clearTimeout(adaptiveInterval);
         adaptiveInterval = null;
@@ -173,6 +206,7 @@ function stopPolling() {
 
     warnedAdAt = null;
     currentPollMs = 15_000;
+    lastLoggedSecondsUntil = null;
 
     console.log('[AdPoller] Stopped');
 }
