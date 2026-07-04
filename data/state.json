@@ -1,0 +1,6 @@
+{
+  "coherence": 52,
+  "lastActivity": "2026-07-03T23:52:33.113Z",
+  "bitRotRate": 0.5,
+  "notes": "coherence persists and decays between streams. bitRotRate is coherence lost per hour offline."
+}
