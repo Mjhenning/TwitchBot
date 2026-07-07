@@ -134,8 +134,8 @@ async function doPoll(client, config) {
         }
 
         // ── Reset after ad passes ──────────────────────────────────────────
-        if (secondsUntil <= 0 && warnedAdAt === nextAdAt) {
-            console.log(`[AdPoller] Ad timestamp ${nextAdAt} has passed — resetting warnedAdAt`);
+        if (secondsUntil <= 0 && warnedAdAt !== null) {
+            console.log(`[AdPoller] Ad has passed — resetting warnedAdAt`);
             warnedAdAt = null;
             lastLoggedSecondsUntil = null;
         }
