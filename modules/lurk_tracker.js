@@ -20,13 +20,17 @@ function endLurk(userId) {
 
     const seconds = Math.floor(diff / 1000) % 60;
     const minutes = Math.floor(diff / (1000 * 60)) % 60;
-    const hours   = Math.floor(diff / (1000 * 60 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
 
-    return { hours, minutes, seconds, name: data.name };
+    return {hours, minutes, seconds, name: data.name};
 }
 
 function isLurking(userId) {
     return lurkers.has(userId);
 }
 
-module.exports = { startLurk, endLurk, isLurking };
+function clearLurkers() {
+    lurkers.clear();
+}
+
+module.exports = {startLurk, endLurk, isLurking, clearLurkers};

@@ -480,6 +480,11 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
     return false;
 }
 
+//--------------------------------- HELPER ------------------------------------
+function resetCommandState() {
+    ssrEnabled = false;
+}
+
 
 module.exports = {
     devCommand,
@@ -517,5 +522,7 @@ module.exports = {
     getTop5Command,
 
     argSystemCommand,
-    argSystemAdminCommand
+    argSystemAdminCommand,
+
+    resetCommandState
 };

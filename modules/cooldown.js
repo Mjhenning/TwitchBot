@@ -46,4 +46,8 @@ function handleCooldown(userId, senderName, command, tags, client, channel, cust
     return false;
 }
 
-module.exports = {handleCooldown};
+function clearCooldowns() {
+    cooldowns.clear();
+}
+
+module.exports = {handleCooldown, clearCooldowns};

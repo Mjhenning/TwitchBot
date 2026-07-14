@@ -12,9 +12,13 @@ const {resetListeners} = require('./modules/stream-state');
 const {stopSSRPolling} = require('./modules/pear-desktop-music');
 
 const {setupChatCommands} = require('./commands/chat_integration');
-const {startARGElements} = require('./ARG/modules/arg_main');
+const {startARGElements, sysResetSession} = require('./ARG/modules/arg_main');
 const {startOBSWatcher} = require('./obs_watcher');
 require('./data/twitch_events_handlers');
+const {clearCooldowns} = require("./modules/cooldown");
+
+const {clearLurkers} = require('./modules/lurk_tracker');
+const {resetCommandState} = require('./commands/registry');
 
 // ── Auth retry wrapper ────────────────────────────────────────────────────────
 // Wraps any Twitch API call — if it gets a 401, refreshes the token and retries
@@ -115,7 +119,27 @@ async function stopBot() {
         stopSSRPolling();
     } catch (e) {
         console.error('[Bot] stopSSRPolling error:', e);
-    }  // ← new
+    }
+    try {
+        sysResetSession();
+    } catch (e) {
+        console.error('[Bot] sysResetSession error:', e);
+    }
+    try {
+        clearCooldowns()
+    } catch (e) {
+        console.error('[Bot] clearCooldowns error:', e);
+    }
+    try {
+        clearLurkers();
+    } catch (e) {
+        console.error('[Bot] clearLurkers error:', e);
+    }
+    try {
+        resetCommandState();
+    } catch (e) {
+        console.error('[Bot] resetCommandState error:', e);
+    }
 
     resetListeners(); //clear stream-state listener arrays before next startBot()
 
@@ -126,6 +150,7 @@ async function stopBot() {
 
     if (tmiClient) {
         try {
+            tmiClient.removeAllListeners();
             await tmiClient.disconnect();
         } catch (e) {
             console.error('[Bot] tmi disconnect error:', e);

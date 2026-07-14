@@ -102,7 +102,6 @@ function wasPortFound(port) {
 
 const sysConnectedUsers = new Map(); // userId -> username
 const sysProbedPorts = new Set();
-let sysAct1Complete = false;
 let cwd = '/';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -478,7 +477,6 @@ function sysIsTerminalActive() {
 function sysResetSession() {
     sysConnectedUsers.clear();
     sysProbedPorts.clear();
-    sysAct1Complete = false;
     cwd = '/';
     terminalActivated = false;
 }
@@ -542,5 +540,6 @@ module.exports = {
     getPorts,
 
     // event state
-    sysIsTerminalActive
+    sysIsTerminalActive,
+    sysResetSession
 };
