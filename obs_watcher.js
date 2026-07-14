@@ -1,7 +1,7 @@
 // obs_watcher.js
 const OBSWebSocket = require('obs-websocket-js').default;
 const {config} = require('./config');
-const RECONNECT_DELAY = 5000;
+const RECONNECT_DELAY = 20000;
 
 async function startOBSWatcher({onOBSOnline, onOBSOFfline}) {
     const obs = new OBSWebSocket();
