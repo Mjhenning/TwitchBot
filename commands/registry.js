@@ -31,6 +31,7 @@ const {
 
 const {shoutout} = require('../modules/shoutout');
 
+const {handleCounter} = require("../modules/counters");
 
 //--------------------------------- HELPERS ------------------------------------
 function formatTime(ms) {
@@ -194,6 +195,12 @@ function hugCommand(client, channel, senderName, msg) {
     client.say(channel, defaultMessages[Math.floor(Math.random() * defaultMessages.length)]);
 }
 
+//--------------------------------- TWITCH COUNTER COMMANDS ------------------------------------
+
+async function counterCommand(client, channel, command, action, isMod) {
+    return handleCounter(client, channel, command, action, isMod);
+}
+
 //--------------------------------- TWITCH FUNCTION COMMANDS ------------------------------------
 
 async function clipCommand(client, channel, senderName) {
@@ -264,7 +271,6 @@ async function shoutoutCommand(client, msg) {
 
     await shoutout(client, config, users);
 }
-
 
 //--------------------------------- TWITCH TEST COMMANDS ------------------------------------
 
@@ -524,5 +530,6 @@ module.exports = {
     argSystemCommand,
     argSystemAdminCommand,
 
-    resetCommandState
+    resetCommandState,
+    counterCommand
 };

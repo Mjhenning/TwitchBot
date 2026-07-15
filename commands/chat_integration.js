@@ -30,7 +30,8 @@ const {
     currentSongCommand,
     tailCommand,
     fishCommand,
-    hugCommand
+    hugCommand,
+    counterCommand
 } = require('./registry');
 
 const {getBalanceCommand, getRankCommand, getTop5Command} = require('./registry');
@@ -283,6 +284,18 @@ function setupChatCommands(client, config) {
             const requester = parts[3] ?? null;
             adBreakTestCommand(client, duration, isAutomatic, requester);
             return;
+        }
+
+        if (lower.startsWith("!")) {
+            const parts = lower.substring(1).split(/\s+/);
+
+            const command = parts[0];
+            const action = parts[1] ?? null;
+
+            const isMod = tags.mod || tags.badges?.broadcaster === "1";
+
+            if (await counterCommand(client, channel, command, action, isMod))
+                return;
         }
 
         // ------------------- daemon greeting ------------------- (AT BOTTOM TO AVOID OVERWRITING COMMANDS)

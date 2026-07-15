@@ -1,0 +1,33 @@
+[
+  {
+    "id": "death",
+    "commands": [
+      "death",
+      "doid",
+      "died",
+      "rip",
+      "ded"
+    ],
+    "amount": 0,
+    "lastCounted": null,
+    "responses": [
+      "💀 Death count is now {count}.",
+      "Fox has exploded {count} times.",
+      "Respawn successful. Total deaths: {count}."
+    ]
+  },
+  {
+    "id": "yawn",
+    "commands": [
+      "yawn",
+      "eepy",
+      "sleepy"
+    ],
+    "amount": 0,
+    "lastCounted": null,
+    "responses": [
+      "🥱 Yawn count is now {count}.",
+      "Sleep.exe attempted to launch ({count})."
+    ]
+  }
+]
