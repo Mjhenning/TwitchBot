@@ -26,7 +26,7 @@ function handleDaemonRelatedResponses({message, senderName, client, channel}) {
         'worst', 'garbage', 'cringe', 'lame', 'terrible',
         'suck it', 'fuck you', 'your mom'
     ];
-    const isThreat = words.some(w => threats.includes(w));
+    const isThreat = threats.some(threat => lower.includes(threat));
 
     if (isThreat && Date.now() - lastModuleResponse > 15000) {
         lastModuleResponse = Date.now();
