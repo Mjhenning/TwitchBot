@@ -20,7 +20,7 @@
       "The respawn queue grows longer... total deaths: {count}.",
       "📡 Signal lost... reconnecting... Death #{count}.",
       "Achievement unlocked: Professional Floor Inspector ({count}).",
-      "The fox has become one with the pavement {count} time(s)."
+      "The gummy has become one with the pavement {count} time(s)."
     ]
   },
   {
@@ -47,7 +47,7 @@
       "Fox insists he's awake. The yawn counter disagrees ({count}).",
       "Energy reserves are running critically low. Yawns: {count}.",
       "Background process: counting yawns... Current value: {count}.",
-      "Someone get this fox a blanket... yawn #{count}.",
+      "Someone get this gummy a blanket... yawn #{count}.",
       "The sleep schedule has left the chat. ({count})",
       "Reminder: 'I'll sleep earlier tonight' has been pending for several business days. ({count})",
       "Tails has filed another official 'Go To Bed' report. Total reports: {count}.",
