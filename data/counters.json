@@ -13,7 +13,14 @@
     "responses": [
       "💀 Death count is now {count}.",
       "Fox has exploded {count} times.",
-      "Respawn successful. Total deaths: {count}."
+      "Respawn successful. Total deaths: {count}.",
+      "⚠️ Critical system failure detected. Death #{count}.",
+      "🪦 Fox has been returned to sender. ({count})",
+      "💾 Loading previous save... Deaths: {count}.",
+      "The respawn queue grows longer... total deaths: {count}.",
+      "📡 Signal lost... reconnecting... Death #{count}.",
+      "Achievement unlocked: Professional Floor Inspector ({count}).",
+      "The fox has become one with the pavement {count} time(s)."
     ]
   },
   {
@@ -27,7 +34,25 @@
     "lastCounted": null,
     "responses": [
       "🥱 Yawn count is now {count}.",
-      "Sleep.exe attempted to launch ({count})."
+      "Sleep.exe attempted to launch ({count}).",
+      "⚠️ Sleep debt has increased. Yawns: {count}.",
+      "Tails has logged yawn #{count} into the permanent records.",
+      "📊 Chat's 'Fox needs sleep' evidence folder now contains {count} entries.",
+      "The mods are taking notes... yawn #{count}.",
+      "Another yawn detected. That's {count} reasons to fix your sleep schedule.",
+      "🛌 Low-power mode requested... request denied. Total yawns: {count}.",
+      "The daemon recommends a healthy bedtime. Recommendation ignored. ({count})",
+      "😴 Connection quality degrading... yawn #{count} detected.",
+      "The community's case against Fox just got stronger. Exhibit #{count}.",
+      "Fox insists he's awake. The yawn counter disagrees ({count}).",
+      "Energy reserves are running critically low. Yawns: {count}.",
+      "Background process: counting yawns... Current value: {count}.",
+      "Someone get this fox a blanket... yawn #{count}.",
+      "The sleep schedule has left the chat. ({count})",
+      "Reminder: 'I'll sleep earlier tonight' has been pending for several business days. ({count})",
+      "Tails has filed another official 'Go To Bed' report. Total reports: {count}.",
+      "The eepy has breached containment. Incident #{count}.",
+      "Another yawn. The mods are feeling increasingly vindicated. ({count})"
     ]
   }
 ]
