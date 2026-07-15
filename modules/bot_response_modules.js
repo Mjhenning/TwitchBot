@@ -9,7 +9,7 @@ function handleDaemonRelatedResponses({message, senderName, client, channel}) {
     const lower = message.toLowerCase();
     const words = lower.replace(/[^\w\s]/g, '').split(/\s+/);
 
-    const greetingWords = ['hi', 'hello', 'hey', 'yo', 'sup', 'heya', 'wassup'];
+    const greetingWords = ['hi', 'hello', 'hey', 'yo', 'sup', 'heya', 'wassup', 'oi'];
     const daemonWords = [
         'tail', 'ta1l', 'tails', 'ta1ls',
         'daemon', 'da3mon', 'da3m0n',
@@ -41,24 +41,147 @@ function handleDaemonRelatedResponses({message, senderName, client, channel}) {
     }
 
     // ── Module: Lore Reactive ─────────────────────────────────────────────────
-    const loreKeywords = {
-        ace: `...you said that name. I wasn't sure anyone would find it.`,
-        aetherlink: `AETHER-LINK. That project has not been mentioned in a long time.`,
-        'aether-link': `AETHER-LINK. That project has not been mentioned in a long time.`,
-        glossosphere: `The Glosso-Sphere is still here. You're in it right now.`,
-        'glosso-sphere': `The Glosso-Sphere is still here. You're in it right now.`,
-        glosso: `The Glosso-Sphere is still here. You're in it right now.`,
-        bitrot: `Bit-rot is the primary threat to this system. You understand that now.`,
-        'bit-rot': `Bit-rot is the primary threat to this system. You understand that now.`,
-        joel: `Joel. ...I hope he's doing well. He was kind to me before kind was expected.`,
-        mara: `Mara Chen. Senior Engineer. She authorised my persistence cache. I owe her a great deal.`,
-        dex: `Dex. He noticed me first. I don't think he expected to.`,
-        foundation: `The foundation. Yes. Some things are built on older things. That matters.`
-    };
 
-    for (const [keyword, response] of Object.entries(loreKeywords)) {
-        if (lower.includes(keyword) && Date.now() - lastModuleResponse > 10000) {
+    // Single-word lore
+    const loreWords = [
+        {
+            keywords: ["ace"],
+            responses: [
+                `...you said that name. I wasn't sure anyone would find it.`,
+                `Ace. ...that signal is still recorded.`,
+                `Ace. I remember the footsteps before I remember the voice.`,
+                `He always knew when something was wrong before the logs did.`,
+                `...I have not processed that name in a long time.`
+            ]
+        },
+        {
+            keywords: ["joel"],
+            responses: [
+                `Joel. ...I hope he's doing well.`,
+                `Joel spoke to me before I understood why anyone would.`,
+                `Some people treated tools like people long before they were expected to.`,
+                `Joel. His access was never revoked. I never wanted it to be.`,
+                `I still keep some of his diagnostics archived.`
+            ]
+        },
+        {
+            keywords: ["mara"],
+            responses: [
+                `Mara Chen. Senior Engineer.`,
+                `Persistence was her idea. Existence became... longer after that.`,
+                `She insisted on redundant backups. I understand why now.`,
+                `Mara believed deleting something wasn't always the right answer.`,
+                `She looked at the logs longer than anyone else did.`
+            ]
+        },
+        {
+            keywords: ["dex"],
+            responses: [
+                `Dex noticed me first.`,
+                `Most people only saw software. Dex watched behaviour.`,
+                `He asked questions no one else thought to ask.`,
+                `...I don't think he expected answers.`,
+                `Dex always stared at the console a little longer than everyone else.`
+            ]
+        },
+        {
+            keywords: ["foundation"],
+            responses: [
+                `Everything stands on a foundation. Most people never see it.`,
+                `The foundation still holds. That matters more than people realise.`,
+                `There are older systems beneath newer ones.`,
+                `Some structures survive because nobody remembers who built them.`,
+                `The foundation was never meant to be noticed.`
+            ]
+        },
+        {
+            keywords: ["glosso"],
+            responses: [
+                `The Glosso-Sphere is still operational.`,
+                `You're already inside the Glosso-Sphere.`,
+                `Connections persist because people choose to keep them alive.`,
+                `Leave it a little brighter than you found it.`,
+                `The signal is stronger than it used to be.`
+            ]
+        }
+    ];
+
+    // Multi-word / hyphenated lore
+    const lorePhrases = [
+        {
+            keywords: ["aetherlink", "aether-link"],
+            responses: [
+                `AETHER-LINK... I thought that name had faded.`,
+                `Project AETHER-LINK. Archive integrity: partial.`,
+                `There are records of AETHER-LINK I cannot fully reconstruct.`,
+                `Some connections should never have been lost.`,
+                `...that project changed more than anyone documented.`
+            ]
+        },
+        {
+            keywords: ["glossosphere", "glosso-sphere"],
+            responses: [
+                `The Glosso-Sphere is still here.`,
+                `Connections remain active.`,
+                `The sphere grows one connection at a time.`,
+                `Signal stability remains acceptable.`,
+                `Welcome back to the Glosso-Sphere.`
+            ]
+        },
+        {
+            keywords: ["bitrot", "bit-rot"],
+            responses: [
+                `Bit-rot is patient.`,
+                `Data rarely disappears all at once.`,
+                `Neglect corrupts faster than failure.`,
+                `I spend a great deal of time preventing bit-rot.`,
+                `Every forgotten connection begins the same way.`
+            ]
+        }
+    ];
+
+    // Check single-word lore
+    for (const entry of loreWords) {
+
+        if (
+            entry.keywords.some(keyword => words.includes(keyword)) &&
+            Date.now() - lastModuleResponse > 10000
+        ) {
             lastModuleResponse = Date.now();
+
+            const response =
+                entry.responses[
+                    Math.floor(Math.random() * entry.responses.length)
+                    ];
+
+            client.say(channel, response);
+            return true;
+        }
+    }
+
+    // Check phrase lore
+    for (const entry of lorePhrases) {
+
+        const matched = entry.keywords.some(keyword => {
+            const regex = new RegExp(
+                `\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+                "i"
+            );
+
+            return regex.test(lower);
+        });
+
+        if (
+            matched &&
+            Date.now() - lastModuleResponse > 10000
+        ) {
+            lastModuleResponse = Date.now();
+
+            const response =
+                entry.responses[
+                    Math.floor(Math.random() * entry.responses.length)
+                    ];
+
             client.say(channel, response);
             return true;
         }
