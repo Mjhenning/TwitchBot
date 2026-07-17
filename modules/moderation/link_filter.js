@@ -148,7 +148,7 @@ async function block(client, channel, tags) {
 
         client.say(
             channel,
-            `@${tags.username} Links aren't permitted here. YouTube links may only be posted through !sr while Song Requests are open. ✧`
+            `@${tags.username} please avoid posting links in chat. Links are not allowed in this channel unless they are part of a song request.`
         );
 
         lastWarn = now;
