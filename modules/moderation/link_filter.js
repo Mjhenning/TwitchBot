@@ -84,24 +84,13 @@ async function handleLinkBlocker(client, channel, tags, message, ssrEnabled) {
         return false;
 
     const links = extractLinks(message);
-    console.log("[Link Filter] Extracted links:", links);
 
     if (!links.length)
         return false;
 
     const srCommand = isAllowedSongRequest(message, ssrEnabled);
-    console.log("[Link Filter]", {
-        message,
-        ssrEnabled,
-        srCommand
-    });
 
     for (const link of links) {
-
-        console.log("[Link Filter] Checking", {
-            link,
-            allowed: domainMatches(link, moderationConfig.songRequestDomains)
-        });
 
         // Always allowed
         if (domainMatches(link, moderationConfig.alwaysAllowedDomains))
@@ -122,14 +111,6 @@ async function handleLinkBlocker(client, channel, tags, message, ssrEnabled) {
 
 async function block(client, channel, tags) {
 
-    console.log("[Link Filter] Deleting message:");
-    console.log("[Link Filter]", {
-        messageId: tags.id,
-        broadcasterId: config.BROADCASTER_ID,
-        moderatorId: config.BOT_ID,
-        botHasToken: !!config.BOT_ACCESS_TOKEN
-    });
-
     try {
 
         await withTokenRetry(
@@ -149,13 +130,10 @@ async function block(client, channel, tags) {
             ),
             refreshBotToken
         );
-
         console.log("[Link Filter] Message deleted successfully.");
 
     } catch (err) {
-
         console.error("[Link Filter] Delete failed");
-
         if (err.response) {
             console.error(err.response.status);
             console.error(JSON.stringify(err.response.data, null, 2));
