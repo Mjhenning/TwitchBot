@@ -1,0 +1,22 @@
+{
+  "warnCooldown": 15000,
+  "trustedBadges": [
+    "broadcaster",
+    "moderator",
+    "vip"
+  ],
+  "allowedCommands": [
+    "!sr",
+    "!songrequest"
+  ],
+  "alwaysAllowedDomains": [
+    "github.com",
+    "twitch.tv",
+    "clips.twitch.tv"
+  ],
+  "songRequestDomains": [
+    "youtube.com",
+    "youtu.be",
+    "music.youtube.com"
+  ]
+}

@@ -31,7 +31,8 @@ const {
     tailCommand,
     fishCommand,
     hugCommand,
-    counterCommand
+    counterCommand,
+    handleModeration
 } = require('./registry');
 
 const {getBalanceCommand, getRankCommand, getTop5Command} = require('./registry');
@@ -77,6 +78,20 @@ function setupChatCommands(client, config) {
         const senderName = tags['display-name'] || tags['username'];
         const userId = tags['user-id'];
         const isBroadcaster = tags.badges?.broadcaster === '1';
+
+        // ------------------- AUTOMOD -------------------
+
+        if (
+            await handleModeration(
+                client,
+                channel,
+                tags,
+                msg
+            )
+        ) {
+            return;
+        }
+
 
         //--------------------------------- FUNCTIONAL HELPERS ------------------------------------
 

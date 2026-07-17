@@ -33,6 +33,8 @@ const {shoutout} = require('../modules/shoutout');
 
 const {handleCounter} = require("../modules/counters");
 
+const {handleLinkBlocker} = require("../modules/moderation/link_filter");
+
 //--------------------------------- HELPERS ------------------------------------
 function formatTime(ms) {
     const totalSec = Math.ceil(ms / 1000);
@@ -45,6 +47,18 @@ function formatTime(ms) {
 
 function getSsrEnabled() {
     return ssrEnabled;
+}
+
+//--------------------------------- AutoMod ------------------------------------
+
+async function handleModeration(client, channel, tags, message) {
+    return handleLinkBlocker(
+        client,
+        channel,
+        tags,
+        message,
+        ssrEnabled
+    );
 }
 
 //--------------------------------- STRING COMMANDS ------------------------------------
@@ -531,5 +545,7 @@ module.exports = {
     argSystemAdminCommand,
 
     resetCommandState,
-    counterCommand
+    counterCommand,
+
+    handleModeration
 };
