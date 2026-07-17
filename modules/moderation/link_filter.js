@@ -34,19 +34,13 @@ function normalize(link) {
 }
 
 function domainMatches(link, domains) {
-    const value = normalize(link);
+    const host = new URL(
+        link.startsWith("http") ? link : "https://" + link
+    ).hostname.replace(/^www\./, "");
 
-    return domains.some(domain => {
-        const d = domain.toLowerCase();
-
-        return (
-            value === d ||
-            value.startsWith(d + "/") ||
-            value.startsWith(d + "?") ||
-            value.startsWith(d + "#") ||
-            value.endsWith("." + d)
-        );
-    });
+    return domains.some(domain =>
+        host === domain || host.endsWith("." + domain)
+    );
 }
 
 function isAllowedSongRequest(message, ssrEnabled) {
@@ -91,8 +85,18 @@ async function handleLinkBlocker(client, channel, tags, message, ssrEnabled) {
         return false;
 
     const srCommand = isAllowedSongRequest(message, ssrEnabled);
+    console.log("[Link Filter]", {
+        message,
+        ssrEnabled,
+        srCommand
+    });
 
     for (const link of links) {
+
+        console.log("[Link Filter] Checking", {
+            link,
+            allowed: domainMatches(link, moderationConfig.songRequestDomains)
+        });
 
         // Always allowed
         if (domainMatches(link, moderationConfig.alwaysAllowedDomains))
