@@ -17,7 +17,7 @@ function reloadConfig() {
 }
 
 const LINK_REGEX =
-    /\b(?:https?:\/\/|ftp:\/\/|www\.|(?:[\w-]+\.)+[a-z]{2,})(?:\/[^\s]*)?/gi;
+    /(https?:\/\/[^\s]+|ftp:\/\/[^\s]+|www\.[^\s]+|(?:[\w-]+\.)+[a-z]{2,}[^\s]*)/gi;
 
 let lastWarn = 0;
 
@@ -34,19 +34,17 @@ function normalize(link) {
 }
 
 function domainMatches(link, domains) {
-    const value = normalize(link);
+    try {
+        const host = new URL(
+            link.startsWith("http") ? link : "https://" + link
+        ).hostname.replace(/^www\./, "");
 
-    return domains.some(domain => {
-        const d = domain.toLowerCase();
-
-        return (
-            value === d ||
-            value.startsWith(d + "/") ||
-            value.startsWith(d + "?") ||
-            value.startsWith(d + "#") ||
-            value.endsWith("." + d)
+        return domains.some(domain =>
+            host === domain || host.endsWith("." + domain)
         );
-    });
+    } catch {
+        return false;
+    }
 }
 
 function isAllowedSongRequest(message, ssrEnabled) {
@@ -86,6 +84,7 @@ async function handleLinkBlocker(client, channel, tags, message, ssrEnabled) {
         return false;
 
     const links = extractLinks(message);
+    console.log("[Link Filter] Extracted links:", links);
 
     if (!links.length)
         return false;
