@@ -34,13 +34,19 @@ function normalize(link) {
 }
 
 function domainMatches(link, domains) {
-    const host = new URL(
-        link.startsWith("http") ? link : "https://" + link
-    ).hostname.replace(/^www\./, "");
+    const value = normalize(link);
 
-    return domains.some(domain =>
-        host === domain || host.endsWith("." + domain)
-    );
+    return domains.some(domain => {
+        const d = domain.toLowerCase();
+
+        return (
+            value === d ||
+            value.startsWith(d + "/") ||
+            value.startsWith(d + "?") ||
+            value.startsWith(d + "#") ||
+            value.endsWith("." + d)
+        );
+    });
 }
 
 function isAllowedSongRequest(message, ssrEnabled) {
