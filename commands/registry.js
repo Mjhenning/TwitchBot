@@ -52,12 +52,15 @@ function getSsrEnabled() {
 //--------------------------------- AutoMod ------------------------------------
 
 async function handleModeration(client, channel, tags, message) {
+
+    console.log("SSR Enabled:", getSsrEnabled());
+
     return handleLinkBlocker(
         client,
         channel,
         tags,
         message,
-        ssrEnabled
+        getSsrEnabled()
     );
 }
 
