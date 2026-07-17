@@ -1,16 +1,19 @@
 const fs = require("fs");
 const path = require("path");
 
+const axios = require("axios");
+const {config, withTokenRetry, refreshBotToken} = require("../../config");
+
 const CONFIG_PATH = path.join(__dirname, "../../data/moderation.json");
 
 function loadConfig() {
     return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
 }
 
-let config = loadConfig();
+let moderationConfig = loadConfig();
 
 function reloadConfig() {
-    config = loadConfig();
+    moderationConfig = loadConfig();
 }
 
 const LINK_REGEX =
@@ -53,7 +56,7 @@ function isAllowedSongRequest(message, ssrEnabled) {
 
     const lower = message.toLowerCase();
 
-    return config.allowedCommands.some(cmd =>
+    return moderationConfig.allowedCommands.some(cmd =>
         lower.startsWith(cmd.toLowerCase() + " ")
     );
 }
@@ -61,7 +64,7 @@ function isAllowedSongRequest(message, ssrEnabled) {
 function isTrustedUser(tags) {
     const badges = tags.badges || {};
 
-    return config.trustedBadges.some(badge => {
+    return moderationConfig.trustedBadges.some(badge => {
         switch (badge.toLowerCase()) {
             case "moderator":
             case "mod":
@@ -92,13 +95,13 @@ async function handleLinkBlocker(client, channel, tags, message, ssrEnabled) {
     for (const link of links) {
 
         // Always allowed
-        if (domainMatches(link, config.alwaysAllowedDomains))
+        if (domainMatches(link, moderationConfig.alwaysAllowedDomains))
             continue;
 
         // Allowed only while Song Requests are enabled
         if (
             srCommand &&
-            domainMatches(link, config.songRequestDomains)
+            domainMatches(link, moderationConfig.songRequestDomains)
         )
             continue;
 
@@ -110,15 +113,51 @@ async function handleLinkBlocker(client, channel, tags, message, ssrEnabled) {
 
 async function block(client, channel, tags) {
 
+    console.log("[Link Filter] Deleting message:");
+    console.log("[Link Filter]", {
+        messageId: tags.id,
+        broadcasterId: config.BROADCASTER_ID,
+        moderatorId: config.BOT_ID,
+        botHasToken: !!config.BOT_ACCESS_TOKEN
+    });
+
     try {
-        await client.deletemessage(channel, tags.id);
+
+        await withTokenRetry(
+            () => axios.delete(
+                "https://api.twitch.tv/helix/moderation/chat",
+                {
+                    headers: {
+                        "Client-ID": config.CLIENT_ID,
+                        "Authorization": `Bearer ${config.BOT_ACCESS_TOKEN}`
+                    },
+                    params: {
+                        broadcaster_id: config.BROADCASTER_ID,
+                        moderator_id: config.BOT_ID,
+                        message_id: tags.id
+                    }
+                }
+            ),
+            refreshBotToken
+        );
+
+        console.log("[Link Filter] Message deleted successfully.");
+
     } catch (err) {
-        console.error("[Link Filter]", err.message);
+
+        console.error("[Link Filter] Delete failed");
+
+        if (err.response) {
+            console.error(err.response.status);
+            console.error(JSON.stringify(err.response.data, null, 2));
+        } else {
+            console.error(err);
+        }
     }
 
     const now = Date.now();
 
-    if (now - lastWarn > config.warnCooldown) {
+    if (now - lastWarn > moderationConfig.warnCooldown) {
 
         client.say(
             channel,
