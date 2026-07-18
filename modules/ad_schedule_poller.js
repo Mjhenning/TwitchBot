@@ -15,6 +15,7 @@ let currentPollMs = 15_000;  // starts slow, tightens once a real ad is detected
 let warnedAdAt = null;       // Unix-second timestamp we've already warned for (number)
 let pollCount = 0;           // for log correlation across the lifetime of a session
 let lastLoggedSecondsUntil = null; // throttle the "next ad in Xs" log
+let previousSecondsUntil = null;
 
 const WARN_SECONDS_BEFORE = 45;
 
@@ -58,17 +59,18 @@ async function doPoll(client, config) {
         const adData = await withTokenRetry(() => getAdSchedule(config));
 
         // next_ad_at is Unix seconds — multiply by 1000 to get milliseconds
-        const nextAdAt = adData?.next_ad_at ?? 0;   // raw Unix seconds, kept as number
-        const nextAdTime = nextAdAt * 1000;           // ms for Date.now() comparison
+        const nextAdTime = adData?.next_ad_at ? Date.parse(adData.next_ad_at) : 0;
 
         // preroll_free_time > 0 means the broadcaster has earned ad-free time and
         // the scheduled ad cannot fire yet, regardless of what next_ad_at says.
         const prerollFreeSeconds = adData?.preroll_free_time ?? 0;
 
-        console.log(
-            `[AdPoller] Parsed next_ad_at=${nextAdAt} → nextAdTime=${nextAdTime}ms, ` +
-            `preroll_free_time=${prerollFreeSeconds}s (MIN_VALID=${MIN_VALID_TIMESTAMP_MS})`
-        );
+        console.log({
+            now: new Date().toISOString(),
+            next_ad_at: adData?.next_ad_at ?? null,
+            parsed: nextAdTime ? new Date(nextAdTime).toISOString() : null,
+            prerollFreeSeconds
+        });
 
         // ── No real ad scheduled yet ───────────────────────────────────────
         if (!nextAdTime || nextAdTime < MIN_VALID_TIMESTAMP_MS) {
@@ -89,7 +91,7 @@ async function doPoll(client, config) {
             return;
         }
 
-        const secondsUntil = Math.floor((nextAdTime - Date.now()) / 1000);
+        const secondsUntil = Math.ceil((nextAdTime - Date.now()) / 1000);
 
         // ── Adaptive poll rate ─────────────────────────────────────────────
         const previousTier = currentPollMs;
@@ -112,8 +114,16 @@ async function doPoll(client, config) {
         }
 
         // ── Warning ────────────────────────────────────────────────────────
-        const inWarnWindow = secondsUntil > 0 && secondsUntil <= WARN_SECONDS_BEFORE;
-        const alreadyWarnedThisAd = warnedAdAt === nextAdAt; // both plain Unix seconds numbers
+        const alreadyWarnedThisAd = warnedAdAt === nextAdTime;
+
+        const crossedThreshold =
+            previousSecondsUntil === null ||
+            (
+                previousSecondsUntil > WARN_SECONDS_BEFORE &&
+                secondsUntil <= WARN_SECONDS_BEFORE
+            );
+
+        previousSecondsUntil = secondsUntil;
 
         console.log(
             `[AdPoller] Warning check: inWarnWindow=${inWarnWindow} ` +
@@ -121,9 +131,13 @@ async function doPoll(client, config) {
             `warnedAdAt=${warnedAdAt ?? 'null'}`
         );
 
-        if (inWarnWindow && !alreadyWarnedThisAd) {
-            warnedAdAt = nextAdAt;
-            console.log(`[AdPoller] >>> FIRING warning for next_ad_at=${nextAdAt} (${secondsUntil}s out)`);
+        if (
+            crossedThreshold &&
+            !alreadyWarnedThisAd &&
+            secondsUntil > 0
+        ) {
+            warnedAdAt = nextAdTime;
+            console.log(`[AdPoller] >>> FIRING warning (${secondsUntil}s out)`);
 
             await client.say(
                 `#${config.CHANNEL_NAME}`,
@@ -137,6 +151,7 @@ async function doPoll(client, config) {
         if (secondsUntil <= 0 && warnedAdAt !== null) {
             console.log(`[AdPoller] Ad has passed — resetting warnedAdAt`);
             warnedAdAt = null;
+            previousSecondsUntil = null;
             lastLoggedSecondsUntil = null;
         }
 
@@ -207,6 +222,7 @@ function stopPolling() {
     warnedAdAt = null;
     currentPollMs = 15_000;
     lastLoggedSecondsUntil = null;
+    previousSecondsUntil = null;
 
     console.log('[AdPoller] Stopped');
 }

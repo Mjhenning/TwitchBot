@@ -13,6 +13,9 @@
 const axios = require('axios');
 const {registerSubscription} = require('../modules/twitch_events');
 const {eventShoutout} = require('../modules/shoutout')
+const {getIsOnline} = require('../modules/stream-state');
+
+let adEndTimer = null;
 
 // ─── channel.follow ────────────────────────────────────────────────────────────
 registerSubscription(
@@ -54,7 +57,7 @@ registerSubscription(
     (event, client, config) => {
         const duration = event.duration_seconds;
         const isAutomatic = event.is_automatic;
-        const requester = event.requester_user_name; // null if automatic
+        const requester = event.requester_user_name;
 
         console.log(`EventHandlers: Ad break started — ${duration}s, automatic=${isAutomatic}`);
 
@@ -66,6 +69,27 @@ registerSubscription(
             `#${config.CHANNEL_NAME}`,
             `📡 Bitrot interference detected — ${who} for ${duration} seconds. Hold steady, the Glosso-Sphere will stabilize shortly 🫧`
         ).catch(err => console.error('EventHandlers: Ad break message failed:', err));
+
+        // Cancel any previous timer just in case.
+        if (adEndTimer) {
+            clearTimeout(adEndTimer);
+        }
+
+        // Send a welcome-back message when the ad should be over.
+        adEndTimer = setTimeout(() => {
+
+            adEndTimer = null;
+
+            // Don't send if the stream ended.
+            if (!getIsOnline())
+                return;
+
+            client.say(
+                `#${config.CHANNEL_NAME}`,
+                `🫧 Bitrot interference has cleared! The Glosso-Sphere has stabilized — welcome back, everyone! ✨`
+            ).catch(err => console.error('EventHandlers: Welcome back message failed:', err));
+
+        }, (duration + 1) * 1000); // 1 second buffer
     }
 );
 
