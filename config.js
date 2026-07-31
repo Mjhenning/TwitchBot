@@ -9,6 +9,8 @@ const BROADCASTER_REFRESH_PATH = path.join(__dirname, 'data', 'broadcaster_refre
 const COUNTER_PATH = path.join(__dirname, 'data', 'counters.json');
 const MOD_CONFIG_PATH = path.join(__dirname, 'data', 'moderation.json');
 
+const PENDING_REDEMPTIONS_PATH = path.join(_dirname, 'data', 'pendingRedemptions.json');
+
 // ---------- Config object ----------
 const config = {
     // ---------- Static info ----------
@@ -52,10 +54,20 @@ const config = {
 
     // ---------- Redeems ----------
     MR_REDEEM_ID: '79621748-a583-406a-a292-f743efd85d74',
+    MEDIA_QUEUE_DIR: '/home/mjhenning/MediaQueue',
+
+    VLC_HOST: 'http://localhost:8080',
+    VLC_PASSWORD: 'REDACTED_VLC_PASSWORD',
+
+    OBS_WS_URL: 'ws://192.168.1.71:4455',
+    OBS_WS_PASSWORD: 'REDACTED_VLC_PASSWORD',
+    OBS_SCENE_NAME: 'Main',
+    OBS_SOURCE_NAME: 'Media_Playback',
 
     // ---------- Data ----------
     COUNTER_PATH,
     MOD_CONFIG_PATH,
+    PENDING_REDEMPTIONS_PATH,
 
     DEBUG: true
 };

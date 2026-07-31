@@ -16,6 +16,8 @@ const {clearCooldowns} = require("./modules/helpers/cooldown");
 const {clearLurkers} = require('./modules/functions/lurk_tracker');
 const {resetCommandState} = require('./commands/registry');
 
+const {reconcilePendingOnStartup, startExpirySweep} = require('./modules/media_requests/videoRedeemHandler');
+
 let tmiClient = null;
 let isRunning = false;
 let tokenRefreshInterval = null;
@@ -68,6 +70,8 @@ async function startBot() {
 
         startShieldSystem(tmiClient, cfg);
         await startEventSub(tmiClient, cfg);
+        await reconcilePendingOnStartup(cfg);
+        startExpirySweep(cfg);
         startAdSchedulePoller(tmiClient, cfg);
         startTimers(tmiClient, cfg.CHANNEL_NAME);
         setupChatCommands(tmiClient, cfg);
@@ -97,6 +101,18 @@ async function stopBot() {
         stopEventSub();
     } catch (e) {
         console.error('[Bot] stopEventSub error:', e);
+    }
+    try {
+        const {stopExpirySweep} = require('./modules/media_requests/videoRedeemHandler');
+        stopExpirySweep();
+    } catch (e) {
+        console.error('[Bot] stopExpirySweep error:', e);
+    }
+    try {
+        const playbackManager = require('./modules/media_requests/playbackManager');
+        await playbackManager.forceStop();
+    } catch (e) {
+        console.error('[Bot] playbackManager.forceStop error:', e);
     }
     try {
         stopAdSchedulePoller();

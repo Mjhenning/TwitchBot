@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-
 const axios = require("axios");
 const {config, withTokenRetry, refreshBotToken} = require("../../config");
 
@@ -16,7 +15,6 @@ function reloadConfig() {
 
 const LINK_REGEX =
     /(https?:\/\/[^\s]+|ftp:\/\/[^\s]+|www\.[^\s]+|(?:[\w-]+\.)+[a-z]{2,}[^\s]*)/gi;
-
 let lastWarn = 0;
 
 function extractLinks(message) {
@@ -36,7 +34,6 @@ function domainMatches(link, domains) {
         const host = new URL(
             link.startsWith("http") ? link : "https://" + link
         ).hostname.replace(/^www\./, "");
-
         return domains.some(domain =>
             host === domain || host.endsWith("." + domain)
         );
@@ -46,12 +43,9 @@ function domainMatches(link, domains) {
 }
 
 function isAllowedSongRequest(message, ssrEnabled) {
-
     if (!ssrEnabled)
         return false;
-
     const lower = message.toLowerCase();
-
     return moderationConfig.allowedCommands.some(cmd =>
         lower.startsWith(cmd.toLowerCase() + " ")
     );
@@ -59,16 +53,13 @@ function isAllowedSongRequest(message, ssrEnabled) {
 
 function isTrustedUser(tags) {
     const badges = tags.badges || {};
-
     return moderationConfig.trustedBadges.some(badge => {
         switch (badge.toLowerCase()) {
             case "moderator":
             case "mod":
                 return tags.mod;
-
             case "broadcaster":
                 return badges.broadcaster === "1";
-
             default:
                 return badges[badge] != null;
         }
@@ -76,41 +67,30 @@ function isTrustedUser(tags) {
 }
 
 async function handleLinkBlocker(client, channel, tags, message, ssrEnabled) {
-
     // Custom badge from config bypass
     if (isTrustedUser(tags))
         return false;
-
     const links = extractLinks(message);
-
     if (!links.length)
         return false;
-
     const srCommand = isAllowedSongRequest(message, ssrEnabled);
-
     for (const link of links) {
-
         // Always allowed
         if (domainMatches(link, moderationConfig.alwaysAllowedDomains))
             continue;
-
         // Allowed only while Song Requests are enabled
         if (
             srCommand &&
             domainMatches(link, moderationConfig.songRequestDomains)
         )
             continue;
-
         return await block(client, channel, tags);
     }
-
     return false;
 }
 
 async function block(client, channel, tags) {
-
     try {
-
         await withTokenRetry(
             () => axios.delete(
                 "https://api.twitch.tv/helix/moderation/chat",
@@ -129,7 +109,6 @@ async function block(client, channel, tags) {
             refreshBotToken
         );
         console.log("[Link Filter] Message deleted successfully.");
-
     } catch (err) {
         console.error("[Link Filter] Delete failed");
         if (err.response) {
@@ -139,23 +118,44 @@ async function block(client, channel, tags) {
             console.error(err);
         }
     }
-
     const now = Date.now();
-
     if (now - lastWarn > moderationConfig.warnCooldown) {
-
         client.say(
             channel,
             `@${tags.username} please avoid posting links in chat. Links are not allowed in this channel unless they are part of a song request.`
         );
-
         lastWarn = now;
     }
-
     return true;
+}
+
+// ── Video redeem URL validation ────────────────────────────────────────────
+
+const PLAYLIST_RE = /[?&]list=/i;
+
+class ValidationError extends Error {
+    constructor(reason) {
+        super(reason);
+        this.reason = reason;
+    }
+}
+
+function extractRedeemUrl(userInput) {
+    const links = extractLinks(userInput || "");
+    if (!links.length) throw new ValidationError("no_url");
+
+    const link = links[0];
+    if (!domainMatches(link, moderationConfig.songRequestDomains)) {
+        throw new ValidationError("wrong_site");
+    }
+    if (PLAYLIST_RE.test(link)) throw new ValidationError("playlist");
+
+    return link.startsWith("http") ? link : `https://${link}`;
 }
 
 module.exports = {
     handleLinkBlocker,
-    reloadConfig
+    reloadConfig,
+    extractRedeemUrl,
+    ValidationError
 };
