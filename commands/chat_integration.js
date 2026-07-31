@@ -2,11 +2,11 @@
 const axios = require('axios');
 
 // modules
-const {handleDaemonRelatedResponses} = require('../modules/bot_response_modules');
-const {endLurk, isLurking} = require('../modules/lurk_tracker');
-const {clearQueue} = require('../modules/ssr-queue');
-const {startSSRPolling} = require('../modules/pear-desktop-music');
-const {handleCooldown: _handleCooldown} = require('../modules/cooldown');
+const {handleDaemonRelatedResponses} = require('../modules/bot_specific/bot_response_modules');
+const {endLurk, isLurking} = require('../modules/functions/lurk_tracker');
+const {clearQueue} = require('../modules/song_requests/ssr-queue');
+const {startSSRPolling} = require('../modules/song_requests/pear-desktop-music');
+const {handleCooldown: _handleCooldown} = require('../modules/helpers/cooldown');
 
 const {
     devCommand,

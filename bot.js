@@ -1,28 +1,21 @@
 // bot.js
 const tmi = require('tmi.js');
-const {
-    initTokens,
-    refreshBroadcasterToken,
-} = require('./config');
-const {startShieldSystem, stopShieldSystem} = require('./modules/shield_system');
-const {startTimers, stopTimers} = require('./modules/timer');
-const {startAdSchedulePoller, stopAdSchedulePoller} = require('./modules/ad_schedule_poller');
-const {startEventSub, stopEventSub} = require('./modules/twitch_events');
-const {resetListeners} = require('./modules/stream-state');
-const {stopSSRPolling} = require('./modules/pear-desktop-music');
+const {initTokens, refreshBroadcasterToken} = require('./config');
+const {startShieldSystem, stopShieldSystem} = require('./modules/helpers/shield_system');
+const {startTimers, stopTimers} = require('./modules/helpers/timer');
+const {startAdSchedulePoller, stopAdSchedulePoller} = require('./modules/helpers/ad_schedule_poller');
+const {startEventSub, stopEventSub} = require('./modules/helpers/twitch_events');
+const {resetListeners} = require('./modules/helpers/stream-state');
+const {stopSSRPolling} = require('./modules/song_requests/pear-desktop-music');
 
 const {setupChatCommands} = require('./commands/chat_integration');
 const {startARGElements, sysResetSession} = require('./ARG/modules/arg_main');
 const {startOBSWatcher} = require('./obs_watcher');
-require('./data/twitch_events_handlers');
-const {clearCooldowns} = require("./modules/cooldown");
+const {clearCooldowns} = require("./modules/helpers/cooldown");
 
-const {clearLurkers} = require('./modules/lurk_tracker');
+const {clearLurkers} = require('./modules/functions/lurk_tracker');
 const {resetCommandState} = require('./commands/registry');
 
-// ── Auth retry wrapper ────────────────────────────────────────────────────────
-// Wraps any Twitch API call — if it gets a 401, refreshes the token and retries
-// once. Same pattern as TwitchClient.ExecuteAsync in the Discord bot.
 let tmiClient = null;
 let isRunning = false;
 let tokenRefreshInterval = null;

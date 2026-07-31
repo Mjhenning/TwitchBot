@@ -2,15 +2,15 @@
 const fs = require('fs');
 const path = require('path');
 
-const CURRENCY_FILE = path.join(__dirname, '../data/glossels_db.json');
+const CURRENCY_FILE = '../../data/glossels_db.json';
 
 // ---------------- CONFIG ----------------
 const glosselsGain = [
-    { amount: 8, weight: 50 },
-    { amount: 16, weight: 30 },
-    { amount: 32, weight: 20 },
-    { amount: 64, weight: 10 },
-    { amount: 128, weight: 1 }
+    {amount: 8, weight: 50},
+    {amount: 16, weight: 30},
+    {amount: 32, weight: 20},
+    {amount: 64, weight: 10},
+    {amount: 128, weight: 1}
 ];
 
 // ---------------- STATE ----------------

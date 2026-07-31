@@ -4,10 +4,8 @@ const path = require("path");
 const axios = require("axios");
 const {config, withTokenRetry, refreshBotToken} = require("../../config");
 
-const CONFIG_PATH = path.join(__dirname, "../../data/moderation.json");
-
 function loadConfig() {
-    return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
+    return JSON.parse(fs.readFileSync(config.MOD_CONFIG_PATH, "utf8"));
 }
 
 let moderationConfig = loadConfig();

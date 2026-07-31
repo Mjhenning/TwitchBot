@@ -6,7 +6,7 @@ const QUEUE_FILE = path.join(__dirname, '../data/ssr_queue.json');
 
 function ensureFile() {
     const dir = path.dirname(QUEUE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, {recursive: true});
     if (!fs.existsSync(QUEUE_FILE)) fs.writeFileSync(QUEUE_FILE, '[]');
 }
 
@@ -50,4 +50,4 @@ function getQueueLength() {
     return loadQueue().length;
 }
 
-module.exports = { pushToQueue, shiftQueue, getQueue, clearQueue, getQueueLength };
+module.exports = {pushToQueue, shiftQueue, getQueue, clearQueue, getQueueLength};

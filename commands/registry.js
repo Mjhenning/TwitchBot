@@ -5,12 +5,12 @@ const axios = require('axios');
 const {config} = require('../config');
 
 
-const {createClip} = require('../modules/clipping');
-const {getFollowage} = require('../modules/followage');
-const {startLurk, isLurking} = require('../modules/lurk_tracker');
-const {simulateFollow, simulateRaid, simulateAdBreak} = require("../modules/testing_events");
+const {createClip} = require('../modules/functions/clipping');
+const {getFollowage} = require('../modules/functions/followage');
+const {startLurk, isLurking} = require('../modules/functions/lurk_tracker');
+const {simulateFollow, simulateRaid, simulateAdBreak} = require("../modules/functions/testing_events");
 
-const {clearQueue} = require('../modules/ssr-queue');
+const {clearQueue} = require('../modules/song_requests/ssr-queue');
 const {
     getCurrentSong,
     getQueueWithCurrent,
@@ -18,9 +18,9 @@ const {
     getSongByVideoId,
     addSongToSSRQueue,
     skipSong
-} = require('../modules/pear-desktop-music');
+} = require('../modules/song_requests/pear-desktop-music');
 
-const {retrieveGlossels, getUserRank, getTop5} = require('../modules/glossels');
+const {retrieveGlossels, getUserRank, getTop5} = require('../modules/functions/glossels');
 
 const {
     handleSys, handleSysHelp, handleSysDir, handleSysRead
@@ -29,9 +29,9 @@ const {
     sysIsTerminalActive
 } = require('../ARG/modules/arg_main')
 
-const {shoutout} = require('../modules/shoutout');
+const {shoutout} = require('../modules/functions/shoutout');
 
-const {handleCounter} = require("../modules/counters");
+const {handleCounter} = require("../modules/helpers/counters");
 
 const {handleLinkBlocker} = require("../modules/moderation/link_filter");
 

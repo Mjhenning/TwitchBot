@@ -6,6 +6,8 @@ const path = require('path');
 // ---------- Paths ----------
 const BOT_REFRESH_PATH = path.join(__dirname, 'data', 'bot_refresh_token.json');
 const BROADCASTER_REFRESH_PATH = path.join(__dirname, 'data', 'broadcaster_refresh_token.json');
+const COUNTER_PATH = path.join(__dirname, 'data', 'counters.json');
+const MOD_CONFIG_PATH = path.join(__dirname, 'data', 'moderation.json');
 
 // ---------- Config object ----------
 const config = {
@@ -47,6 +49,10 @@ const config = {
     APP_TOKEN: null,
     BROADCASTER_ID: null,
     BOT_ID: null,
+
+    // ---------- Data ----------
+    COUNTER_PATH,
+    MOD_CONFIG_PATH,
 
     DEBUG: true
 };

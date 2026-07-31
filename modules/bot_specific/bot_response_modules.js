@@ -1,6 +1,6 @@
 // modules/bot_response_modules.js
 
-const {sysLockedResponse} = require('../ARG/modules/arg_main');
+const {sysLockedResponse} = require('../../ARG/modules/arg_main');
 
 let lastRareGreeting = 0;
 let lastModuleResponse = 0;

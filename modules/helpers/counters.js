@@ -1,14 +1,14 @@
 const fs = require("fs");
 const path = require("path");
 
-const COUNTER_PATH = path.join(__dirname, "../data/counters.json");
+const {config} = require("../../config");
 
 function loadCounters() {
-    return JSON.parse(fs.readFileSync(COUNTER_PATH, "utf8"));
+    return JSON.parse(fs.readFileSync(config.COUNTER_PATH, "utf8"));
 }
 
 function saveCounters() {
-    fs.writeFileSync(COUNTER_PATH, JSON.stringify(counters, null, 2));
+    fs.writeFileSync(config.COUNTER_PATH, JSON.stringify(counters, null, 2));
 }
 
 function parseAction(action) {

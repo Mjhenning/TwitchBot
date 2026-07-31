@@ -1,5 +1,5 @@
 const axios = require("axios");
-const {refreshAppToken, refreshBotToken, withTokenRetry} = require('../config');
+const {refreshAppToken, refreshBotToken, withTokenRetry} = require('../../config');
 
 //SHOUTOUT HELPERS
 

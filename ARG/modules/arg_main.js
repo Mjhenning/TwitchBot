@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const {getIsOnline, onOnline, onOffline} = require('../../modules/stream-state');
+const {getIsOnline, onOnline, onOffline} = require('../../modules/helpers/stream-state');
 
 const FS_ROOT = path.join(__dirname, '../_filesystem');
 const STATE_PATH = path.join(__dirname, '../data/state.json');
@@ -156,7 +156,7 @@ function isFileAccessible(file, coherence) {
 }
 
 function rewardConnectedUsers(client, channel, amount, reason) {
-    const {addGlossels} = require('../../modules/glossels');
+    const {addGlossels} = require('../../modules/functions/glossels');
     for (const [userId, username] of sysConnectedUsers) {
         addGlossels(userId, amount, username);
     }
@@ -402,7 +402,7 @@ function handleSysRead(client, channel, userInput) {
 }
 
 function handleSysConnect(client, channel, userId, username) {
-    const {checkin} = require('../../modules/glossels');
+    const {checkin} = require('../../modules/functions/glossels');
     const reward = checkin(userId, username);
 
     if (reward === null) {
@@ -486,7 +486,7 @@ function sysResetSession() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function startARGElements(client, config) {
-    const {loadCurrencySystem} = require('../../modules/glossels');
+    const {loadCurrencySystem} = require('../../modules/functions/glossels');
     loadCurrencySystem();
 
     const foundPorts = getFoundPorts();

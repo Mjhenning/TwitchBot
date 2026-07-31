@@ -2,9 +2,9 @@
 const fs = require('fs');
 const path = require('path');
 const {getIsOnline, onOnline, onOffline} = require('./stream-state');
-const {discordCommand, ytCommand, getSsrEnabled} = require('../commands/registry');
+const {discordCommand, ytCommand, getSsrEnabled} = require('../../commands/registry');
 
-const COMMANDS_FILE = path.join(__dirname, '../data/timed_commands.json');
+const COMMANDS_FILE = '../data/timed_commands.json';
 
 const conditionMap = {
     ssrEnabled: getSsrEnabled
