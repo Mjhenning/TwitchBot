@@ -25,6 +25,8 @@ const config = {
     ITCH_LINK: 'https://mjhenning.itch.io/fish-face',
     YT_LINK: 'https://www.youtube.com/@f0xta1l-vt',
 
+    REWARD_REVIEW_CHANNEL: '1527703959861727375',
+
     // ---------- Pear Desktop ----------
     PEAR_HOST: 'http://192.168.1.71',
     PEAR_PORT: 26538,

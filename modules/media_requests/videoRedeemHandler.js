@@ -63,6 +63,11 @@ async function onRedemptionAdd(event, client, config) {
 
     await setPending(redemptionId, {userName, filePath, metadata, rewardId: reward.id, createdAt: Date.now()});
     console.log(`[VideoRedeem] ${redemptionId} ready — "${metadata.title}" awaiting mod decision`);
+
+    client.say(
+        config.CHANNEL_NAME,
+        `🎬 ${userName}'s video is downloaded and waiting for a moderator's approval.`
+    );
 }
 
 async function onRedemptionUpdate(event, client, config) {
