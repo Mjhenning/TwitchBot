@@ -60,7 +60,6 @@ const config = {
     VLC_PASSWORD: 'REDACTED_VLC_PASSWORD',
 
     OBS_WS_URL: 'ws://192.168.1.71:4455',
-    OBS_WS_PASSWORD: 'REDACTED_VLC_PASSWORD',
     OBS_SCENE_NAME: 'Main',
     OBS_SOURCE_NAME: 'Media_Playback',
 
