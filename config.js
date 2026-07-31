@@ -50,6 +50,9 @@ const config = {
     BROADCASTER_ID: null,
     BOT_ID: null,
 
+    // ---------- Redeems ----------
+    MR_REDEEM_ID: '79621748-a583-406a-a292-f743efd85d74',
+
     // ---------- Data ----------
     COUNTER_PATH,
     MOD_CONFIG_PATH,
