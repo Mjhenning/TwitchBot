@@ -6,6 +6,8 @@ let connected = false;
 let groupItemId = null;   // the group's own item, inside the main scene
 let sourceItemId = null;  // the media source's item, inside the group
 
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 async function connectObs() {
     if (connected) return;
     await obs.connect(config.OBS_WS_URL, config.OBS_WS_PASSWORD);
@@ -46,6 +48,9 @@ async function enableMediaGroup() {
 
 async function disableMediaGroup() {
     await ensureConnected();
+
+    await delay(2000)
+
     await obs.call('SetSceneItemEnabled', {
         sceneName: config.OBS_GROUP_NAME,
         sceneItemId: sourceItemId,
