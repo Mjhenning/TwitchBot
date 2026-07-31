@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const CURRENCY_FILE = '../../data/glossels_db.json';
+const {config} = require('../../config');
 
 // ---------------- CONFIG ----------------
 const glosselsGain = [
@@ -21,7 +21,7 @@ let leaderboard = [];
 // ---------------- LOAD ----------------
 function loadCurrencySystem() {
     try {
-        users = JSON.parse(fs.readFileSync(CURRENCY_FILE, 'utf8'));
+        users = JSON.parse(fs.readFileSync(config.CURRENCY_FILE, 'utf8'));
 
         // normalize + safety
         users = users.map(u => ({
@@ -47,7 +47,7 @@ function loadCurrencySystem() {
 // ---------------- SAVE ----------------
 function saveCurrencySystem() {
     try {
-        fs.writeFileSync(CURRENCY_FILE, JSON.stringify(users, null, 2), 'utf8');
+        fs.writeFileSync(config.CURRENCY_FILE, JSON.stringify(users, null, 2), 'utf8');
     } catch (err) {
         console.error('[Glossels] Failed to save glossels_db.json:', err.message);
     }

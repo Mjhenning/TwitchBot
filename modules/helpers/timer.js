@@ -1,10 +1,9 @@
 // modules/timer.js
 const fs = require('fs');
 const path = require('path');
+const {config} = require('../../config');
 const {getIsOnline, onOnline, onOffline} = require('./stream-state');
 const {discordCommand, ytCommand, getSsrEnabled} = require('../../commands/registry');
-
-const COMMANDS_FILE = '../data/timed_commands.json';
 
 const conditionMap = {
     ssrEnabled: getSsrEnabled
@@ -99,7 +98,7 @@ function startTimers(client, channel) {
     activeStopFunctions = [];
     let entries;
     try {
-        entries = JSON.parse(fs.readFileSync(COMMANDS_FILE, 'utf8'));
+        entries = JSON.parse(fs.readFileSync(config.TIMED_COMMANDS_FILE, 'utf8'));
     } catch (err) {
         console.error('[Timer] Failed to load TimedCommands.json:', err.message);
         return;

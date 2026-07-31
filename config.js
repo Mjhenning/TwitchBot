@@ -10,6 +10,8 @@ const COUNTER_PATH = path.join(__dirname, 'data', 'counters.json');
 const MOD_CONFIG_PATH = path.join(__dirname, 'data', 'moderation.json');
 
 const PENDING_REDEMPTIONS_PATH = path.join(__dirname, 'data', 'pendingRedemptions.json');
+const CURRENCY_FILE = path.join(__dirname, 'data', 'glossels_db.json');
+const TIMED_COMMANDS_FILE = path.join(__dirname, 'data', 'timed_commands.json');
 
 // ---------- Config object ----------
 const config = {
@@ -67,6 +69,8 @@ const config = {
     COUNTER_PATH,
     MOD_CONFIG_PATH,
     PENDING_REDEMPTIONS_PATH,
+    CURRENCY_FILE,
+    TIMED_COMMANDS_FILE,
 
     DEBUG: true
 };
