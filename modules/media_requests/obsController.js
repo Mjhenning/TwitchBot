@@ -5,6 +5,8 @@ const obs = new OBSWebSocket();
 let connected = false;
 let sceneItemId = null;
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function connectObs() {
     if (connected) return;
     await obs.connect(config.OBS_WS_URL, config.OBS_WS_PASSWORD);
@@ -31,6 +33,7 @@ async function enableMediaGroup() {
 
 async function disableMediaGroup() {
     await ensureConnected();
+    await delay(1000);
     await obs.call('SetSceneItemEnabled', {sceneName: config.OBS_SCENE_NAME, sceneItemId, sceneItemEnabled: false});
 }
 
