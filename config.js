@@ -9,7 +9,7 @@ const BROADCASTER_REFRESH_PATH = path.join(__dirname, 'data', 'broadcaster_refre
 const COUNTER_PATH = path.join(__dirname, 'data', 'counters.json');
 const MOD_CONFIG_PATH = path.join(__dirname, 'data', 'moderation.json');
 
-const PENDING_REDEMPTIONS_PATH = path.join(_dirname, 'data', 'pendingRedemptions.json');
+const PENDING_REDEMPTIONS_PATH = path.join(__dirname, 'data', 'pendingRedemptions.json');
 
 // ---------- Config object ----------
 const config = {
