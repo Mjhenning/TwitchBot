@@ -3,10 +3,7 @@ const {config} = require('../../config');
 
 const obs = new OBSWebSocket();
 let connected = false;
-let groupItemId = null;   // the group's own item, inside the main scene
-let sourceItemId = null;  // the media source's item, inside the group
-
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+let sceneItemId = null;
 
 async function connectObs() {
     if (connected) return;
@@ -17,14 +14,9 @@ async function connectObs() {
         console.warn('[OBS] connection closed');
     });
 
-    ({sceneItemId: groupItemId} = await obs.call('GetSceneItemId', {
-        sceneName: config.OBS_SCENE_NAME,   // your main scene
-        sourceName: config.OBS_GROUP_NAME,  // the group, as an item within that scene
-    }));
-
-    ({sceneItemId: sourceItemId} = await obs.call('GetSceneItemId', {
-        sceneName: config.OBS_GROUP_NAME,   // the group, treated as its own scene
-        sourceName: config.OBS_SOURCE_NAME, // the media source within it
+    ({sceneItemId} = await obs.call('GetSceneItemId', {
+        sceneName: config.OBS_SCENE_NAME,
+        sourceName: config.OBS_SOURCE_NAME,
     }));
 }
 
@@ -34,31 +26,12 @@ async function ensureConnected() {
 
 async function enableMediaGroup() {
     await ensureConnected();
-    await obs.call('SetSceneItemEnabled', {
-        sceneName: config.OBS_SCENE_NAME,
-        sceneItemId: groupItemId,
-        sceneItemEnabled: true,
-    });
-    await obs.call('SetSceneItemEnabled', {
-        sceneName: config.OBS_GROUP_NAME,
-        sceneItemId: sourceItemId,
-        sceneItemEnabled: true,
-    });
+    await obs.call('SetSceneItemEnabled', {sceneName: config.OBS_SCENE_NAME, sceneItemId, sceneItemEnabled: true});
 }
 
 async function disableMediaGroup() {
     await ensureConnected();
-    
-    await obs.call('SetSceneItemEnabled', {
-        sceneName: config.OBS_GROUP_NAME,
-        sceneItemId: sourceItemId,
-        sceneItemEnabled: false,
-    });
-    await obs.call('SetSceneItemEnabled', {
-        sceneName: config.OBS_SCENE_NAME,
-        sceneItemId: groupItemId,
-        sceneItemEnabled: false,
-    });
+    await obs.call('SetSceneItemEnabled', {sceneName: config.OBS_SCENE_NAME, sceneItemId, sceneItemEnabled: false});
 }
 
 module.exports = {connectObs, enableMediaGroup, disableMediaGroup};
