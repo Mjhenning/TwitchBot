@@ -48,9 +48,7 @@ async function enableMediaGroup() {
 
 async function disableMediaGroup() {
     await ensureConnected();
-
-    await delay(2000)
-
+    
     await obs.call('SetSceneItemEnabled', {
         sceneName: config.OBS_GROUP_NAME,
         sceneItemId: sourceItemId,
