@@ -55,7 +55,7 @@ const config = {
     BOT_ID: null,
 
     // ---------- Redeems ----------
-    MR_REDEEM_ID: '79621748-a583-406a-a292-f743efd85d74',
+    MR_REDEEM_ID: '3312ef05-52a4-4724-ad50-5ff3992b95b6',
     MEDIA_QUEUE_DIR: '/home/mjhenning/MediaQueue',
 
     VLC_HOST: 'http://localhost:8080',
