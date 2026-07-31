@@ -63,7 +63,7 @@ const config = {
 
     OBS_WS_URL: 'ws://192.168.1.71:4455',
     OBS_SCENE_NAME: 'Main',
-    OBS_SOURCE_NAME: 'MediaRequests',
+    OBS_SOURCE_NAME: 'Media_Playback',
 
     // ---------- Data ----------
     COUNTER_PATH,
