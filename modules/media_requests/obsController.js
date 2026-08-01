@@ -28,12 +28,13 @@ async function ensureConnected() {
 
 async function enableMediaGroup() {
     await ensureConnected();
+    await delay(500);
     await obs.call('SetSceneItemEnabled', {sceneName: config.OBS_SCENE_NAME, sceneItemId, sceneItemEnabled: true});
 }
 
 async function disableMediaGroup() {
     await ensureConnected();
-    await delay(500);
+    // await delay(500);
     await obs.call('SetSceneItemEnabled', {sceneName: config.OBS_SCENE_NAME, sceneItemId, sceneItemEnabled: false});
 }
 
