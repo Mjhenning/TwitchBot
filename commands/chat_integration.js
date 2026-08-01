@@ -33,8 +33,8 @@ const {
     hugCommand,
     counterCommand,
     handleModeration,
-    openMqCommand,
-    closeMqCommand
+    openMrCommand,
+    closeMrCommand
 } = require('./registry');
 
 const {getBalanceCommand, getRankCommand, getTop5Command} = require('./registry');
@@ -273,13 +273,13 @@ function setupChatCommands(client, config) {
 
         if (hasCommand(lower, '!openmr') || hasCommand(lower, '!startmr')) {
             if (!requireMod(tags, client, channel)) return;
-            await openMqCommand(client, channel, config);
+            await openMrCommand(client, channel, config);
             return;
         }
 
         if (hasCommand(lower, '!closemr') || hasCommand(lower, '!stopmr')) {
             if (!requireMod(tags, client, channel)) return;
-            await closeMqCommand(client, channel, config);
+            await closeMrCommand(client, channel, config);
             return;
         }
 
