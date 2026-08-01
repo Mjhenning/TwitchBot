@@ -35,4 +35,23 @@ async function getRedemptionStatus(config, rewardId, redemptionId) {
     }
 }
 
-module.exports = {updateRedemptionStatus, getRedemptionStatus};
+async function setRewardPaused(config, rewardId, isPaused) {
+    try {
+        await axios.patch(
+            'https://api.twitch.tv/helix/channel_points/custom_rewards',
+            {is_paused: isPaused},
+            {
+                params: {broadcaster_id: config.BROADCASTER_ID, id: rewardId},
+                headers: {
+                    Authorization: `Bearer ${config.BROADCASTER_ACCESS_TOKEN}`,
+                    'Client-Id': config.CLIENT_ID,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+    } catch (err) {
+        throw new Error(`Helix set reward paused failed: ${err.response?.data ? JSON.stringify(err.response.data) : err.message}`);
+    }
+}
+
+module.exports = {updateRedemptionStatus, getRedemptionStatus, setRewardPaused};

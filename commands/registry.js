@@ -34,6 +34,10 @@ const {shoutout} = require('../modules/functions/shoutout');
 const {handleCounter} = require("../modules/helpers/counters");
 
 const {handleLinkBlocker} = require("../modules/moderation/link_filter");
+const {setRewardPaused} = require('../modules/helpers/twitchRedemption');
+
+
+let mrEnabled = false;
 
 //--------------------------------- HELPERS ------------------------------------
 function formatTime(ms) {
@@ -49,18 +53,24 @@ function getSsrEnabled() {
     return ssrEnabled;
 }
 
+function getMrEnabled() {
+    return mrEnabled;
+}
+
 //--------------------------------- AutoMod ------------------------------------
 
 async function handleModeration(client, channel, tags, message) {
 
     console.log("SSR Enabled:", getSsrEnabled());
+    console.log("MR Enabled:", getMrEnabled());
 
     return handleLinkBlocker(
         client,
         channel,
         tags,
         message,
-        getSsrEnabled()
+        getSsrEnabled(),
+        getMrEnabled()
     );
 }
 
@@ -383,6 +393,28 @@ function openQCommand(client, channel) {
     client.say(channel, `✅ Song requests are now open! Use !sr to request a song 🎶`);
 }
 
+//--------------------------------- MEDIA REQUESTS ------------------------------------
+
+async function openMrCommand(client, channel, config) {
+    mrEnabled = true;
+    try {
+        await setRewardPaused(config, config.MR_REDEEM_ID, false);
+    } catch (err) {
+        console.error('[MediaRequest] failed to unpause reward:', err.message);
+    }
+    client.say(channel, `✅ Media requests are now open! Redeem to have something played on stream 🎬`);
+}
+
+async function closeMrCommand(client, channel, config) {
+    mrEnabled = false;
+    try {
+        await setRewardPaused(config, config.MR_REDEEM_ID, true);
+    } catch (err) {
+        console.error('[MediaRequest] failed to pause reward:', err.message);
+    }
+    client.say(channel, `🛑 Media requests are now closed ✧`);
+}
+
 //--------------------------------- GLOSSELS ------------------------------------
 
 function getBalanceCommand(client, channel, userId, senderName) {
@@ -506,6 +538,7 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
 //--------------------------------- HELPER ------------------------------------
 function resetCommandState() {
     ssrEnabled = false;
+    mrEnabled = false;
 }
 
 
@@ -537,8 +570,11 @@ module.exports = {
     clearQCommand,
     closeQCommand,
     openQCommand,
-
     getSsrEnabled,
+
+    getMrEnabled,
+    openMrCommand,
+    closeMrCommand,
 
     getBalanceCommand,
     getRankCommand,

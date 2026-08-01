@@ -66,7 +66,7 @@ function isTrustedUser(tags) {
     });
 }
 
-async function handleLinkBlocker(client, channel, tags, message, ssrEnabled) {
+async function handleLinkBlocker(client, channel, tags, message, ssrEnabled, mrEnabled) {
     // Custom badge from config bypass
     if (isTrustedUser(tags))
         return false;
@@ -79,10 +79,10 @@ async function handleLinkBlocker(client, channel, tags, message, ssrEnabled) {
         if (domainMatches(link, moderationConfig.alwaysAllowedDomains))
             continue;
         // Allowed only while Song Requests are enabled
-        if (
-            srCommand &&
-            domainMatches(link, moderationConfig.songRequestDomains)
-        )
+        if (srCommand && domainMatches(link, moderationConfig.songRequestDomains))
+            continue;
+        // Allowed while Media Requests are open — same domain list, different gate
+        if (mrEnabled && domainMatches(link, moderationConfig.songRequestDomains))
             continue;
         return await block(client, channel, tags);
     }

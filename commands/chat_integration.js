@@ -32,7 +32,9 @@ const {
     fishCommand,
     hugCommand,
     counterCommand,
-    handleModeration
+    handleModeration,
+    openMqCommand,
+    closeMqCommand
 } = require('./registry');
 
 const {getBalanceCommand, getRankCommand, getTop5Command} = require('./registry');
@@ -251,13 +253,13 @@ function setupChatCommands(client, config) {
             return;
         }
 
-        if (hasCommand(lower, '!openQ') || hasCommand(lower, '!startQ')) {
+        if (hasCommand(lower, '!opensr') || hasCommand(lower, '!startsr')) {
             if (!requireMod(tags, client, channel)) return;
             openQCommand(client, channel);
             return;
         }
 
-        if (hasCommand(lower, '!closeQ') || hasCommand(lower, '!stopQ')) {
+        if (hasCommand(lower, '!closesr') || hasCommand(lower, '!stopsr')) {
             if (!requireMod(tags, client, channel)) return;
             closeQCommand(client, channel);
             return;
@@ -266,6 +268,18 @@ function setupChatCommands(client, config) {
         if (hasCommand(lower, '!clearQ')) {
             if (!requireMod(tags, client, channel)) return;
             clearQCommand(client, channel);
+            return;
+        }
+
+        if (hasCommand(lower, '!openmr') || hasCommand(lower, '!startmr')) {
+            if (!requireMod(tags, client, channel)) return;
+            await openMqCommand(client, channel, config);
+            return;
+        }
+
+        if (hasCommand(lower, '!closemr') || hasCommand(lower, '!stopmr')) {
+            if (!requireMod(tags, client, channel)) return;
+            await closeMqCommand(client, channel, config);
             return;
         }
 
