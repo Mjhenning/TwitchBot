@@ -17,6 +17,7 @@ const {clearLurkers} = require('./modules/functions/lurk_tracker');
 const {resetCommandState} = require('./commands/registry');
 
 const {reconcilePendingOnStartup, startExpirySweep} = require('./modules/media_requests/videoRedeemHandler');
+const {setRewardPaused} = require('./modules/helpers/twitchRedemption');
 
 let tmiClient = null;
 let isRunning = false;
@@ -72,6 +73,14 @@ async function startBot() {
         await startEventSub(tmiClient, cfg);
         await reconcilePendingOnStartup(cfg);
         startExpirySweep(cfg);
+
+        try {
+            await setRewardPaused(cfg, cfg.MR_REDEEM_ID, true);
+            console.log('[Bot] Media request reward paused on startup (matches default-closed state)');
+        } catch (err) {
+            console.error('[Bot] Failed to pause media request reward on startup:', err.message);
+        }
+
         startAdSchedulePoller(tmiClient, cfg);
         startTimers(tmiClient, cfg.CHANNEL_NAME);
         setupChatCommands(tmiClient, cfg);
