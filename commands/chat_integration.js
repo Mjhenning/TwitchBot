@@ -160,6 +160,11 @@ function setupChatCommands(client, config) {
             return;
         }
 
+        if (hasCommand(lower, '!socials')) {
+            socialCommand(client);
+            return;
+        }
+
         if (lower.startsWith('!so')) {
             if (handleCooldown('so')) return;
             await shoutoutCommand(client, msg);
@@ -197,11 +202,6 @@ function setupChatCommands(client, config) {
 
         if (hasCommand(lower, '!discord')) {
             discordCommand(client);
-            return;
-        }
-
-        if (hasCommand(lower, '!socials')) {
-            socialCommand(client);
             return;
         }
 
