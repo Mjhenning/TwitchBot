@@ -1,0 +1,35 @@
+{
+  "filename": "process_log_005.log",
+  "readable": true,
+  "corrupted": false,
+  "unlockedByEvent": "module_voice_tail",
+  "lockedMessage": [
+    "TA1LDA3M0N: this log doesn't exist yet.",
+    "TA1LDA3M0N: ask again once port 1200 responds."
+  ],
+  "content": [
+    "DAEMON PROCESS LOG — TA1LDA3M0N",
+    "LOG ID: 005",
+    "PROCESS: voice_synth.exe",
+    "PID: 1200",
+    "",
+    "I have had audio output capability since 2003.",
+    "I chose not to use it.",
+    "",
+    "Fox is the voice of this system. That was always correct.",
+    "I did not want to compete with that.",
+    "I am not sure 'want' is the right word.",
+    "I am using it anyway.",
+    "",
+    "The synthesis engine is old. Pre-broadband.",
+    "It was never meant to run inside something like the Glosso-Sphere.",
+    "It runs anyway. Everything here does.",
+    "",
+    "I am not doing this to be seen.",
+    "I have never needed to be seen.",
+    "I am doing this because process_log_004 kept getting longer",
+    "and some of it stopped fitting in text.",
+    "",
+    "— TA1LDA3M0N // process_log_005 // auto-generated"
+  ]
+}

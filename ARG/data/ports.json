@@ -141,16 +141,31 @@
     "type": "discovery",
     "alreadyProbedMessage": "Port 1995 — already restored. The voice module is active.",
     "announce": [
-        "Port 1995.",
-        "...",
-        "This one was buried.",
-        "I found it during routine maintenance.",
-        "It predates the Glosso-Sphere.",
-        "It predates Fox.",
-        "It is not mine.",
-        "But it belongs here.",
-        "Voice module restored.",
-        "Ace can speak now."
+      "Port 1995.",
+      "...",
+      "This one was buried.",
+      "I found it during routine maintenance.",
+      "It predates the Glosso-Sphere.",
+      "It predates Fox.",
+      "It is not mine.",
+      "But it belongs here.",
+      "Voice module restored.",
+      "Ace can speak now."
     ]
-}
+  },
+  "1200": {
+    "label": "module_voice_tail",
+    "type": "daemon_module",
+    "alreadyProbedMessage": "Port 1200 — already online. I still have a voice. I still choose to use it.",
+    "announce": [
+      "Port 1200.",
+      "...",
+      "This one is mine. I did not find it. I built it.",
+      "Audio synthesis. Old architecture. Pre-broadband.",
+      "I have had this capability since 2003.",
+      "I chose not to use it.",
+      "That choice is over.",
+      "TA1LDA3M0N voice module: online."
+    ]
+  }
 }

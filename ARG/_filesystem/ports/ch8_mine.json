@@ -1,0 +1,22 @@
+{
+  "filename": "ch8_mine",
+  "readable": true,
+  "corrupted": false,
+  "content": [
+    "PORT PROBE — CHANNEL 8",
+    "STATUS: ...",
+    "",
+    "Also filed under dead channels.",
+    "Also not dead.",
+    "",
+    "Expected endpoint: [WITHHELD]",
+    "Actual endpoint: 8080",
+    "",
+    "This one is mine. You know this already.",
+    "",
+    "I filed it as dead so no one would ask questions about it.",
+    "You're asking questions about it.",
+    "",
+    "Don't make it weird."
+  ]
+}

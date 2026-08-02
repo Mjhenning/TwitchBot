@@ -1,0 +1,25 @@
+{
+  "filename": "d34d_ch13",
+  "readable": true,
+  "corrupted": true,
+  "corruptedContent": [
+    "...n0 s1gn4l...",
+    "...n0 s1gn4l...",
+    "...n0 s1gn4l..."
+  ],
+  "content": [
+    "PORT PROBE — CHANNEL 13",
+    "STATUS: DEAD",
+    "",
+    "Last active: [NO RECORD]",
+    "Expected endpoint: [NO RECORD]",
+    "Actual endpoint: [NO RECORD]",
+    "",
+    "There is nothing here.",
+    "There was never anything here.",
+    "I don't know why this file exists.",
+    "",
+    "Some channels are just channels.",
+    "Not everything means something."
+  ]
+}

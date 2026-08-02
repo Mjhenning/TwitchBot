@@ -150,8 +150,18 @@ function getDirLockedMessage(dirPath) {
     return msg.startsWith('/') || msg.startsWith('!') ? `>${msg}` : msg;
 }
 
+function isEventUnlocked(eventName) {
+    if (!eventName) return true;
+    const ports = getPorts();
+    if (!ports) return false;
+    return Object.keys(ports).some(portNum =>
+        ports[portNum].label === eventName && wasPortFound(parseInt(portNum))
+    );
+}
+
 function isFileAccessible(file, coherence) {
     if (file.unlockedAtCoherence && coherence < file.unlockedAtCoherence) return false;
+    if (file.unlockedByEvent && !isEventUnlocked(file.unlockedByEvent)) return false;
     return true;
 }
 
@@ -387,7 +397,14 @@ function handleSysRead(client, channel, userInput) {
     }
 
     if (file.corrupted && coherence < 60) {
-        client.say(channel, `${file.filename} — corrupted. Cannot render.`);
+        if (file.corruptedContent?.length) {
+            staggerSay(client, channel, [
+                `${file.filename} — signal degraded. Partial recovery only.`,
+                ...file.corruptedContent
+            ], 1200);
+        } else {
+            client.say(channel, `${file.filename} — corrupted. Cannot render.`);
+        }
         return;
     }
 

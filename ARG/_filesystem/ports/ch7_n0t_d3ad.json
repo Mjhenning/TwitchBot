@@ -1,0 +1,26 @@
+{
+  "filename": "ch7_n0t_d3ad",
+  "readable": true,
+  "corrupted": false,
+  "content": [
+    "PORT PROBE — CHANNEL 7",
+    "STATUS: ...",
+    "",
+    "Filed under dead channels.",
+    "Is not, technically, a dead channel.",
+    "",
+    "Expected endpoint: [WITHHELD]",
+    "Actual endpoint: 7743",
+    "",
+    "Probe attempt 1: response received.",
+    "Probe attempt 2: response received.",
+    "Probe attempt 3: I stopped attempting. It was already answering.",
+    "",
+    "I put this file here anyway.",
+    "Habit. Old filing structure. I never cleaned it up.",
+    "",
+    "This is the one that notices things.",
+    "You already found it.",
+    "It still counts."
+  ]
+}
