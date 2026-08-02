@@ -90,11 +90,11 @@ function discordCommand(client) {
     );
 }
 
-function ytCommand(client) {
+function socialCommand(client) {
     client.say(
         config.CHANNEL_NAME,
-        `🔴 Fox has been reaching out to connections over on youtube too! If you're interested in supporting us over there (or just want a different place to watch the VODs) check it out! ${config.YT_LINK} 🎬`
-    )
+        `🌏 The Proxy has branches all across the Glosso-Sphere! 🫧 If you'd like to support us beyond Twitch, you can find us here: 📺 YouTube: ${config.YT_LINK} 📸 Instagram: ${config.INSTA_LINK}`
+    );
 }
 
 function raidCommand(client) {
@@ -545,7 +545,7 @@ function resetCommandState() {
 module.exports = {
     devCommand,
     discordCommand,
-    ytCommand,
+    socialCommand,
     raidCommand,
     backseatCommand,
     lurkCommand,

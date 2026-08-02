@@ -24,6 +24,7 @@ const config = {
     DISCORD_LINK: 'https://discord.gg/PffjFkme3H',
     ITCH_LINK: 'https://mjhenning.itch.io/fish-face',
     YT_LINK: 'https://www.youtube.com/@f0xta1l-vt',
+    INSTA_LINK: 'https://www.instagram.com/f0xta1l_vt/',
 
     REWARD_REVIEW_CHANNEL: '1527703959861727375',
 

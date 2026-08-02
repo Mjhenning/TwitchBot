@@ -11,7 +11,7 @@ const {handleCooldown: _handleCooldown} = require('../modules/helpers/cooldown')
 const {
     devCommand,
     discordCommand,
-    ytCommand,
+    socialCommand,
     raidCommand,
     backseatCommand,
     clipCommand,
@@ -200,8 +200,8 @@ function setupChatCommands(client, config) {
             return;
         }
 
-        if (hasCommand(lower, '!yt')) {
-            ytCommand(client);
+        if (hasCommand(lower, '!socials')) {
+            socialCommand(client);
             return;
         }
 
