@@ -71,19 +71,22 @@ async function subscribeAll(client, config) {
         return;
     }
 
+    console.log(`TwitchEvents: Subscribing to ${subscriptionRegistry.length} EventSub subscriptions...`);
+
     for (const sub of subscriptionRegistry) {
         try {
+            const conditionObj = sub.condition(config);
             console.log(
-                `TwitchEvents: Subscribing to "${sub.type}" with condition:`,
-                JSON.stringify(sub.condition(config))
+                `TwitchEvents: Creating subscription for "${sub.type}" (version ${sub.version}) with condition:`,
+                JSON.stringify(conditionObj)
             );
 
-            await axios.post(
+            const response = await axios.post(
                 'https://api.twitch.tv/helix/eventsub/subscriptions',
                 {
                     type: sub.type,
                     version: sub.version,
-                    condition: sub.condition(config),
+                    condition: conditionObj,
                     transport: {
                         method: 'websocket',
                         session_id: sessionId
@@ -98,14 +101,16 @@ async function subscribeAll(client, config) {
                 }
             );
 
-            console.log(`TwitchEvents: Subscribed to "${sub.type}"`);
+            console.log(`✓ TwitchEvents: Successfully subscribed to "${sub.type}"`);
         } catch (err) {
             console.error(
-                `TwitchEvents: Failed to subscribe to "${sub.type}":`,
-                err.response?.data || err
+                `✗ TwitchEvents: Failed to subscribe to "${sub.type}":`,
+                err.response?.data || err.message
             );
         }
     }
+
+    console.log('TwitchEvents: EventSub subscription process completed');
 }
 
 async function startEventSub(client, config) {

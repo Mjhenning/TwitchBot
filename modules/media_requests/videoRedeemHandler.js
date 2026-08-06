@@ -1,4 +1,4 @@
-const {registerSubscription} = require('../helpers/twitch_events');
+const {registerSubscription} = require('../helpers/eventsub/core');
 const {extractRedeemUrl, ValidationError} = require('../moderation/link_filter');
 const {fetchMetadata, MetadataError} = require('./metadataService');
 const {downloadVideo, deleteVideo} = require('./downloadService');

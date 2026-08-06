@@ -11,9 +11,9 @@
 // session becomes ready — no changes needed in twitch_events.js.
 
 const axios = require('axios');
-const {registerSubscription} = require('../modules/helpers/twitch_events');
-const {eventShoutout} = require('../modules/functions/shoutout')
-const {getIsOnline} = require('../modules/helpers/stream-state');
+const {registerSubscription} = require('./core');
+const {eventShoutout} = require('../../functions/shoutout')
+const {getIsOnline} = require('../stream-state');
 
 let adEndTimer = null;
 
@@ -92,11 +92,6 @@ registerSubscription(
         }, (duration + 1) * 1000); // 1 second buffer
     }
 );
-
-// ─── channel.ad_break.begin ────────────────────────────────────────────────────
-registerSubscription(
-    ''
-)
 
 // ─── Add more subscriptions below ──────────────────────────────────────────────
 // registerSubscription(

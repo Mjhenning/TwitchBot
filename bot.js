@@ -4,7 +4,6 @@ const {initTokens, refreshBroadcasterToken} = require('./config');
 const {startShieldSystem, stopShieldSystem} = require('./modules/helpers/shield_system');
 const {startTimers, stopTimers} = require('./modules/helpers/timer');
 const {startAdSchedulePoller, stopAdSchedulePoller} = require('./modules/helpers/ad_schedule_poller');
-const {startEventSub, stopEventSub} = require('./modules/helpers/twitch_events');
 const {resetListeners} = require('./modules/helpers/stream-state');
 const {stopSSRPolling} = require('./modules/song_requests/pear-desktop-music');
 
@@ -18,6 +17,9 @@ const {resetCommandState} = require('./commands/registry');
 
 const {reconcilePendingOnStartup, startExpirySweep} = require('./modules/media_requests/videoRedeemHandler');
 const {setRewardPaused} = require('./modules/helpers/twitchRedemption');
+
+const {startEventSub, stopEventSub} = require('./modules/helpers/eventsub/core');
+require('./modules/helpers/eventsub/handlers');
 
 let tmiClient = null;
 let isRunning = false;
