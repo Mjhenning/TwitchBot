@@ -151,7 +151,7 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!glossels` | Check your Glossels balance |
 | `!rank` | See your leaderboard rank |
 | `!top5` | Top 5 Glossels leaderboard |
-| `!system` | Activate the AETHER-OS terminal |
+| `!system` / `!sys` | Activate the AETHER-OS terminal |
 | `!system help` | List available terminal commands |
 | `!system dir <path>` | Navigate the virtual filesystem |
 | `!system ls` | List current directory |
@@ -160,6 +160,8 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!system probe <port>` | Probe a port for lore/unlocks |
 | `!system connect` | Daily check-in to earn Glossels |
 | `!system ping` | Ping the system (+2% coherence) |
+| `!sysAdmin probe <port>` | Admin: force-probe a port (mod only) |
+| `!sysAdmin coherence <amount>` | Admin: manually adjust coherence (mod only) |
 
 ### Counters
 
@@ -196,7 +198,6 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 ### EventSub (`modules/helpers/eventsub/`)
 - **`core.js`**: WebSocket hub. Manages the EventSub session, subscription registry, and reconnection.
 - **`handlers.js`**: Registers handlers for `channel.follow`, `channel.raid`, `channel.ad_break.begin`. Importing this file is sufficient to register all handlers.
-- **`videoRedeemHandler.js`**: Self-registers `channel.channel_points_custom_reward_redemption.add` and `.update` for the media request reward.
 
 ### Shield System (`modules/helpers/shield_system.js`)
 - Separate EventSub WebSocket connection for `stream.online` / `stream.offline`.
@@ -312,6 +313,7 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 | `data/counters.json` | Counter definitions and current values |
 | `data/moderation.json` | Link filter config: allowed domains, trusted badges, warn cooldown |
 | `data/ssr_queue.json` | Current song request queue |
+| `data/pendingRedemptions.json` | In-flight media request redemptions (atomic writes, survives crashes) |
 | `data/timed_commands.json` | Scheduled message/function definitions |
 | `data/state.json` | General state |
 | `ARG/data/state.json` | ARG coherence level and bit-rot state |
@@ -328,5 +330,5 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 - **Self-registering handlers**: EventSub handler modules (e.g. `videoRedeemHandler.js`) call `registerSubscription()` at require-time. Importing the file is enough to register, no explicit wiring needed.
 - **Atomic persistence**: `pendingStore.js` writes to a `.tmp` file then renames, preventing corruption on crash. All other JSON files are read on demand and written after every mutation.
 - **Cooldown system**: Per-user, per-command cooldowns (default 5s). Mods and broadcaster are exempt.
-- **Command matching**: Uses regex word-boundary matching (`hasCommand()`) rather than `startsWith`, preventing partial-command matches.
+- **Command matching**: Most commands use regex word-boundary matching (`hasCommand()`). Commands with arguments (`!sr`, `!followage`, `!so`, `!system`, `!sysAdmin`, `!hug`) use `startsWith` instead.
 - **No build step**: Plain CommonJS Node.js. Run directly with `node bot.js`.
