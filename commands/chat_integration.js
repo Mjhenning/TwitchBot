@@ -265,7 +265,7 @@ function setupChatCommands(client, config) {
             return;
         }
 
-        if (hasCommand(lower, '!clearQ')) {
+        if (hasCommand(lower, '!clearq')) {
             if (!requireMod(tags, client, channel)) return;
             clearQCommand(client, channel);
             return;

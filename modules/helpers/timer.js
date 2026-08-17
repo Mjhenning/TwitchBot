@@ -3,15 +3,14 @@ const fs = require('fs');
 const path = require('path');
 const {config} = require('../../config');
 const {getIsOnline, onOnline, onOffline} = require('./stream-state');
-const {discordCommand, ytCommand, getSsrEnabled} = require('../../commands/registry');
+const {discordCommand, getSsrEnabled} = require('../../commands/registry');
 
 const conditionMap = {
     ssrEnabled: getSsrEnabled
 };
 
 const functionMap = {
-    discordCommand,
-    ytCommand
+    discordCommand
 };
 
 let activeStopFunctions = [];
