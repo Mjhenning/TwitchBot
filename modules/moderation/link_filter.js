@@ -1,7 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
-const {config, withTokenRetry, refreshBotToken} = require("../../config");
+const {config} = require("../../config");
+const {withTokenRetry, refreshBotToken} = require("../../auth");
 
 function loadConfig() {
     return JSON.parse(fs.readFileSync(config.MOD_CONFIG_PATH, "utf8"));

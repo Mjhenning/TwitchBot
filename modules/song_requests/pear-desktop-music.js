@@ -1,5 +1,6 @@
 // modules/pear-desktop-music.js
-const {config, initTokens, initPearToken} = require('../../config');
+const {config} = require('../../config');
+const {initPearToken} = require('../../auth');
 const axios = require('axios');
 const {pushToQueue, shiftQueue, getQueue, getQueueLength} = require('./ssr-queue');
 

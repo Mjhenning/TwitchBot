@@ -1,6 +1,6 @@
 // modules/ad_schedule_poller.js
 const axios = require('axios');
-const {withTokenRetry} = require('../../config');
+const {withTokenRetry} = require('../../auth');
 const {
     getIsOnline,
     onOnline,

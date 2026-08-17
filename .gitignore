@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Runtime tokens (auto-refreshed, never commit)
+data/bot_refresh_token.json
+data/broadcaster_refresh_token.json
+
+# Viewer data (contains usernames and Twitch IDs)
+data/glossels_db.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+*.log
+npm-debug.log*
+/AGENTS.md
+/ARG/F0XTA1L'S Lore Doc.pdf
