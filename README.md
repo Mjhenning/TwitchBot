@@ -1,6 +1,6 @@
-# TA1LDA3M0N — Twitch Chat Bot
+# TA1LDA3M0N, Twitch Chat Bot
 
-A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1LDA3M0N (a.k.a. "Tails" / "TailDaemon") is an in-character sentient daemon that manages chat, moderation, music, media playback, a virtual currency system, and an interactive alternate reality game — all themed around the "Glosso-Sphere" lore.
+A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1LDA3M0N (a.k.a. "Tails" / "TailDaemon") is an in-character sentient daemon that manages chat, moderation, music, media playback, a virtual currency system, and an interactive alternate reality game, all themed around the "Glosso-Sphere" lore.
 
 ---
 
@@ -20,19 +20,19 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 
 ## Features
 
-- **Chat Commands** — 20+ chat commands including greetings, lore responses, socials, clipping, follow age, shoutouts, counters, lurk tracking, and hug interactions.
-- **Song Requests (SSR)** — Viewers request songs via `!sr`. Integrates with Pear Desktop Music and YouTube Data API for search, queuing, and playback. Queue open/close controlled by mods.
-- **Media Requests (MR)** — Channel-point redemption triggers video download via `yt-dlp`, OBS source display, and VLC playback. Moderators approve or reject before playback. Includes expiry sweep, atomic pending store, and startup reconciliation.
-- **Shield System** — Automatically enables Twitch Shield Mode when the stream goes offline and disables it when live, via EventSub `stream.online` / `stream.offline`.
-- **EventSub Integration** — Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), and ad break notifications with countdown warnings.
-- **Ad Schedule Poller** — Adaptive polling of the Twitch ad schedule API. Warns chat ~45 seconds before a scheduled ad. Pauses when stream is offline, resumes on online.
-- **Virtual Currency (Glossels)** — Viewers earn Glossels through `!system connect` daily check-ins and participating in ARG events. Leaderboard and rank tracking via `!glossels`, `!rank`, `!top5`.
-- **Alternate Reality Game (ARG)** — An in-chat terminal simulation ("AETHER-OS") with a virtual filesystem, coherence system, bit-rot decay, port probing, lore files, and file access gated by coherence level and discovered events.
-- **Moderation** — Automatic link filtering with domain allowlists. Links are deleted and the user warned unless they have a trusted badge or the link matches an allowed domain. Song-request and media-request domains are conditionally permitted.
-- **Counters** — Configurable chat counters (e.g. death, yawn, 404) with increment, set, stats, and last-counted subcommands.
-- **Timed Commands** — Periodic chat messages or function calls driven by a JSON config, with randomized offset and interval. Auto-pause on stream offline, auto-resume on online.
-- **Daemon Personality** — Bot responds to greetings, lore character names (Ace, Joel, Mara, Dex), project names (AETHER-LINK, Glosso-Sphere, bit-rot), threats, compliments, and gratitude with characterful in-character responses.
-- **Testing Commands** — Mods can simulate follow, raid, and ad break events via `!testfollow`, `!testraid`, `!testads` without needing real events.
+- **Chat Commands**: 20+ chat commands including greetings, lore responses, socials, clipping, follow age, shoutouts, counters, lurk tracking, and hug interactions.
+- **Song Requests (SSR)**: Viewers request songs via `!sr`. Integrates with Pear Desktop Music and YouTube Data API for search, queuing, and playback. Queue open/close controlled by mods.
+- **Media Requests (MR)**: Channel-point redemption triggers video download via `yt-dlp`, OBS source display, and VLC playback. Moderators approve or reject before playback. Includes expiry sweep, atomic pending store, and startup reconciliation.
+- **Shield System**: Automatically enables Twitch Shield Mode when the stream goes offline and disables it when live, via EventSub `stream.online` / `stream.offline`.
+- **EventSub Integration**: Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), and ad break notifications with countdown warnings.
+- **Ad Schedule Poller**: Adaptive polling of the Twitch ad schedule API. Warns chat ~45 seconds before a scheduled ad. Pauses when stream is offline, resumes on online.
+- **Virtual Currency (Glossels)**: Viewers earn Glossels through `!system connect` daily check-ins and participating in ARG events. Leaderboard and rank tracking via `!glossels`, `!rank`, `!top5`.
+- **Alternate Reality Game (ARG)**: An in-chat terminal simulation ("AETHER-OS") with a virtual filesystem, coherence system, bit-rot decay, port probing, lore files, and file access gated by coherence level and discovered events.
+- **Moderation**: Automatic link filtering with domain allowlists. Links are deleted and the user warned unless they have a trusted badge or the link matches an allowed domain. Song-request and media-request domains are conditionally permitted.
+- **Counters**: Configurable chat counters (e.g. death, yawn, 404) with increment, set, stats, and last-counted subcommands.
+- **Timed Commands**: Periodic chat messages or function calls driven by a JSON config, with randomized offset and interval. Auto-pause on stream offline, auto-resume on online.
+- **Daemon Personality**: Bot responds to greetings, lore character names (Ace, Joel, Mara, Dex), project names (AETHER-LINK, Glosso-Sphere, bit-rot), threats, compliments, and gratitude with characterful in-character responses.
+- **Testing Commands**: Mods can simulate follow, raid, and ad break events via `!testfollow`, `!testraid`, `!testads` without needing real events.
 
 ---
 
@@ -158,7 +158,7 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!system read <file>` | Read a lore file |
 | `!system cwd` | Show current directory |
 | `!system probe <port>` | Probe a port for lore/unlocks |
-| `!system connect` | Daily check-in — earn Glossels |
+| `!system connect` | Daily check-in to earn Glossels |
 | `!system ping` | Ping the system (+2% coherence) |
 
 ### Counters
@@ -194,9 +194,9 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 - `initPearToken()` authenticates with Pear Desktop Music (3s timeout, gracefully skipped if unavailable).
 
 ### EventSub (`modules/helpers/eventsub/`)
-- **`core.js`** — WebSocket hub. Manages the EventSub session, subscription registry, and reconnection.
-- **`handlers.js`** — Registers handlers for `channel.follow`, `channel.raid`, `channel.ad_break.begin`. Importing this file is sufficient to register all handlers.
-- **`videoRedeemHandler.js`** — Self-registers `channel.channel_points_custom_reward_redemption.add` and `.update` for the media request reward.
+- **`core.js`**: WebSocket hub. Manages the EventSub session, subscription registry, and reconnection.
+- **`handlers.js`**: Registers handlers for `channel.follow`, `channel.raid`, `channel.ad_break.begin`. Importing this file is sufficient to register all handlers.
+- **`videoRedeemHandler.js`**: Self-registers `channel.channel_points_custom_reward_redemption.add` and `.update` for the media request reward.
 
 ### Shield System (`modules/helpers/shield_system.js`)
 - Separate EventSub WebSocket connection for `stream.online` / `stream.offline`.
@@ -204,18 +204,18 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 - Broadcasts stream state via `stream-state.js` pub/sub (used by ad poller, timers, ARG, and the shield system itself).
 
 ### Media Requests Pipeline (`modules/media_requests/`)
-1. **`videoRedeemHandler.js`** — Orchestrates the full flow: validate URL → fetch metadata → download → store as pending → await mod approval → play.
-2. **`metadataService.js`** — Extracts video metadata via `yt-dlp --dump-json`.
-3. **`downloadService.js`** — Downloads video via `yt-dlp` to `MEDIA_QUEUE_DIR`.
-4. **`obsController.js`** — Shows/hides the media source in OBS via WebSocket.
-5. **`vlcController.js`** — Controls VLC playback via HTTP API (play, stop, status).
-6. **`playbackManager.js`** — Coordinates OBS source visibility and VLC playback.
-7. **`pendingStore.js`** — Atomic write (tmp + rename) persistence for in-flight redemptions. Survives crashes.
-8. **`twitchRedemption.js`** — Twitch API helpers for updating redemption status and pausing/unpausing rewards.
+1. **`videoRedeemHandler.js`**: Orchestrates the full flow: validate URL → fetch metadata → download → store as pending → await mod approval → play.
+2. **`metadataService.js`**: Extracts video metadata via `yt-dlp --dump-json`.
+3. **`downloadService.js`**: Downloads video via `yt-dlp` to `MEDIA_QUEUE_DIR`.
+4. **`obsController.js`**: Shows/hides the media source in OBS via WebSocket.
+5. **`vlcController.js`**: Controls VLC playback via HTTP API (play, stop, status).
+6. **`playbackManager.js`**: Coordinates OBS source visibility and VLC playback.
+7. **`pendingStore.js`**: Atomic write (tmp + rename) persistence for in-flight redemptions. Survives crashes.
+8. **`twitchRedemption.js`**: Twitch API helpers for updating redemption status and pausing/unpausing rewards.
 
 ### Song Requests (`modules/song_requests/`)
-- **`pear-desktop-music.js`** — YouTube search via Data API, Pear Desktop Music API integration, SSR queue polling (checks every 5s if a queued song started playing).
-- **`ssr-queue.js`** — In-memory queue persisted to `data/ssr_queue.json`.
+- **`pear-desktop-music.js`**: YouTube search via Data API, Pear Desktop Music API integration, SSR queue polling (checks every 5s if a queued song started playing).
+- **`ssr-queue.js`**: In-memory queue persisted to `data/ssr_queue.json`.
 
 ### Personality (`modules/bot_specific/bot_response_modules.js`)
 - Responds to greetings + daemon name mentions, threat words, lore character/place names, gratitude, and compliments. Rate-limited per module to prevent spam.
@@ -232,10 +232,10 @@ TwitchBot/
 ├── .env.example                    # Environment variable template
 ├── .env                            # Your secrets (gitignored)
 ├── .gitignore                      # Git ignore rules
-├── bot.js                          # Entrypoint — startBot/stopBot orchestration
+├── bot.js                          # Entrypoint: startBot/stopBot orchestration
 ├── config.js                       # Configuration loader (reads .env)
 ├── auth.js                         # OAuth token management and refresh
-├── obs_watcher.js                  # OBS WebSocket watcher — triggers startBot on OBS connect
+├── obs_watcher.js                  # OBS WebSocket watcher: triggers startBot on OBS connect
 ├── commands/
 │   ├── chat_integration.js         # Message router, command matching, cooldown dispatch
 │   └── registry.js                 # All command implementations and exports
@@ -325,7 +325,7 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 - **OBS-gated startup**: The bot connects to OBS first and only starts all other modules once OBS is online. If OBS disconnects, everything tears down and the bot waits for OBS to reconnect (polls every 20s).
 - **Dual EventSub connections**: The Shield System uses its own dedicated WebSocket for `stream.online`/`stream.offline`. The main EventSub hub (`core.js`) handles follow, raid, ad, and media request events. Both auto-reconnect.
 - **Stream-state pub/sub**: A simple observer pattern (`onOnline`/`onOffline` in `stream-state.js`) decouples stream lifecycle from individual modules. The ad poller, timers, ARG, and shield system all subscribe to it.
-- **Self-registering handlers**: EventSub handler modules (e.g. `videoRedeemHandler.js`) call `registerSubscription()` at require-time. Importing the file is enough to register — no explicit wiring needed.
+- **Self-registering handlers**: EventSub handler modules (e.g. `videoRedeemHandler.js`) call `registerSubscription()` at require-time. Importing the file is enough to register, no explicit wiring needed.
 - **Atomic persistence**: `pendingStore.js` writes to a `.tmp` file then renames, preventing corruption on crash. All other JSON files are read on demand and written after every mutation.
 - **Cooldown system**: Per-user, per-command cooldowns (default 5s). Mods and broadcaster are exempt.
 - **Command matching**: Uses regex word-boundary matching (`hasCommand()`) rather than `startsWith`, preventing partial-command matches.
