@@ -4,12 +4,9 @@ node_modules/
 # Environment variables
 .env
 
-# Runtime tokens (auto-refreshed, never commit)
-data/bot_refresh_token.json
-data/broadcaster_refresh_token.json
-
-# Viewer data (contains usernames and Twitch IDs)
-data/glossels_db.json
+# Runtime data (bot state, viewer data, tokens — all recreated on first run)
+/data/
+/ARG/data/
 
 # IDE
 .idea/
