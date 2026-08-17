@@ -1,6 +1,6 @@
 // bot.js
 const tmi = require('tmi.js');
-const {initTokens, refreshBroadcasterToken} = require('./config');
+const {initTokens, refreshBroadcasterToken} = require('./auth');
 const {startShieldSystem, stopShieldSystem} = require('./modules/helpers/shield_system');
 const {startTimers, stopTimers} = require('./modules/helpers/timer');
 const {startAdSchedulePoller, stopAdSchedulePoller} = require('./modules/helpers/ad_schedule_poller');
