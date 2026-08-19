@@ -226,13 +226,17 @@ function setupChatCommands(client, config) {
             return;
         }
 
-        if (lower.startsWith('!system') || lower.startsWith('!sys')) {
-            argSystemCommand(client, channel, userId, senderName, tags, msg);
+        if (lower.startsWith('!sysadmin')) {
+            if (tags.badges?.broadcaster !== '1') {
+                client.say(channel, `${senderName} — nice try. Admin protocols are broadcaster locked. 🫧`);
+                return;
+            }
+            argSystemAdminCommand(client, channel, userId, senderName, tags, msg);
             return
         }
 
-        if (lower.startsWith('!sysAdmin')) {
-            argSystemAdminCommand(client, channel, userId, senderName, tags, msg);
+        if (lower.startsWith('!system') || lower.startsWith('!sys')) {
+            argSystemCommand(client, channel, userId, senderName, tags, msg);
             return
         }
 

@@ -12,7 +12,7 @@
 
 const axios = require('axios');
 const {registerSubscription} = require('./core');
-const {Logger} = require('../../services');
+const {Logger} = require('../../../services');
 const {eventShoutout} = require('../../functions/shoutout')
 const {getIsOnline} = require('../stream-state');
 

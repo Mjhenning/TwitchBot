@@ -26,8 +26,8 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 - **Shield System**: Automatically enables Twitch Shield Mode when the stream goes offline and disables it when live, via EventSub `stream.online` / `stream.offline`.
 - **EventSub Integration**: Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), and ad break notifications with countdown warnings.
 - **Ad Schedule Poller**: Adaptive polling of the Twitch ad schedule API. Warns chat ~45 seconds before a scheduled ad. Pauses when stream is offline, resumes on online.
-- **Virtual Currency (Glossels)**: Viewers earn Glossels through `!system connect` daily check-ins and participating in ARG events. Leaderboard and rank tracking via `!glossels`, `!rank`, `!top5`.
-- **Alternate Reality Game (ARG)**: An in-chat terminal simulation ("AETHER-OS") with a virtual filesystem, coherence system, bit-rot decay, port probing, lore files, and file access gated by coherence level and discovered events.
+- **Virtual Currency (Glossels)**: Viewers earn Glossels through `!system connect` daily check-ins and participating in ARG events. Gamble Glossels by sending them into unknown network nodes (`!system handshake <amount>`), or transfer them to other viewers. Leaderboard and rank tracking via `!glossels`, `!rank`, `!top5`.
+- **Alternate Reality Game (ARG)**: An in-chat terminal simulation ("AETHER-OS") with a virtual filesystem, coherence system, bit-rot decay, port probing, lore files, file access gated by coherence level and discovered events, and a network gamble/transfer system for Glossels.
 - **Moderation**: Automatic link filtering with domain allowlists. Links are deleted and the user warned unless they have a trusted badge or the link matches an allowed domain. Song-request and media-request domains are conditionally permitted.
 - **Counters**: Configurable chat counters (e.g. death, yawn, 404) with increment, set, stats, and last-counted subcommands.
 - **Timed Commands**: Periodic chat messages or function calls driven by a JSON config, with randomized offset and interval. Auto-pause on stream offline, auto-resume on online.
@@ -160,8 +160,14 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!system probe <port>` | Probe a port for lore/unlocks |
 | `!system connect` | Daily check-in to earn Glossels |
 | `!system ping` | Ping the system (+2% coherence) |
-| `!sysAdmin probe <port>` | Admin: force-probe a port (mod only) |
-| `!sysAdmin coherence <amount>` | Admin: manually adjust coherence (mod only) |
+| `!system handshake <amount>` | Gamble Glossels by sending them into an unknown network node (weighted outcomes: 2x, push, lose, 3x, partial loss) |
+| `!system handshake <amount> <user>` | Transfer Glossels directly to another viewer |
+| `!sysAdmin grant probe <port>` | Admin: unlock a port (broadcaster only) |
+| `!sysAdmin revoke probe <port>` | Admin: lock a port (broadcaster only) |
+| `!sysAdmin bump coherence <n>` | Admin: add coherence (broadcaster only) |
+| `!sysAdmin reduce coherence <n>` | Admin: remove coherence (broadcaster only) |
+| `!sysAdmin grant glossels <n> <user>` | Admin: add Glossels to a user, or `SYSTEM` for all (broadcaster only) |
+| `!sysAdmin revoke glossels <n> <user>` | Admin: remove Glossels from a user, or `SYSTEM` for all (broadcaster only) |
 
 ### Counters
 
@@ -294,7 +300,7 @@ TwitchBot/
 │   │   └── ports/                  # Port data files (lore unlocks)
 │   ├── data/                       # ARG state: ports.json, found_ports.json, state.json
 │   └── modules/
-│       └── arg_main.js             # Core ARG logic: terminal, filesystem, probes, coherence
+│       └── arg_main.js             # Core ARG logic: terminal, filesystem, probes, coherence, network gamble/transfer
 ├── data/                           # Runtime persistence (JSON)
 │   ├── bot_refresh_token.json
 │   ├── broadcaster_refresh_token.json
@@ -339,6 +345,6 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 - **Stream-state pub/sub**: A simple observer pattern (`onOnline`/`onOffline` in `stream-state.js`) decouples stream lifecycle from individual modules. The ad poller, timers, ARG, and shield system all subscribe to it.
 - **Self-registering handlers**: EventSub handler modules (e.g. `videoRedeemHandler.js`) call `registerSubscription()` at require-time. Importing the file is enough to register, no explicit wiring needed.
 - **Atomic persistence**: `pendingStore.js` writes to a `.tmp` file then renames, preventing corruption on crash. All other JSON files are read on demand and written after every mutation.
-- **Cooldown system**: Per-user, per-command cooldowns (default 5s). Mods and broadcaster are exempt.
-- **Command matching**: Most commands use regex word-boundary matching (`hasCommand()`). Commands with arguments (`!sr`, `!followage`, `!so`, `!system`, `!sysAdmin`, `!hug`) use `startsWith` instead.
+- **Cooldown system**: Per-user, per-command cooldowns (default 5s). Mods and broadcaster are exempt. `!system handshake` has a 30s cooldown.
+- **Command matching**: Most commands use regex word-boundary matching (`hasCommand()`). Commands with arguments (`!sr`, `!followage`, `!so`, `!system`, `!sysAdmin`, `!hug`) use `startsWith` instead. `!sysAdmin` is checked before `!sys` to prevent prefix collision.
 - **No build step**: Plain CommonJS Node.js. Run directly with `node bot.js`.

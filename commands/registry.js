@@ -21,13 +21,13 @@ const {
     skipSong
 } = require('../modules/song_requests/pear-desktop-music');
 
-const {retrieveGlossels, getUserRank, getTop5} = require('../modules/functions/glossels');
+const {retrieveGlossels, getUserRank, getTop5, addGlossels, removeGlossels, getUserByName, giveAll, removeAll, getUserMap} = require('../modules/functions/glossels');
 
 const {
     handleSys, handleSysHelp, handleSysDir, handleSysRead
     , sysHandleProbe, handleSysConnect
-    , handleSysPing, handleSysLs, sysAddCoherence, handleSysCwd,
-    sysIsTerminalActive
+    , handleSysPing, handleSysLs, sysAddCoherence, sysRemoveCoherence, handleSysCwd,
+    sysIsTerminalActive, handleSysHandshake, unmarkPortFound
 } = require('../ARG/modules/arg_main')
 
 const {shoutout} = require('../modules/functions/shoutout');
@@ -36,6 +36,7 @@ const {handleCounter} = require("../modules/helpers/counters");
 
 const {handleLinkBlocker} = require("../modules/moderation/link_filter");
 const {setRewardPaused} = require('../modules/helpers/twitchRedemption');
+const {handleCooldown} = require('../modules/helpers/cooldown');
 
 
 let mrEnabled = false;
@@ -494,46 +495,140 @@ function argSystemCommand(client, channel, userId, senderName, tags, msg) {
         case 'ping':
             handleSysPing(client, channel);
             break;
+        case 'handshake':
+            if (handleCooldown(userId, senderName, 'handshake', tags, client, channel, 30)) return;
+            handleSysHandshake(client, channel, userId, senderName, msg);
+            break;
         default:
             client.say(channel, `Unknown subcommand — ${sub}. Run !system help.`);
     }
 }
 
 function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) { //specifically for mods
-    const parts = msg.trim().split(/\s+/);
-    const sub = parts[1]?.toLowerCase();
-
-    // !arg probe [port]
-    if (sub === 'probe') {
-        const port = parseInt(parts[2]);
-        if (isNaN(port)) {
-            client.say(channel, `Usage — !arg probe [port]`);
-            return true;
-        }
-        sysHandleProbe(client, channel, parts[2]);
+    if (!sysIsTerminalActive()) {
+        client.say(channel, `Terminal not active. Run !system to initialise.`);
         return true;
     }
 
-    // !arg coherence [amount]
-    if (sub === 'coherence') {
-        const amount = parseInt(parts[2]);
+    const parts = msg.trim().split(/\s+/);
+    const action = parts[1]?.toLowerCase();
+    const target = parts[2]?.toLowerCase();
+    const arg1 = parts[3];
+    const arg2 = parts[4];
+
+    // !sysAdmin grant probe {port}
+    if (action === 'grant' && target === 'probe') {
+        const port = parseInt(arg1);
+        if (isNaN(port)) {
+            client.say(channel, `Usage — !sysAdmin grant probe [port]`);
+            return true;
+        }
+        sysHandleProbe(client, channel, String(port));
+        return true;
+    }
+
+    // !sysAdmin revoke probe {port}
+    if (action === 'revoke' && target === 'probe') {
+        const port = parseInt(arg1);
+        if (isNaN(port)) {
+            client.say(channel, `Usage — !sysAdmin revoke probe [port]`);
+            return true;
+        }
+        unmarkPortFound(port);
+        client.say(channel, `Port ${port} — lock restored. Probe state cleared.`);
+        return true;
+    }
+
+    // !sysAdmin bump coherence {number}
+    if (action === 'bump' && target === 'coherence') {
+        const amount = parseInt(arg1);
         if (isNaN(amount)) {
-            client.say(channel, `Usage — !arg coherence [amount]`);
+            client.say(channel, `Usage — !sysAdmin bump coherence [amount]`);
             return true;
         }
         const newCoherence = sysAddCoherence(amount);
-        client.say(channel, `Coherence manually adjusted. Current: ${newCoherence}%`);
+        client.say(channel, `Coherence bumped +${amount}%. Current: ${newCoherence}%`);
         return true;
     }
 
-    // // !arg reset
-    // if (sub === 'reset') {
-    //     sysResetSession();
-    //     client.say(channel, `ARG event state reset. Starting fresh.`);
-    //     return true;
-    // }
+    // !sysAdmin reduce coherence {number}
+    if (action === 'reduce' && target === 'coherence') {
+        const amount = parseInt(arg1);
+        if (isNaN(amount)) {
+            client.say(channel, `Usage — !sysAdmin reduce coherence [amount]`);
+            return true;
+        }
+        const newCoherence = sysRemoveCoherence(amount);
+        client.say(channel, `Coherence reduced -${amount}%. Current: ${newCoherence}%`);
+        return true;
+    }
 
-    return false;
+    // !sysAdmin grant glossels {number} {user}
+    if (action === 'grant' && target === 'glossels') {
+        const amount = parseInt(arg1);
+        if (isNaN(amount) || amount <= 0) {
+            client.say(channel, `Usage — !sysAdmin grant glossels [amount] [user]`);
+            return true;
+        }
+        const targetUser = arg2?.replace(/^@/, '');
+
+        if (targetUser?.toUpperCase() === 'SYSTEM') {
+            const allIds = [...getUserMap().keys()];
+            const affected = giveAll(allIds, amount);
+            client.say(channel, `Glossels granted to SYSTEM — +${amount} each. ${affected} users affected.`);
+            return true;
+        }
+
+        if (!targetUser) {
+            client.say(channel, `Usage — !sysAdmin grant glossels [amount] [user]`);
+            return true;
+        }
+
+        const user = getUserByName(targetUser);
+        if (!user) {
+            client.say(channel, `User "${targetUser}" not found.`);
+            return true;
+        }
+
+        addGlossels(user.usrId, amount, user.usrName);
+        client.say(channel, `Glossels granted to ${user.usrName} — +${amount}. New balance: ${retrieveGlossels(user.usrId, user.usrName)}.`);
+        return true;
+    }
+
+    // !sysAdmin revoke glossels {number} {user}
+    if (action === 'revoke' && target === 'glossels') {
+        const amount = parseInt(arg1);
+        if (isNaN(amount) || amount <= 0) {
+            client.say(channel, `Usage — !sysAdmin revoke glossels [amount] [user]`);
+            return true;
+        }
+        const targetUser = arg2?.replace(/^@/, '');
+
+        if (targetUser?.toUpperCase() === 'SYSTEM') {
+            const allIds = [...getUserMap().keys()];
+            const affected = removeAll(allIds, amount);
+            client.say(channel, `Glossels revoked from SYSTEM — -${amount} each. ${affected} users affected.`);
+            return true;
+        }
+
+        if (!targetUser) {
+            client.say(channel, `Usage — !sysAdmin revoke glossels [amount] [user]`);
+            return true;
+        }
+
+        const user = getUserByName(targetUser);
+        if (!user) {
+            client.say(channel, `User "${targetUser}" not found.`);
+            return true;
+        }
+
+        removeGlossels(user.usrId, amount, user.usrName);
+        client.say(channel, `Glossels revoked from ${user.usrName} — -${amount}. New balance: ${retrieveGlossels(user.usrId, user.usrName)}.`);
+        return true;
+    }
+
+    client.say(channel, `Unknown admin command. Use: grant/revoke probe | bump/reduce coherence | grant/revoke glossels`);
+    return true;
 }
 
 //--------------------------------- HELPER ------------------------------------

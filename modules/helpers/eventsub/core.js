@@ -1,7 +1,7 @@
 // modules/twitch_events.js
 const WebSocket = require('ws');
 const axios = require('axios');
-const {Logger} = require('../../services');
+const {Logger} = require('../../../services');
 
 let _client = null;
 let sessionId = null;

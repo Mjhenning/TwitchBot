@@ -58,6 +58,14 @@ function sysAddCoherence(amount) {
     return state.coherence;
 }
 
+function sysRemoveCoherence(amount) {
+    const state = getState();
+    state.coherence = Math.max(0, state.coherence - amount);
+    state.lastActivity = new Date().toISOString();
+    writeJSON(STATE_PATH, state);
+    return state.coherence;
+}
+
 function applyBitRot() {
     const state = getState();
     if (!state.lastActivity) return null;
@@ -95,6 +103,15 @@ function markPortFound(port) {
 
 function wasPortFound(port) {
     return !!getFoundPorts().probed?.[port];
+}
+
+function unmarkPortFound(port) {
+    const data = getFoundPorts();
+    if (data.probed?.[port]) {
+        delete data.probed[port];
+        writeJSON(FOUND_PORTS_PATH, data);
+    }
+    sysProbedPorts.delete(port);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -274,7 +291,9 @@ function handleSysHelp(client, channel) {
         '!system cwd',
         '!system probe',
         '!system connect',
-        '!system ping'
+        '!system ping',
+        '!system handshake <amount>',
+        '!system handshake <amount> <user>'
     ];
     client.say(channel, `SYSTEM HELP — Available: ${commands.join(' | ')}`);
 }
@@ -485,6 +504,120 @@ function handleSysPing(client, channel) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 8B) !system handshake — NETWORK GAMBLE / TRANSFER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const HANDSHAKE_OUTCOMES = [
+    {type: 'accepted', weight: 35, multiplier: 2, messages: [
+        'Node accepted {user} handshake. Packets returned doubled.',
+        'Connection established. Node amplified {user} signal. +{amount} Glossels.',
+        'Handshake successful. Network node returned {user} data with interest.'
+    ]},
+    {type: 'unstable', weight: 30, multiplier: 1, messages: [
+        'Signal unstable. Packets retained, no change.',
+        'Node acknowledged but refused to route. Glossels unchanged.',
+        'Connection flickered. Data returned as sent. No loss, no gain.'
+    ]},
+    {type: 'rejected', weight: 25, multiplier: 0, messages: [
+        'Node rejected transmission. Packets corrupted. -{amount} Glossels.',
+        'Handshake failed. Network firewall severed {user} connection. Data lost.',
+        'Unknown node dropped {user} signal. Glossels absorbed into the void.'
+    ]},
+    {type: 'amplified', weight: 8, multiplier: 3, messages: [
+        '>> UNKNOWN NODE AMPLIFYING SIGNAL. 3x recovery. +{amount} Glossels.',
+        '>> CRITICAL: Node running unknown protocol. Packets tripled. This should not be possible.',
+        '>> ANOMALY DETECTED. Node returned 3x {user} original transmission.'
+    ]},
+    {type: 'captured', weight: 2, multiplier: -0.5, messages: [
+        'Node partially captured {user} packets. Half recovered. -{amount} Glossels.',
+        'WARNING: Intercepted mid-transfer. Partial data salvage. {user} lost more than {user} kept.',
+        'Hostile node detected. Packet capture partial. What remains has been returned.'
+    ]}
+];
+
+function rollHandshakeOutcome() {
+    const totalWeight = HANDSHAKE_OUTCOMES.reduce((sum, o) => sum + o.weight, 0);
+    let random = Math.random() * totalWeight;
+
+    for (const outcome of HANDSHAKE_OUTCOMES) {
+        if (random < outcome.weight) return outcome;
+        random -= outcome.weight;
+    }
+
+    return HANDSHAKE_OUTCOMES[0];
+}
+
+function handleSysHandshake(client, channel, userId, senderName, msg) {
+    const {addGlossels, removeGlossels, retrieveGlossels, getUserByName, giveGlossels} = require('../../modules/functions/glossels');
+
+    const parts = msg.trim().split(/\s+/);
+    const amount = parseInt(parts[2], 10);
+
+    if (!amount || amount <= 0) {
+        client.say(channel, `Usage: !system handshake <amount> — send Glossels into an unknown network node.`);
+        return;
+    }
+
+    const currentBalance = retrieveGlossels(userId, senderName);
+
+    if (currentBalance < amount) {
+        client.say(channel, `${senderName} — insufficient Glossels. Balance: ${currentBalance} Glossels.`);
+        return;
+    }
+
+    // Transfer mode: !system handshake <amount> <user>
+    if (parts[3]) {
+        const rawTarget = parts[3].replace(/^@/, '');
+        const targetUser = getUserByName(rawTarget);
+
+        if (!targetUser) {
+            client.say(channel, `User "${rawTarget}" not found in the network.`);
+            return;
+        }
+
+        const result = giveGlossels(userId, targetUser.usrId, amount);
+        if (!result.success) {
+            client.say(channel, `Transfer failed — ${result.reason}.`);
+            return;
+        }
+
+        staggerSay(client, channel, [
+            `>> DIRECT TRANSFER INITIATED`,
+            `${senderName} → ${targetUser.usrName}: ${amount} Glossels`,
+            `Transfer complete. Sender Balance: ${result.newSenderBalance} Glossels. Receiver Balance: ${result.newReceiverBalance} Glossels.`
+        ]);
+        return;
+    }
+
+    // Solo gamble mode
+    const outcome = rollHandshakeOutcome();
+    const netChange = Math.floor(amount * outcome.multiplier);
+    const msgTemplate = outcome.messages[Math.floor(Math.random() * outcome.messages.length)];
+
+    let displayAmount;
+    if (outcome.type === 'captured') {
+        const lost = Math.ceil(amount * 0.5);
+        removeGlossels(userId, lost, senderName);
+        displayAmount = lost;
+    } else if (outcome.multiplier > 1) {
+        addGlossels(userId, netChange, senderName);
+        displayAmount = netChange;
+    } else if (outcome.multiplier === 0) {
+        removeGlossels(userId, amount, senderName);
+        displayAmount = amount;
+    }
+
+    const newBalance = retrieveGlossels(userId, senderName);
+    const flavor = msgTemplate.replace(/{amount}/g, displayAmount).replace(/{user}/g, senderName);
+
+    staggerSay(client, channel, [
+        `>> NETWORK HANDSHAKE — SENDING ${amount} GLOSSELS`,
+        flavor,
+        `${senderName} Balance: ${newBalance} Glossels.`
+    ]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // 9) EVENT STATE HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -542,11 +675,13 @@ module.exports = {
     handleSysRead,
     handleSysConnect,
     handleSysPing,
+    handleSysHandshake,
     sysHandleProbe,
 
     // state accessors
     sysGetCoherence,
     sysAddCoherence,
+    sysRemoveCoherence,
 
     // response helpers
     sysLockedResponse,
@@ -556,6 +691,7 @@ module.exports = {
 
     // ports
     getPorts,
+    unmarkPortFound,
 
     // event state
     sysIsTerminalActive,

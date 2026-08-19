@@ -150,6 +150,32 @@ function removeUserEntry(userId) {
     return true;
 }
 
+// ---------------- LOOKUP BY NAME ----------------
+function getUserByName(name) {
+    const lower = name.toLowerCase();
+    return users.find(u => u.usrName.toLowerCase() === lower) ?? null;
+}
+
+// ---------------- TRANSFER ----------------
+function giveGlossels(fromId, toId, amount) {
+    const sender = userMap.get(fromId);
+    if (!sender) return {success: false, reason: 'sender_not_found'};
+    if (sender.amount < amount) return {success: false, reason: 'insufficient'};
+    if (fromId === toId) return {success: false, reason: 'self_transfer'};
+
+    const receiver = userMap.get(toId);
+    if (!receiver) return {success: false, reason: 'recipient_not_found'};
+
+    sender.amount -= amount;
+    receiver.amount += amount;
+
+    markDirty(sender);
+    markDirty(receiver);
+    saveCurrencySystem();
+
+    return {success: true, newSenderBalance: sender.amount, newReceiverBalance: receiver.amount};
+}
+
 // ---------------- LEADERBOARD ----------------
 function rebuildLeaderboard() {
     leaderboard = [...users]
@@ -223,5 +249,8 @@ module.exports = {
     removeAll,
     removeUserEntry,
     getTop5,
-    getUserRank
+    getUserRank,
+    getUserByName,
+    giveGlossels,
+    getUserMap: () => userMap
 };

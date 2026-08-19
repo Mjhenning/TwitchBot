@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const QUEUE_FILE = path.join(__dirname, '../data/ssr_queue.json');
+const QUEUE_FILE = path.join(__dirname, '../../data/ssr_queue.json');
 
 function ensureFile() {
     const dir = path.dirname(QUEUE_FILE);
