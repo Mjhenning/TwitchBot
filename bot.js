@@ -1,5 +1,6 @@
 // bot.js
 const tmi = require('tmi.js');
+const {Logger} = require('./services');
 const {initTokens, refreshBroadcasterToken} = require('./auth');
 const {startShieldSystem, stopShieldSystem} = require('./modules/helpers/shield_system');
 const {startTimers, stopTimers} = require('./modules/helpers/timer');
@@ -27,11 +28,11 @@ let tokenRefreshInterval = null;
 
 async function startBot() {
     if (isRunning) {
-        console.log('[Bot] Already running, skipping start');
+        Logger.log('[Bot] Already running, skipping start');
         return;
     }
     isRunning = true;
-    console.log('[Bot] Starting...');
+    Logger.log('[Bot] Starting...');
 
     try {
         const cfg = await initTokens();
@@ -41,9 +42,9 @@ async function startBot() {
             tokenRefreshInterval = setInterval(async () => {
                 try {
                     await refreshBroadcasterToken();
-                    console.log('[Auth] Broadcaster token proactively refreshed');
+                    Logger.log('[Auth] Broadcaster token proactively refreshed');
                 } catch (err) {
-                    console.error('[Auth] Broadcaster token refresh failed:', err.message);
+                    Logger.error(`[Auth] Broadcaster token refresh failed: ${err.message}`);
                 }
             }, 1000 * 60 * 60 * 3);
         }
@@ -56,11 +57,11 @@ async function startBot() {
             channels: [cfg.CHANNEL_NAME],
             connection: {reconnect: true},
             logger: {
-                info: console.log,
-                warn: console.warn,
+                info: Logger.log,
+                warn: Logger.warn,
                 error: (msg) => {
                     if (typeof msg === 'string' && msg.includes('No response from Twitch')) return;
-                    console.error(msg);
+                    Logger.error(msg);
                 }
             }
         });
@@ -68,7 +69,7 @@ async function startBot() {
         await tmiClient.connect();
 
         tmiClient.on('connected', (address, port) => {
-            console.log(`[Bot] Chat connected (${cfg.BOT_NAME}) on ${address}:${port}`);
+            Logger.log(`[Bot] Chat connected (${cfg.BOT_NAME}) on ${address}:${port}`);
         });
 
         startShieldSystem(tmiClient, cfg);
@@ -78,9 +79,9 @@ async function startBot() {
 
         try {
             await setRewardPaused(cfg, cfg.MR_REDEEM_ID, true);
-            console.log('[Bot] Media request reward paused on startup (matches default-closed state)');
+            Logger.log('[Bot] Media request reward paused on startup (matches default-closed state)');
         } catch (err) {
-            console.error('[Bot] Failed to pause media request reward on startup:', err.message);
+            Logger.error(`[Bot] Failed to pause media request reward on startup: ${err.message}`);
         }
 
         startAdSchedulePoller(tmiClient, cfg);
@@ -88,77 +89,77 @@ async function startBot() {
         setupChatCommands(tmiClient, cfg);
         startARGElements(tmiClient, cfg);
 
-        console.log('[Bot] All modules running');
+        Logger.log('[Bot] All modules running');
     } catch (err) {
-        console.error('[Bot] Failed to start:', err);
+        Logger.error(`[Bot] Failed to start: ${err}`);
         isRunning = false;
     }
 }
 
 async function stopBot() {
     if (!isRunning) {
-        console.log('[Bot] Already stopped, skipping teardown');
+        Logger.log('[Bot] Already stopped, skipping teardown');
         return;
     }
     isRunning = false;
-    console.log('[Bot] Stopping...');
+    Logger.log('[Bot] Stopping...');
 
     try {
         stopShieldSystem();
     } catch (e) {
-        console.error('[Bot] stopShieldSystem error:', e);
+        Logger.error(`[Bot] stopShieldSystem error: ${e}`);
     }
     try {
         stopEventSub();
     } catch (e) {
-        console.error('[Bot] stopEventSub error:', e);
+        Logger.error(`[Bot] stopEventSub error: ${e}`);
     }
     try {
         const {stopExpirySweep} = require('./modules/media_requests/videoRedeemHandler');
         stopExpirySweep();
     } catch (e) {
-        console.error('[Bot] stopExpirySweep error:', e);
+        Logger.error(`[Bot] stopExpirySweep error: ${e}`);
     }
     try {
         const playbackManager = require('./modules/media_requests/playbackManager');
         await playbackManager.forceStop();
     } catch (e) {
-        console.error('[Bot] playbackManager.forceStop error:', e);
+        Logger.error(`[Bot] playbackManager.forceStop error: ${e}`);
     }
     try {
         stopAdSchedulePoller();
     } catch (e) {
-        console.error('[Bot] stopAdPoller error:', e);
+        Logger.error(`[Bot] stopAdPoller error: ${e}`);
     }
     try {
         stopTimers();
     } catch (e) {
-        console.error('[Bot] stopTimers error:', e);
+        Logger.error(`[Bot] stopTimers error: ${e}`);
     }
     try {
         stopSSRPolling();
     } catch (e) {
-        console.error('[Bot] stopSSRPolling error:', e);
+        Logger.error(`[Bot] stopSSRPolling error: ${e}`);
     }
     try {
         sysResetSession();
     } catch (e) {
-        console.error('[Bot] sysResetSession error:', e);
+        Logger.error(`[Bot] sysResetSession error: ${e}`);
     }
     try {
         clearCooldowns()
     } catch (e) {
-        console.error('[Bot] clearCooldowns error:', e);
+        Logger.error(`[Bot] clearCooldowns error: ${e}`);
     }
     try {
         clearLurkers();
     } catch (e) {
-        console.error('[Bot] clearLurkers error:', e);
+        Logger.error(`[Bot] clearLurkers error: ${e}`);
     }
     try {
         resetCommandState();
     } catch (e) {
-        console.error('[Bot] resetCommandState error:', e);
+        Logger.error(`[Bot] resetCommandState error: ${e}`);
     }
 
     resetListeners(); //clear stream-state listener arrays before next startBot()
@@ -173,13 +174,15 @@ async function stopBot() {
             tmiClient.removeAllListeners();
             await tmiClient.disconnect();
         } catch (e) {
-            console.error('[Bot] tmi disconnect error:', e);
+            Logger.error(`[Bot] tmi disconnect error: ${e}`);
         }
         tmiClient = null;
     }
 
-    console.log('[Bot] Stopped');
+    Logger.log('[Bot] Stopped');
 }
+
+Logger.init();
 
 startOBSWatcher({
     onOBSOnline: startBot,

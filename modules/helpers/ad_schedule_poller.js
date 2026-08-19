@@ -1,6 +1,7 @@
 // modules/ad_schedule_poller.js
 const axios = require('axios');
 const {withTokenRetry} = require('../../auth');
+const {Logger} = require('../../services');
 const {
     getIsOnline,
     onOnline,
@@ -31,7 +32,7 @@ const LOG_SECONDS_CHANGE_THRESHOLD = 30;
 // ── API Call ──────────────────────────────────────────────────────────────────
 
 async function getAdSchedule(config) {
-    console.log('[AdPoller] → GET /helix/channels/ads');
+    Logger.log('[AdPoller] → GET /helix/channels/ads');
 
     const res = await axios.get(
         'https://api.twitch.tv/helix/channels/ads',
@@ -44,7 +45,7 @@ async function getAdSchedule(config) {
         }
     );
 
-    console.log('[AdPoller] ← raw response:', JSON.stringify(res.data?.data?.[0] ?? null));
+    Logger.log(`[AdPoller] ← raw response: ${JSON.stringify(res.data?.data?.[0] ?? null)}`);
 
     return res.data?.data?.[0] ?? null;
 }
@@ -53,7 +54,7 @@ async function getAdSchedule(config) {
 
 async function doPoll(client, config) {
     pollCount++;
-    console.log(`[AdPoller] ── Poll #${pollCount} starting (prev interval was ${currentPollMs / 1000}s) ──`);
+    Logger.log(`[AdPoller] ── Poll #${pollCount} starting (prev interval was ${currentPollMs / 1000}s) ──`);
 
     try {
         const adData = await withTokenRetry(() => getAdSchedule(config));
@@ -65,19 +66,19 @@ async function doPoll(client, config) {
         // the scheduled ad cannot fire yet, regardless of what next_ad_at says.
         const prerollFreeSeconds = adData?.preroll_free_time ?? 0;
 
-        console.log({
+        Logger.log(JSON.stringify({
             now: new Date().toISOString(),
             next_ad_at: adData?.next_ad_at ?? null,
             parsed: nextAdTime ? new Date(nextAdTime).toISOString() : null,
             prerollFreeSeconds
-        });
+        }));
 
         // ── No real ad scheduled yet ───────────────────────────────────────
         if (!nextAdTime || nextAdTime < MIN_VALID_TIMESTAMP_MS) {
-            console.log('[AdPoller] No scheduled ad (placeholder or missing timestamp) — staying on slow tier');
+            Logger.log('[AdPoller] No scheduled ad (placeholder or missing timestamp) — staying on slow tier');
             currentPollMs = 15_000;
             lastLoggedSecondsUntil = null;
-            console.log(`[AdPoller] ── Poll #${pollCount} done. Next poll in ${currentPollMs / 1000}s ──`);
+            Logger.log(`[AdPoller] ── Poll #${pollCount} done. Next poll in ${currentPollMs / 1000}s ──`);
             return;
         }
 
@@ -85,9 +86,9 @@ async function doPoll(client, config) {
         // Ad is scheduled but can't fire yet — don't warn, but do poll fast
         // so we catch the transition when preroll_free_time reaches 0.
         if (prerollFreeSeconds > 0) {
-            console.log(`[AdPoller] Ad scheduled but blocked by preroll_free_time=${prerollFreeSeconds}s — holding fast poll, no warning`);
+            Logger.log(`[AdPoller] Ad scheduled but blocked by preroll_free_time=${prerollFreeSeconds}s — holding fast poll, no warning`);
             currentPollMs = 2_000;
-            console.log(`[AdPoller] ── Poll #${pollCount} done. Next poll in ${currentPollMs / 1000}s ──`);
+            Logger.log(`[AdPoller] ── Poll #${pollCount} done. Next poll in ${currentPollMs / 1000}s ──`);
             return;
         }
 
@@ -101,7 +102,7 @@ async function doPoll(client, config) {
             currentPollMs = 2_000;  // valid upcoming ad — poll fast
         }
         if (previousTier !== currentPollMs) {
-            console.log(`[AdPoller] Poll tier changed: ${previousTier / 1000}s → ${currentPollMs / 1000}s`);
+            Logger.log(`[AdPoller] Poll tier changed: ${previousTier / 1000}s → ${currentPollMs / 1000}s`);
         }
 
         // ── Throttled countdown log ────────────────────────────────────────
@@ -109,7 +110,7 @@ async function doPoll(client, config) {
             Math.abs(lastLoggedSecondsUntil - secondsUntil) >= LOG_SECONDS_CHANGE_THRESHOLD;
 
         if (secondsChanged) {
-            console.log(`[AdPoller] Next ad in ${secondsUntil}s (polling every ${currentPollMs / 1000}s)`);
+            Logger.log(`[AdPoller] Next ad in ${secondsUntil}s (polling every ${currentPollMs / 1000}s)`);
             lastLoggedSecondsUntil = secondsUntil;
         }
 
@@ -125,7 +126,7 @@ async function doPoll(client, config) {
 
         previousSecondsUntil = secondsUntil;
 
-        console.log(
+        Logger.log(
             `[AdPoller] Warning check: inWarnWindow=${inWarnWindow} ` +
             `(threshold=${WARN_SECONDS_BEFORE}s), alreadyWarnedThisAd=${alreadyWarnedThisAd}, ` +
             `warnedAdAt=${warnedAdAt ?? 'null'}`
@@ -137,40 +138,40 @@ async function doPoll(client, config) {
             secondsUntil > 0
         ) {
             warnedAdAt = nextAdTime;
-            console.log(`[AdPoller] >>> FIRING warning (${secondsUntil}s out)`);
+            Logger.log(`[AdPoller] >>> FIRING warning (${secondsUntil}s out)`);
 
             await client.say(
                 `#${config.CHANNEL_NAME}`,
                 `⚠️ Bitrot interference nearing the Glosso-Sphere in ~${secondsUntil}s! Finish your messages and stay connected 📡`
             );
 
-            console.log('[AdPoller] Warning sent');
+            Logger.log('[AdPoller] Warning sent');
         }
 
         // ── Reset after ad passes ──────────────────────────────────────────
         if (secondsUntil <= 0 && warnedAdAt !== null) {
-            console.log(`[AdPoller] Ad has passed — resetting warnedAdAt`);
+            Logger.log(`[AdPoller] Ad has passed — resetting warnedAdAt`);
             warnedAdAt = null;
             previousSecondsUntil = null;
             lastLoggedSecondsUntil = null;
         }
 
-        console.log(`[AdPoller] ── Poll #${pollCount} done. Next poll in ${currentPollMs / 1000}s ──`);
+        Logger.log(`[AdPoller] ── Poll #${pollCount} done. Next poll in ${currentPollMs / 1000}s ──`);
 
     } catch (err) {
-        console.error('[AdPoller] Failed:', err.response?.data || err.message || err);
-        console.log(`[AdPoller] ── Poll #${pollCount} done (errored). Next poll in ${currentPollMs / 1000}s ──`);
+        Logger.error(`[AdPoller] Failed: ${err.response?.data || err.message || err}`);
+        Logger.log(`[AdPoller] ── Poll #${pollCount} done (errored). Next poll in ${currentPollMs / 1000}s ──`);
     }
 }
 
 // ── Adaptive Scheduler ────────────────────────────────────────────────────────
 
 function scheduleNextPoll(client, config) {
-    console.log(`[AdPoller] Scheduling next poll in ${currentPollMs / 1000}s`);
+    Logger.log(`[AdPoller] Scheduling next poll in ${currentPollMs / 1000}s`);
 
     adaptiveInterval = setTimeout(async () => {
         if (!getIsOnline()) {
-            console.log('[AdPoller] Stream is offline at scheduled poll time — skipping and NOT rescheduling. Poller idle until next onOnline().');
+            Logger.log('[AdPoller] Stream is offline at scheduled poll time — skipping and NOT rescheduling. Poller idle until next onOnline().');
             return;
         }
 
@@ -183,24 +184,24 @@ function scheduleNextPoll(client, config) {
 
 function beginPolling(client, config) {
     if (adaptiveInterval || startupTimeout) {
-        console.log('[AdPoller] beginPolling called but already running or in startup window — ignoring');
+        Logger.log('[AdPoller] beginPolling called but already running or in startup window — ignoring');
         return;
     }
 
-    console.log('[AdPoller] Waiting 60s before activation...');
+    Logger.log('[AdPoller] Waiting 60s before activation...');
 
     startupTimeout = setTimeout(() => {
         startupTimeout = null;
 
         if (!getIsOnline()) {
-            console.log('[AdPoller] Stream went offline before startup — aborting');
+            Logger.log('[AdPoller] Stream went offline before startup — aborting');
             return;
         }
 
         pollCount = 0;
         currentPollMs = 15_000;
         lastLoggedSecondsUntil = null;
-        console.log('[AdPoller] Started');
+        Logger.log('[AdPoller] Started');
         scheduleNextPoll(client, config);
     }, 60_000);
 }
@@ -209,7 +210,7 @@ function stopPolling() {
     if (startupTimeout) {
         clearTimeout(startupTimeout);
         startupTimeout = null;
-        console.log('[AdPoller] Cancelled startup window');
+        Logger.log('[AdPoller] Cancelled startup window');
     }
 
     if (adaptiveInterval) {
@@ -217,33 +218,33 @@ function stopPolling() {
         adaptiveInterval = null;
     }
 
-    console.log(`[AdPoller] Stopping. Final state: pollCount=${pollCount}, warnedAdAt=${warnedAdAt ?? 'null'}`);
+    Logger.log(`[AdPoller] Stopping. Final state: pollCount=${pollCount}, warnedAdAt=${warnedAdAt ?? 'null'}`);
 
     warnedAdAt = null;
     currentPollMs = 15_000;
     lastLoggedSecondsUntil = null;
     previousSecondsUntil = null;
 
-    console.log('[AdPoller] Stopped');
+    Logger.log('[AdPoller] Stopped');
 }
 
 // ── Entry Point ───────────────────────────────────────────────────────────────
 
 function startAdSchedulePoller(client, config) {
     onOnline(() => {
-        console.log('[AdPoller] onOnline fired — calling beginPolling');
+        Logger.log('[AdPoller] onOnline fired — calling beginPolling');
         beginPolling(client, config);
     });
     onOffline(() => {
-        console.log('[AdPoller] onOffline fired — calling stopPolling');
+        Logger.log('[AdPoller] onOffline fired — calling stopPolling');
         stopPolling();
     });
 
     if (getIsOnline()) {
-        console.log('[AdPoller] Already online at startAdSchedulePoller — beginning immediately');
+        Logger.log('[AdPoller] Already online at startAdSchedulePoller — beginning immediately');
         beginPolling(client, config);
     } else {
-        console.log('[AdPoller] Waiting for stream to go online...');
+        Logger.log('[AdPoller] Waiting for stream to go online...');
     }
 }
 

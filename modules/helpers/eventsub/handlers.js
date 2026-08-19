@@ -12,6 +12,7 @@
 
 const axios = require('axios');
 const {registerSubscription} = require('./core');
+const {Logger} = require('../../services');
 const {eventShoutout} = require('../../functions/shoutout')
 const {getIsOnline} = require('../stream-state');
 
@@ -27,11 +28,11 @@ registerSubscription(
     }),
     (event, client, config) => {
         const follower = event.user_name;
-        console.log(`EventHandlers: ${follower} followed`);
+        Logger.log(`EventHandlers: ${follower} followed`);
         client.say(
             `#${config.CHANNEL_NAME}`,
             `${follower} has peered into the Glosso-Sphere and decided to stay!🫧`
-        ).catch(err => console.error('EventHandlers: Follow message failed:', err));
+        ).catch(err => Logger.error(`EventHandlers: Follow message failed: ${err}`));
     }
 );
 
@@ -59,7 +60,7 @@ registerSubscription(
         const isAutomatic = event.is_automatic;
         const requester = event.requester_user_name;
 
-        console.log(`EventHandlers: Ad break started — ${duration}s, automatic=${isAutomatic}`);
+        Logger.log(`EventHandlers: Ad break started — ${duration}s, automatic=${isAutomatic}`);
 
         const who = isAutomatic
             ? 'Automatic ad break'
@@ -68,7 +69,7 @@ registerSubscription(
         client.say(
             `#${config.CHANNEL_NAME}`,
             `📡 Bitrot interference detected — ${who} for ${duration} seconds. Hold steady, the Glosso-Sphere will stabilize shortly 🫧`
-        ).catch(err => console.error('EventHandlers: Ad break message failed:', err));
+        ).catch(err => Logger.error(`EventHandlers: Ad break message failed: ${err}`));
 
         // Cancel any previous timer just in case.
         if (adEndTimer) {
@@ -87,7 +88,7 @@ registerSubscription(
             client.say(
                 `#${config.CHANNEL_NAME}`,
                 `🫧 Bitrot interference has cleared! The Glosso-Sphere has stabilized — welcome back, everyone! ✨`
-            ).catch(err => console.error('EventHandlers: Welcome back message failed:', err));
+            ).catch(err => Logger.error(`EventHandlers: Welcome back message failed: ${err}`));
 
         }, (duration + 1) * 1000); // 1 second buffer
     }

@@ -7,6 +7,7 @@ node_modules/
 # Runtime data (bot state, viewer data, tokens — all recreated on first run)
 /data/
 /ARG/data/
+/logs/
 
 # IDE
 .idea/

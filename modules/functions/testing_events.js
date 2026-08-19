@@ -1,15 +1,16 @@
 // modules/testing_events.js
+const {Logger} = require('../../services');
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function dispatch(client, config, fakeEvent, label) {
-    console.log(`[SIMULATION] Triggering: ${label}`);
-    console.log(`[SIMULATION] Payload:`, JSON.stringify(fakeEvent, null, 2));
+    Logger.log(`[SIMULATION] Triggering: ${label}`);
+    Logger.log(`[SIMULATION] Payload: ${JSON.stringify(fakeEvent, null, 2)}`);
 
     if (client._eventSubHandler) {
         client._eventSubHandler(fakeEvent);
     } else {
-        console.warn('[SIMULATION] No _eventSubHandler found — event not dispatched');
+        Logger.warn('[SIMULATION] No _eventSubHandler found — event not dispatched');
     }
 
     return fakeEvent;
@@ -71,7 +72,7 @@ function simulateAdBreak(client, config, durationSeconds = 30, isAutomatic = tru
 async function simulateAll(client, config, delayMs = 1500) {
     const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
-    console.log('[SIMULATION] ▶ Running full event suite...\n');
+    Logger.log('[SIMULATION] ▶ Running full event suite...\n');
 
     simulateFollow(client, config, 'FollowSimUser');
     await delay(delayMs);
@@ -81,7 +82,7 @@ async function simulateAll(client, config, delayMs = 1500) {
     await delay(delayMs);
     simulateAdBreak(client, config, 60, false, 'ModSimUser');
 
-    console.log('\n[SIMULATION] ✓ Full event suite complete');
+    Logger.log('\n[SIMULATION] ✓ Full event suite complete');
 }
 
 module.exports = {

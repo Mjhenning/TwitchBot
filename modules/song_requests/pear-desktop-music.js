@@ -2,6 +2,7 @@
 const {config} = require('../../config');
 const {initPearToken} = require('../../auth');
 const axios = require('axios');
+const {Logger} = require('../../services');
 const {pushToQueue, shiftQueue, getQueue, getQueueLength} = require('./ssr-queue');
 
 let ssrPollInterval = null;
@@ -15,12 +16,12 @@ async function apiGet(endpoint) {
     if (!config.PEAR_ACCESS_TOKEN) {
         await initPearToken();
         if (!config.PEAR_ACCESS_TOKEN) {
-            console.error('[ERROR] No Pear access token available');
+            Logger.error('[ERROR] No Pear access token available');
             return null;
         }
     }
     const url = `${getBaseUrl()}${endpoint}`;
-    if (config.DEBUG) console.log('[DEBUG] Requesting Pear API:', url);
+    if (config.DEBUG) Logger.log(`[DEBUG] Requesting Pear API: ${url}`);
     try {
         const res = await axios.get(url, {
             headers: {'Authorization': `Bearer ${config.PEAR_ACCESS_TOKEN}`}
@@ -30,7 +31,7 @@ async function apiGet(endpoint) {
         if (err.response?.status === 401) {
             config.PEAR_ACCESS_TOKEN = null;  // ← force re-auth on next call
         }
-        console.error(`[ERROR] API GET ${endpoint} failed:`, err.response?.status, err.response?.data || err.message);
+        Logger.error(`[ERROR] API GET ${endpoint} failed: ${err.response?.status} ${err.response?.data || err.message}`);
         return null;
     }
 }
@@ -39,12 +40,12 @@ async function apiPost(endpoint, body = {}) {
     if (!config.PEAR_ACCESS_TOKEN) {
         await initPearToken();
         if (!config.PEAR_ACCESS_TOKEN) {
-            console.error('[ERROR] No Pear access token available');
+            Logger.error('[ERROR] No Pear access token available');
             return null;
         }
     }
     const url = `${getBaseUrl()}${endpoint}`;
-    if (config.DEBUG) console.log('[DEBUG] Posting Pear API:', url, body);
+    if (config.DEBUG) Logger.log(`[DEBUG] Posting Pear API: ${url} ${body}`);
     try {
         const res = await axios.post(url, body, {
             headers: {'Authorization': `Bearer ${config.PEAR_ACCESS_TOKEN}`}
@@ -54,7 +55,7 @@ async function apiPost(endpoint, body = {}) {
         if (err.response?.status === 401) {
             config.PEAR_ACCESS_TOKEN = null;  // ← force re-auth on next call
         }
-        console.error(`[ERROR] API POST ${endpoint} failed:`, err.response?.status, err.response?.data || err.message);
+        Logger.error(`[ERROR] API POST ${endpoint} failed: ${err.response?.status} ${err.response?.data || err.message}`);
         return null;
     }
 }
@@ -63,12 +64,12 @@ async function apiPatch(endpoint, body = {}) {
     if (!config.PEAR_ACCESS_TOKEN) {
         await initPearToken();
         if (!config.PEAR_ACCESS_TOKEN) {
-            console.error('[ERROR] No Pear access token available');
+            Logger.error('[ERROR] No Pear access token available');
             return null;
         }
     }
     const url = `${getBaseUrl()}${endpoint}`;
-    if (config.DEBUG) console.log('[DEBUG] Patching Pear API:', url, body);
+    if (config.DEBUG) Logger.log(`[DEBUG] Patching Pear API: ${url} ${body}`);
     try {
         const res = await axios.patch(url, body, {
             headers: {'Authorization': `Bearer ${config.PEAR_ACCESS_TOKEN}`}
@@ -78,7 +79,7 @@ async function apiPatch(endpoint, body = {}) {
         if (err.response?.status === 401) {
             config.PEAR_ACCESS_TOKEN = null;  // ← force re-auth on next call
         }
-        console.error(`[ERROR] API PATCH ${endpoint} failed:`, err.response?.status, err.response?.data || err.message);
+        Logger.error(`[ERROR] API PATCH ${endpoint} failed: ${err.response?.status} ${err.response?.data || err.message}`);
         return null;
     }
 }
@@ -119,7 +120,7 @@ async function getSongByVideoId(videoId) {
             title: item.snippet.title,
         };
     } catch (err) {
-        console.error('[ERROR] YouTube video lookup failed:', err.message);
+        Logger.error(`[ERROR] YouTube video lookup failed: ${err.message}`);
         return null;
     }
 }
@@ -141,7 +142,7 @@ async function searchSong(query) {
 
         return await getSongByVideoId(item.id.videoId);
     } catch (err) {
-        console.error('[ERROR] YouTube search failed:', err.message);
+        Logger.error(`[ERROR] YouTube search failed: ${err.message}`);
         return null;
     }
 }
@@ -164,19 +165,19 @@ async function waitIfSongEnding() {
     const remaining = data.songDuration - data.elapsedSeconds;
     if (remaining > 10) return;
 
-    console.log(`[SSR] Song ending in ${remaining}s, waiting for next song...`);
+    Logger.log(`[SSR] Song ending in ${remaining}s, waiting for next song...`);
 
     const currentVideoId = data.videoId;
     for (let i = 0; i < 20; i++) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         const next = await apiGet('/song');
         if (next?.videoId !== currentVideoId) {
-            console.log(`[SSR] Song changed, proceeding...`);
+            Logger.log(`[SSR] Song changed, proceeding...`);
 
             // sync SSR queue before proceeding
             const ssrQueue = getQueue();
             if (ssrQueue.length > 0 && ssrQueue[0].videoId === currentVideoId) {
-                console.log(`[SSR] Shifting completed song from SSR queue before insert`);
+                Logger.log(`[SSR] Shifting completed song from SSR queue before insert`);
                 shiftQueue();
             }
 
@@ -210,14 +211,14 @@ async function addSongToSSRQueue(videoId, title, requester) {
     const songIndex = currentIndex + 1;
     const targetIndex = currentIndex + arrayPosition + 1;
 
-    console.log(`[SSR DEBUG] currentIndex: ${currentIndex}, songIndex: ${songIndex}, targetIndex: ${targetIndex}, arrayPosition: ${arrayPosition}`);
+    Logger.log(`[SSR DEBUG] currentIndex: ${currentIndex}, songIndex: ${songIndex}, targetIndex: ${targetIndex}, arrayPosition: ${arrayPosition}`);
 
     // 5. only patch if it needs to move (i.e. more than one SSR song queued)
     if (songIndex !== targetIndex) {
         await apiPatch(`/queue/${songIndex}`, {toIndex: targetIndex});
     }
 
-    console.log(`[SSR] ${requester} queued "${title}" at position ${targetIndex}`);
+    Logger.log(`[SSR] ${requester} queued "${title}" at position ${targetIndex}`);
 }
 
 async function getQueueWithCurrent(limit = 5) {
@@ -288,7 +289,7 @@ function startSSRPolling(client, channel) {
             // check if the now-playing song is the head of our SSR queue
             if (currentVideoId === ssrQueue[0].videoId) {
                 const played = shiftQueue();
-                console.log(`[SSR] "${played.title}" by ${played.requester} is now playing, removed from SSR queue`);
+                Logger.log(`[SSR] "${played.title}" by ${played.requester} is now playing, removed from SSR queue`);
 
                 const next = getQueue();
                 if (next.length > 0) {
@@ -298,7 +299,7 @@ function startSSRPolling(client, channel) {
                 }
             }
         } catch (err) {
-            console.error('[ERROR] SSR polling failed:', err.message);
+            Logger.error(`[ERROR] SSR polling failed: ${err.message}`);
         }
     }, 5000);
 }
@@ -309,7 +310,7 @@ function stopSSRPolling() {
         ssrPollInterval = null;
     }
     lastPolledVideoId = null;
-    console.log('[SSR] Polling stopped');
+    Logger.log('[SSR] Polling stopped');
 }
 
 module.exports = {

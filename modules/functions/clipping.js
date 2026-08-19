@@ -1,4 +1,5 @@
 const axios = require('axios');
+const {Logger} = require('../../services');
 
 async function createClip(config) {
     try {
@@ -24,7 +25,7 @@ async function createClip(config) {
         return `https://clips.twitch.tv/${clipId}`;
 
     } catch (err) {
-        console.error('Clip error:', err.response?.data || err);
+        Logger.error(`Clip error: ${err.response?.data || err}`);
         return null;
     }
 }

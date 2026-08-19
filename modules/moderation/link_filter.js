@@ -3,6 +3,7 @@ const path = require("path");
 const axios = require("axios");
 const {config} = require("../../config");
 const {withTokenRetry, refreshBotToken} = require("../../auth");
+const {Logger} = require('../../services');
 
 function loadConfig() {
     return JSON.parse(fs.readFileSync(config.MOD_CONFIG_PATH, "utf8"));
@@ -109,14 +110,14 @@ async function block(client, channel, tags) {
             ),
             refreshBotToken
         );
-        console.log("[Link Filter] Message deleted successfully.");
+        Logger.log("[Link Filter] Message deleted successfully.");
     } catch (err) {
-        console.error("[Link Filter] Delete failed");
+        Logger.error("[Link Filter] Delete failed");
         if (err.response) {
-            console.error(err.response.status);
-            console.error(JSON.stringify(err.response.data, null, 2));
+            Logger.error(`${err.response.status}`);
+            Logger.error(`${JSON.stringify(err.response.data, null, 2)}`);
         } else {
-            console.error(err);
+            Logger.error(`${err}`);
         }
     }
     const now = Date.now();

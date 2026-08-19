@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const {config} = require('../../config');
+const {Logger} = require('../../services');
 const {getIsOnline, onOnline, onOffline} = require('./stream-state');
 const {discordCommand, getSsrEnabled} = require('../../commands/registry');
 
@@ -34,15 +35,15 @@ function scheduleCommand(entry, client, channel) {
 
     const startSequence = () => {
         const offset = randomBetween(parseTime(entry.offsetMin), parseTime(entry.offsetMax));
-        console.log(`[Timer] "${entry.id}" starting in ${Math.round(offset / 1000)}s`);
+        Logger.log(`[Timer] "${entry.id}" starting in ${Math.round(offset / 1000)}s`);
 
         const fire = async () => {
             if (entry.condition) {
                 const conditionFn = conditionMap[entry.condition];
                 if (conditionFn && !conditionFn()) {
-                    console.log(`[Timer] "${entry.id}" skipped — condition "${entry.condition}" is false`);
+                    Logger.log(`[Timer] "${entry.id}" skipped — condition "${entry.condition}" is false`);
                     const nextFire = parseTime(entry.interval);
-                    console.log(`[Timer] "${entry.id}" next fire in ${Math.round(nextFire / 1000)}s`);
+                    Logger.log(`[Timer] "${entry.id}" next fire in ${Math.round(nextFire / 1000)}s`);
                     activeTimeout = setTimeout(fire, nextFire);
                     return;
                 }
@@ -52,21 +53,21 @@ function scheduleCommand(entry, client, channel) {
                 if (entry.type === 'function') {
                     const fn = functionMap[entry.function];
                     if (!fn) {
-                        console.error(`[Timer] Unknown function: ${entry.function}`);
+                        Logger.error(`[Timer] Unknown function: ${entry.function}`);
                     } else {
-                        console.log(`[Timer] Firing function "${entry.function}"`);
+                        Logger.log(`[Timer] Firing function "${entry.function}"`);
                         await fn(client, channel);
                     }
                 } else if (entry.type === 'message') {
-                    console.log(`[Timer] Firing message "${entry.id}"`);
+                    Logger.log(`[Timer] Firing message "${entry.id}"`);
                     client.say(channel, entry.message);
                 }
             } catch (err) {
-                console.error(`[Timer] Error firing "${entry.id}":`, err.message);
+                Logger.error(`[Timer] Error firing "${entry.id}": ${err.message}`);
             }
 
             const nextFire = parseTime(entry.interval);
-            console.log(`[Timer] "${entry.id}" next fire in ${Math.round(nextFire / 1000)}s`);
+            Logger.log(`[Timer] "${entry.id}" next fire in ${Math.round(nextFire / 1000)}s`);
             activeTimeout = setTimeout(fire, nextFire);
         };
 
@@ -77,7 +78,7 @@ function scheduleCommand(entry, client, channel) {
         if (activeTimeout) {
             clearTimeout(activeTimeout);
             activeTimeout = null;
-            console.log(`[Timer] "${entry.id}" stopped`);
+            Logger.log(`[Timer] "${entry.id}" stopped`);
         }
     };
 
@@ -89,7 +90,7 @@ function scheduleCommand(entry, client, channel) {
     if (getIsOnline()) {
         startSequence();
     } else {
-        console.log(`[Timer] "${entry.id}" waiting for stream to go online...`);
+        Logger.log(`[Timer] "${entry.id}" waiting for stream to go online...`);
     }
 }
 
@@ -99,7 +100,7 @@ function startTimers(client, channel) {
     try {
         entries = JSON.parse(fs.readFileSync(config.TIMED_COMMANDS_FILE, 'utf8'));
     } catch (err) {
-        console.error('[Timer] Failed to load TimedCommands.json:', err.message);
+        Logger.error(`[Timer] Failed to load TimedCommands.json: ${err.message}`);
         return;
     }
 
@@ -109,13 +110,13 @@ function startTimers(client, channel) {
         scheduleCommand(entry, client, formattedChannel);
     }
 
-    console.log(`[Timer] ${entries.length} timed command(s) scheduled`);
+    Logger.log(`[Timer] ${entries.length} timed command(s) scheduled`);
 }
 
 function stopTimers() {
     activeStopFunctions.forEach(fn => fn());
     activeStopFunctions = [];
-    console.log('[Timer] All timers stopped');
+    Logger.log('[Timer] All timers stopped');
 }
 
 module.exports = {startTimers, stopTimers};

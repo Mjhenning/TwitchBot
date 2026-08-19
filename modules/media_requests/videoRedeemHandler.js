@@ -5,18 +5,19 @@ const {downloadVideo, deleteVideo} = require('./downloadService');
 const {updateRedemptionStatus, getRedemptionStatus} = require('../helpers/twitchRedemption');
 const {setPending, getPending, deletePending, getAllPending} = require('./pendingStore');
 const playbackManager = require('./playbackManager');
+const {Logger} = require('../../services');
 
 const MAX_PENDING_AGE_MS = 60 * 60 * 1000; // 1 hour
 
 const isExpired = (entry) => Date.now() - entry.createdAt > MAX_PENDING_AGE_MS;
 
 async function autoReject(config, rewardId, redemptionId, reason) {
-    console.warn(`[VideoRedeem] auto-rejecting ${redemptionId}: ${reason}`);
+    Logger.warn(`[VideoRedeem] auto-rejecting ${redemptionId}: ${reason}`);
     await updateRedemptionStatus(config, rewardId, redemptionId, 'CANCELED');
 }
 
 async function expireEntry(config, redemptionId, entry) {
-    console.warn(`[VideoRedeem] ${redemptionId} expired — auto-rejecting`);
+    Logger.warn(`[VideoRedeem] ${redemptionId} expired — auto-rejecting`);
     await deletePending(redemptionId);
     await autoReject(config, entry.rewardId, redemptionId, 'expired');
     await deleteVideo(redemptionId);
@@ -24,12 +25,12 @@ async function expireEntry(config, redemptionId, entry) {
 
 async function resolveEntry(config, redemptionId, entry, status) {
     if (status === 'fulfilled') {
-        console.log(`[VideoRedeem] ${redemptionId} approved — playing`);
+        Logger.log(`[VideoRedeem] ${redemptionId} approved — playing`);
         await playbackManager.play({
             redemptionId, filePath: entry.filePath, title: entry.metadata.title, userName: entry.userName,
         });
     } else if (status === 'canceled') {
-        console.log(`[VideoRedeem] ${redemptionId} rejected by mod — deleting file`);
+        Logger.log(`[VideoRedeem] ${redemptionId} rejected by mod — deleting file`);
         await deleteVideo(redemptionId);
     }
 }
@@ -57,12 +58,12 @@ async function onRedemptionAdd(event, client, config) {
     try {
         filePath = await downloadVideo(url, redemptionId);
     } catch (err) {
-        console.error(`[VideoRedeem] download failed for ${redemptionId}:`, err.message);
+        Logger.error(`[VideoRedeem] download failed for ${redemptionId}: ${err.message}`);
         return autoReject(config, reward.id, redemptionId, 'download_failed');
     }
 
     await setPending(redemptionId, {userName, filePath, metadata, rewardId: reward.id, createdAt: Date.now()});
-    console.log(`[VideoRedeem] ${redemptionId} ready — "${metadata.title}" awaiting mod decision`);
+    Logger.log(`[VideoRedeem] ${redemptionId} ready — "${metadata.title}" awaiting mod decision`);
 
     client.say(
         config.CHANNEL_NAME,
@@ -96,7 +97,7 @@ registerSubscription(
 async function reconcilePendingOnStartup(config) {
     const pending = await getAllPending();
     if (pending.length === 0) return;
-    console.log(`[VideoRedeem] reconciling ${pending.length} pending redemption(s) after restart`);
+    Logger.log(`[VideoRedeem] reconciling ${pending.length} pending redemption(s) after restart`);
 
     for (const {redemptionId, ...entry} of pending) {
         try {
@@ -107,14 +108,14 @@ async function reconcilePendingOnStartup(config) {
 
             const status = await getRedemptionStatus(config, entry.rewardId, redemptionId);
             if (status === 'unfulfilled') {
-                console.log(`[VideoRedeem] ${redemptionId} still pending`);
+                Logger.log(`[VideoRedeem] ${redemptionId} still pending`);
                 continue;
             }
 
             await deletePending(redemptionId);
             await resolveEntry(config, redemptionId, entry, status);
         } catch (err) {
-            console.error(`[VideoRedeem] reconcile failed for ${redemptionId}:`, err.message);
+            Logger.error(`[VideoRedeem] reconcile failed for ${redemptionId}: ${err.message}`);
         }
     }
 }
@@ -130,7 +131,7 @@ function startExpirySweep(config, intervalMs = 5 * 60 * 1000) {
                 if (isExpired(entry)) await expireEntry(config, redemptionId, entry);
             }
         } catch (err) {
-            console.error('[VideoRedeem] expiry sweep failed:', err.message);
+            Logger.error(`[VideoRedeem] expiry sweep failed: ${err.message}`);
         }
     }, intervalMs);
 }

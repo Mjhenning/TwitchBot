@@ -1,6 +1,7 @@
 // modules/twitch_events.js
 const WebSocket = require('ws');
 const axios = require('axios');
+const {Logger} = require('../../services');
 
 let _client = null;
 let sessionId = null;
@@ -26,7 +27,7 @@ function handleEventSubMessage(msg, client, config) {
     switch (msg.metadata?.message_type) {
         case 'session_welcome':
             sessionId = msg.payload.session.id;
-            console.log('TwitchEvents: Session ready, subscribing to all registered events...');
+            Logger.log('TwitchEvents: Session ready, subscribing to all registered events...');
             subscribeAll(client, config);
             break;
 
@@ -36,24 +37,24 @@ function handleEventSubMessage(msg, client, config) {
             const entry = subscriptionRegistry.find(s => s.type === subType);
 
             if (entry) {
-                console.log(`TwitchEvents: Notification received for "${subType}"`);
+                Logger.log(`TwitchEvents: Notification received for "${subType}"`);
                 try {
                     entry.handler(event, client, config);
                 } catch (err) {
-                    console.error(`TwitchEvents: Handler error for "${subType}":`, err);
+                    Logger.error(`TwitchEvents: Handler error for "${subType}": ${err}`);
                 }
             } else {
-                console.warn(`TwitchEvents: No handler registered for "${subType}"`);
+                Logger.warn(`TwitchEvents: No handler registered for "${subType}"`);
             }
             break;
         }
 
         case 'session_keepalive':
-            console.log('TwitchEvents: EventSub keepalive');
+            Logger.log('TwitchEvents: EventSub keepalive');
             break;
 
         case 'session_reconnect':
-            console.log('TwitchEvents: EventSub requested reconnect');
+            Logger.log('TwitchEvents: EventSub requested reconnect');
             if (!stopped) {          // ← only reconnect if we weren't manually stopped
                 client._ws.close();
                 startEventSub(client, config);
@@ -61,24 +62,23 @@ function handleEventSubMessage(msg, client, config) {
             break;
 
         default:
-            console.log(`TwitchEvents: Unhandled message type "${msg.metadata?.message_type}"`);
+            Logger.log(`TwitchEvents: Unhandled message type "${msg.metadata?.message_type}"`);
     }
 }
 
 async function subscribeAll(client, config) {
     if (!sessionId) {
-        console.error('TwitchEvents: No session ID — cannot subscribe');
+        Logger.error('TwitchEvents: No session ID — cannot subscribe');
         return;
     }
 
-    console.log(`TwitchEvents: Subscribing to ${subscriptionRegistry.length} EventSub subscriptions...`);
+    Logger.log(`TwitchEvents: Subscribing to ${subscriptionRegistry.length} EventSub subscriptions...`);
 
     for (const sub of subscriptionRegistry) {
         try {
             const conditionObj = sub.condition(config);
-            console.log(
-                `TwitchEvents: Creating subscription for "${sub.type}" (version ${sub.version}) with condition:`,
-                JSON.stringify(conditionObj)
+            Logger.log(
+                `TwitchEvents: Creating subscription for "${sub.type}" (version ${sub.version}) with condition: ${JSON.stringify(conditionObj)}`
             );
 
             const response = await axios.post(
@@ -101,16 +101,15 @@ async function subscribeAll(client, config) {
                 }
             );
 
-            console.log(`✓ TwitchEvents: Successfully subscribed to "${sub.type}"`);
+            Logger.log(`✓ TwitchEvents: Successfully subscribed to "${sub.type}"`);
         } catch (err) {
-            console.error(
-                `✗ TwitchEvents: Failed to subscribe to "${sub.type}":`,
-                err.response?.data || err.message
+            Logger.error(
+                `✗ TwitchEvents: Failed to subscribe to "${sub.type}": ${err.response?.data || err.message}`
             );
         }
     }
 
-    console.log('TwitchEvents: EventSub subscription process completed');
+    Logger.log('TwitchEvents: EventSub subscription process completed');
 }
 
 async function startEventSub(client, config) {
@@ -120,10 +119,10 @@ async function startEventSub(client, config) {
     client._ws = ws;
     client._eventSubHandler = (msg) => handleEventSubMessage(msg, client, config);
 
-    ws.on('open', () => console.log('TwitchEvents: EventSub connected'));
+    ws.on('open', () => Logger.log('TwitchEvents: EventSub connected'));
     ws.on('message', (data) => client._eventSubHandler(JSON.parse(data)));
-    ws.on('close', () => console.log('TwitchEvents: EventSub WebSocket closed'));
-    ws.on('error', (err) => console.error('TwitchEvents: EventSub WebSocket error:', err));
+    ws.on('close', () => Logger.log('TwitchEvents: EventSub WebSocket closed'));
+    ws.on('error', (err) => Logger.error(`TwitchEvents: EventSub WebSocket error: ${err}`));
 }
 
 function stopEventSub() {
@@ -136,7 +135,7 @@ function stopEventSub() {
     }
 
     _client = null;
-    console.log('TwitchEvents: Stopped');
+    Logger.log('TwitchEvents: Stopped');
 }
 
 module.exports = {startEventSub, stopEventSub, handleEventSubMessage, registerSubscription};

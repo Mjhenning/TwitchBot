@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const {config} = require('../../config');
+const {Logger} = require('../../services');
 
 // ---------------- CONFIG ----------------
 const glosselsGain = [
@@ -36,7 +37,7 @@ function loadCurrencySystem() {
         rebuildLeaderboard();
 
     } catch (err) {
-        console.warn('[Glossels] Creating new database file:', err.message);
+        Logger.warn(`[Glossels] Creating new database file: ${err.message}`);
         users = [];
         userMap = new Map();
         leaderboard = [];
@@ -49,7 +50,7 @@ function saveCurrencySystem() {
     try {
         fs.writeFileSync(config.CURRENCY_FILE, JSON.stringify(users, null, 2), 'utf8');
     } catch (err) {
-        console.error('[Glossels] Failed to save glossels_db.json:', err.message);
+        Logger.error(`[Glossels] Failed to save glossels_db.json: ${err.message}`);
     }
 }
 

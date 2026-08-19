@@ -1,5 +1,6 @@
 const OBSWebSocket = require('obs-websocket-js').default;
 const {config} = require('../../config');
+const {Logger} = require('../../services');
 
 const obs = new OBSWebSocket();
 let connected = false;
@@ -13,7 +14,7 @@ async function connectObs() {
     connected = true;
     obs.on('ConnectionClosed', () => {
         connected = false;
-        console.warn('[OBS] connection closed');
+        Logger.warn('[OBS] connection closed');
     });
 
     ({sceneItemId} = await obs.call('GetSceneItemId', {

@@ -3,6 +3,7 @@
 const axios = require('axios');
 
 const {config} = require('../config');
+const {Logger} = require('../services');
 
 
 const {createClip} = require('../modules/functions/clipping');
@@ -61,8 +62,8 @@ function getMrEnabled() {
 
 async function handleModeration(client, channel, tags, message) {
 
-    console.log("SSR Enabled:", getSsrEnabled());
-    console.log("MR Enabled:", getMrEnabled());
+    Logger.log(`SSR Enabled: ${getSsrEnabled()}`);
+    Logger.log(`MR Enabled: ${getMrEnabled()}`);
 
     return handleLinkBlocker(
         client,
@@ -282,7 +283,7 @@ async function followAgeCommand(client, channel, userId, senderName, msg) {
             client.say(channel, `${targetName} has been following for ${followageStr}!`);
         }
     } catch (err) {
-        console.error(err);
+        Logger.error(err);
         client.say(channel, `Sorry ${senderName}, I couldn't fetch the followage.`);
     }
 }
@@ -363,7 +364,7 @@ async function qCommand(client, channel) {
         const queueText = await getQueueWithCurrent();
         client.say(channel, queueText);
     } catch (err) {
-        console.error('[ERROR] Failed to fetch queue:', err.message);
+        Logger.error(`[ERROR] Failed to fetch queue: ${err.message}`);
         client.say(channel, 'Failed to fetch queue.');
     }
 }
@@ -400,7 +401,7 @@ async function openMrCommand(client, channel, config) {
     try {
         await setRewardPaused(config, config.MR_REDEEM_ID, false);
     } catch (err) {
-        console.error('[MediaRequest] failed to unpause reward:', err.message);
+        Logger.error(`[MediaRequest] failed to unpause reward: ${err.message}`);
     }
     client.say(channel, `✅ Media requests are now open! Redeem to have something played on stream 🎬`);
 }
@@ -410,7 +411,7 @@ async function closeMrCommand(client, channel, config) {
     try {
         await setRewardPaused(config, config.MR_REDEEM_ID, true);
     } catch (err) {
-        console.error('[MediaRequest] failed to pause reward:', err.message);
+        Logger.error(`[MediaRequest] failed to pause reward: ${err.message}`);
     }
     client.say(channel, `🛑 Media requests are now closed ✧`);
 }

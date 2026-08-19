@@ -1,6 +1,7 @@
 // modules/shield_system.js
 const WebSocket = require('ws');
 const axios = require('axios');
+const {Logger} = require('../../services');
 const {setOnline, setOffline} = require('./stream-state');
 
 let shieldWs = null;  // ← save handle
@@ -11,7 +12,7 @@ function startShieldSystem(client, config) {
     let sessionId = null;
 
     ws.on('open', async () => {
-        console.log('[ShieldDaemon] Connected');
+        Logger.log('[ShieldDaemon] Connected');
         await syncShieldState(config);
     });
 
@@ -21,7 +22,7 @@ function startShieldSystem(client, config) {
         switch (msg.metadata?.message_type) {
             case 'session_welcome':
                 sessionId = msg.payload.session.id;
-                console.log('[ShieldDaemon] Session ready');
+                Logger.log('[ShieldDaemon] Session ready');
                 await subscribe(sessionId, config);
                 break;
 
@@ -29,14 +30,14 @@ function startShieldSystem(client, config) {
                 const type = msg.payload?.subscription?.type;
 
                 if (type === 'stream.online') {
-                    console.log('[ShieldDaemon] Stream online detected');
+                    Logger.log('[ShieldDaemon] Stream online detected');
                     setOnline();
                     await disableShieldMode(config);
                     client.say(`#${config.CHANNEL_NAME}`, `🟢 Stream detected... lifting protection ✧`);
                 }
 
                 if (type === 'stream.offline') {
-                    console.log('[ShieldDaemon] Stream offline detected');
+                    Logger.log('[ShieldDaemon] Stream offline detected');
                     setOffline();
                     await enableShieldMode(config);
                     const messages = [
@@ -50,11 +51,11 @@ function startShieldSystem(client, config) {
                 break;
 
             case 'session_keepalive':
-                console.log('[ShieldDaemon] Keepalive');
+                Logger.log('[ShieldDaemon] Keepalive');
                 break;
 
             case 'session_reconnect':
-                console.log('[ShieldDaemon] Reconnecting...');
+                Logger.log('[ShieldDaemon] Reconnecting...');
                 ws.removeAllListeners();
                 ws.close();
                 startShieldSystem(client, config);
@@ -62,8 +63,8 @@ function startShieldSystem(client, config) {
         }
     });
 
-    ws.on('close', () => console.log('[ShieldDaemon] Closed'));
-    ws.on('error', (err) => console.error('[ShieldDaemon] Error:', err));
+    ws.on('close', () => Logger.log('[ShieldDaemon] Closed'));
+    ws.on('error', (err) => Logger.error(`[ShieldDaemon] Error: ${err}`));
 }
 
 function stopShieldSystem() {
@@ -72,7 +73,7 @@ function stopShieldSystem() {
         shieldWs.close();
         shieldWs = null;
     }
-    console.log('[ShieldDaemon] Stopped');
+    Logger.log('[ShieldDaemon] Stopped');
 }
 
 async function subscribe(sessionId, config) {
@@ -97,9 +98,9 @@ async function subscribe(sessionId, config) {
             transport: {method: 'websocket', session_id: sessionId}
         }, {headers});
 
-        console.log('[ShieldDaemon] Subscribed to stream.online & stream.offline');
+        Logger.log('[ShieldDaemon] Subscribed to stream.online & stream.offline');
     } catch (err) {
-        console.error('[ShieldDaemon] Subscription error:', err.response?.data || err);
+        Logger.error(`[ShieldDaemon] Subscription error: ${err.response?.data || err}`);
     }
 }
 
@@ -116,17 +117,17 @@ async function syncShieldState(config) {
         const isLive = res.data.data && res.data.data.length > 0;
 
         if (isLive) {
-            console.log('[ShieldDaemon] Stream is LIVE on startup → disabling shield');
+            Logger.log('[ShieldDaemon] Stream is LIVE on startup → disabling shield');
             setOnline();
             await disableShieldMode(config);
         } else {
-            console.log('[ShieldDaemon] Stream is OFFLINE on startup → enabling shield');
+            Logger.log('[ShieldDaemon] Stream is OFFLINE on startup → enabling shield');
             setOffline();
             await enableShieldMode(config);
         }
 
     } catch (err) {
-        console.error('[ShieldDaemon] Startup sync error:', err.response?.data || err);
+        Logger.error(`[ShieldDaemon] Startup sync error: ${err.response?.data || err}`);
     }
 }
 
@@ -147,9 +148,9 @@ async function enableShieldMode(config) {
                 }
             }
         );
-        console.log('[ShieldDaemon] Shield ENABLED');
+        Logger.log('[ShieldDaemon] Shield ENABLED');
     } catch (err) {
-        console.error('[ShieldDaemon] Enable error:', err.response?.data || err);
+        Logger.error(`[ShieldDaemon] Enable error: ${err.response?.data || err}`);
     }
 }
 
@@ -170,9 +171,9 @@ async function disableShieldMode(config) {
                 }
             }
         );
-        console.log('[ShieldDaemon] Shield DISABLED');
+        Logger.log('[ShieldDaemon] Shield DISABLED');
     } catch (err) {
-        console.error('[ShieldDaemon] Disable error:', err.response?.data || err);
+        Logger.error(`[ShieldDaemon] Disable error: ${err.response?.data || err}`);
     }
 }
 

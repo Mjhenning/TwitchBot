@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const {getIsOnline, onOnline, onOffline} = require('../../modules/helpers/stream-state');
+const {Logger} = require('../../services');
 
 const FS_ROOT = path.join(__dirname, '../_filesystem');
 const STATE_PATH = path.join(__dirname, '../data/state.json');
@@ -29,7 +30,7 @@ function writeJSON(filePath, data) {
     try {
         fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
     } catch (err) {
-        console.error(`[ARG] Failed to write ${filePath}:`, err.message);
+        Logger.error(`[ARG] Failed to write ${filePath}: ${err.message}`);
     }
 }
 
@@ -78,7 +79,7 @@ function applyBitRot() {
 
 function getPorts() {
     const ports = readJSON(PORTS_PATH);
-    if (!ports) console.error('[ARG] ports.json could not be read — check for syntax errors.');
+    if (!ports) Logger.error('[ARG] ports.json could not be read — check for syntax errors.');
     return ports;
 }
 
@@ -170,7 +171,7 @@ function rewardConnectedUsers(client, channel, amount, reason) {
     for (const [userId, username] of sysConnectedUsers) {
         addGlossels(userId, amount, username);
     }
-    console.log(`[ARG] Rewarded ${sysConnectedUsers.size} users ${amount} Glossels — ${reason}`);
+    Logger.log(`[ARG] Rewarded ${sysConnectedUsers.size} users ${amount} Glossels — ${reason}`);
     if (sysConnectedUsers.size > 0) {
         client.say(channel, `${sysConnectedUsers.size} connection${sysConnectedUsers.size === 1 ? '' : 's'} rewarded ${amount} Glossels — ${reason}.`);
     }
@@ -242,7 +243,7 @@ function sysHandleProbe(client, channel, portInput) {
     // write unlock to unlocked_features if needed
     // keeping this lightweight — just log it, actual feature checks
     // happen in bot_response_modules via sysIsDaemonModuleUnlocked
-    console.log(`[ARG] Port ${port} unlocked — type: ${unlock.type} label: ${unlock.label}`);
+    Logger.log(`[ARG] Port ${port} unlocked — type: ${unlock.type} label: ${unlock.label}`);
 
     rewardConnectedUsers(client, channel, 64, `port ${port} discovered`);
     staggerSay(client, channel, unlock.announce, 2000);
@@ -512,7 +513,7 @@ function startARGElements(client, config) {
     }
 
     onOffline(() => {
-        console.log('[ARG] Stream went offline.');
+        Logger.log('[ARG] Stream went offline.');
     });
 
     onOnline(() => {
@@ -526,7 +527,7 @@ function startARGElements(client, config) {
         }
     });
 
-    console.log('[ARG] System online. TA1LDA3M0N active.');
+    Logger.log('[ARG] System online. TA1LDA3M0N active.');
 }
 
 module.exports = {

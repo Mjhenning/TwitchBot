@@ -3,6 +3,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const {config} = require('./config');
+const {Logger} = require('./services');
 
 // ---------- Paths ----------
 const BOT_REFRESH_PATH = path.join(__dirname, 'data', 'bot_refresh_token.json');
@@ -32,8 +33,8 @@ function loadTokens() {
     config.BROADCASTER_REFRESH_TOKEN = loadToken(BROADCASTER_REFRESH_PATH);
 
     if (config.DEBUG) {
-        console.log('[DEBUG] Loaded bot refresh:', config.BOT_REFRESH_TOKEN);
-        console.log('[DEBUG] Loaded broadcaster refresh:', config.BROADCASTER_REFRESH_TOKEN);
+        Logger.log(`[DEBUG] Loaded bot refresh: ${config.BOT_REFRESH_TOKEN}`);
+        Logger.log(`[DEBUG] Loaded broadcaster refresh: ${config.BROADCASTER_REFRESH_TOKEN}`);
     }
 }
 
@@ -54,7 +55,7 @@ async function getAppToken() {
         }
     );
 
-    if (config.DEBUG) console.log('[DEBUG] APP_TOKEN fetched');
+    if (config.DEBUG) Logger.log('[DEBUG] APP_TOKEN fetched');
     return res.data.access_token;
 }
 
@@ -87,7 +88,7 @@ async function refreshBotToken() {
 
     saveToken(BOT_REFRESH_PATH, data.refresh_token);
 
-    if (config.DEBUG) console.log('[DEBUG] Bot token refreshed');
+    if (config.DEBUG) Logger.log('[DEBUG] Bot token refreshed');
 }
 
 // ---------- BROADCASTER REFRESH ----------
@@ -102,12 +103,12 @@ async function refreshBroadcasterToken() {
 
     saveToken(BROADCASTER_REFRESH_PATH, data.refresh_token);
 
-    if (config.DEBUG) console.log('[DEBUG] Broadcaster token refreshed');
+    if (config.DEBUG) Logger.log('[DEBUG] Broadcaster token refreshed');
 }
 
 async function refreshAppToken() {
     config.APP_TOKEN = await getAppToken();
-    if (config.DEBUG) console.log('[DEBUG] App token refreshed');
+    if (config.DEBUG) Logger.log('[DEBUG] App token refreshed');
 }
 
 // ========================
@@ -122,7 +123,7 @@ async function withTokenRetry(apiCall, refreshFn = refreshBroadcasterToken) {
         const msg = err.response?.data?.message ?? err.message ?? '';
 
         if (status === 401 || msg.toLowerCase().includes('invalid oauth token')) {
-            console.warn('[Auth] 401 detected — refreshing token and retrying...');
+            Logger.warn('[Auth] 401 detected — refreshing token and retrying...');
             await refreshFn();
             return await apiCall();
         }
@@ -146,7 +147,7 @@ async function fetchUserIds() {
     });
 
     if (!channel.data.data.length) {
-        console.error('[ERROR] Channel not found for login:', config.CHANNEL_NAME);
+        Logger.error(`[ERROR] Channel not found for login: ${config.CHANNEL_NAME}`);
         return;
     }
 
@@ -162,15 +163,15 @@ async function fetchUserIds() {
     });
 
     if (!bot.data.data.length) {
-        console.error('[ERROR] Bot not found for login:', config.BOT_NAME);
+        Logger.error(`[ERROR] Bot not found for login: ${config.BOT_NAME}`);
         return;
     }
 
     config.BOT_ID = bot.data.data[0].id;
 
     if (config.DEBUG) {
-        console.log('[DEBUG] BROADCASTER_ID:', config.BROADCASTER_ID);
-        console.log('[DEBUG] BOT_ID:', config.BOT_ID);
+        Logger.log(`[DEBUG] BROADCASTER_ID: ${config.BROADCASTER_ID}`);
+        Logger.log(`[DEBUG] BOT_ID: ${config.BOT_ID}`);
     }
 }
 
@@ -187,9 +188,9 @@ async function initPearToken() {
                 {timeout: 3000}
             );
             config.PEAR_ACCESS_TOKEN = res.data.accessToken;
-            if (config.DEBUG) console.log('[DEBUG] Pear token fetched');
+            if (config.DEBUG) Logger.log('[DEBUG] Pear token fetched');
         } catch (err) {
-            console.warn('[WARN] Pear unavailable, SSR features disabled:', err.message);
+            Logger.warn(`[WARN] Pear unavailable, SSR features disabled: ${err.message}`);
         }
     }
 }
@@ -210,12 +211,12 @@ async function initTokens() {
     await initPearToken();
 
     if (config.DEBUG) {
-        console.log('[DEBUG] READY:', {
+        Logger.log(`[DEBUG] READY: ${JSON.stringify({
             BOT: !!config.BOT_ACCESS_TOKEN,
             BROADCASTER: !!config.BROADCASTER_ACCESS_TOKEN,
             BROADCASTER_ID: config.BROADCASTER_ID,
             BOT_ID: config.BOT_ID
-        });
+        })}`);
     }
 
     return config;

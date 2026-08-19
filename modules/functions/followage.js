@@ -1,5 +1,6 @@
 // modules/followage.js
 const axios = require('axios');
+const {Logger} = require('../../services');
 
 async function getFollowage(userId, config) {
     try {
@@ -36,7 +37,7 @@ async function getFollowage(userId, config) {
         return parts.join(' ') || 'less than a minute';
 
     } catch (err) {
-        console.error('Error in getFollowage:', err.response?.data || err);
+        Logger.error(`Error in getFollowage: ${err.response?.data || err}`);
         return null;
     }
 }

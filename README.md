@@ -189,6 +189,12 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 - Loads environment variables from `.env` via `dotenv`.
 - Exports the `config` object with all settings and data file paths.
 
+### Logger (`services/Logger.js`)
+- Centralized logging: writes to both console and daily log files in `logs/`.
+- `Logger.log()`, `Logger.error()`, `Logger.warn()` — all output goes to file + stdout.
+- Optional Discord DM support (pass a Discord.js client to `Logger.init()`; gracefully skipped if none provided).
+- Initialized once at bot startup before any modules load.
+
 ### Authentication (`auth.js`)
 - Loads refresh tokens from `data/*.json`, fetches app/bot/broadcaster OAuth tokens.
 - `withTokenRetry()` wrapper handles 401 → refresh → retry for any Twitch API call.
@@ -237,6 +243,9 @@ TwitchBot/
 ├── config.js                       # Configuration loader (reads .env)
 ├── auth.js                         # OAuth token management and refresh
 ├── obs_watcher.js                  # OBS WebSocket watcher: triggers startBot on OBS connect
+├── services/
+│   ├── index.js                    # Services barrel export
+│   └── Logger.js                   # Centralized logging: console + daily log files
 ├── commands/
 │   ├── chat_integration.js         # Message router, command matching, cooldown dispatch
 │   └── registry.js                 # All command implementations and exports
@@ -295,6 +304,7 @@ TwitchBot/
 │   ├── ssr_queue.json
 │   ├── state.json
 │   └── timed_commands.json
+├── logs/                           # Daily log files (auto-created by Logger)
 ├── package.json
 └── package-lock.json
 ```

@@ -1,5 +1,6 @@
 // commands/chat_integration.js
 const axios = require('axios');
+const {Logger} = require('../services');
 
 // modules
 const {handleDaemonRelatedResponses} = require('../modules/bot_specific/bot_response_modules');
@@ -354,7 +355,7 @@ process.on('SIGTERM', () => {
     process.exit();
 });  // kill command
 process.on('uncaughtException', (err) => {
-    console.error(err);
+    Logger.error(err);
     clearQueue();
     process.exit();
 });

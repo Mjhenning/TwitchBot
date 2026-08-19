@@ -1,5 +1,6 @@
 const axios = require("axios");
 const {refreshAppToken, refreshBotToken, withTokenRetry} = require('../../auth');
+const {Logger} = require('../../services');
 
 //SHOUTOUT HELPERS
 
@@ -69,12 +70,12 @@ async function sendTwitchShoutout(targetId, targetName, config) {
                 }
             );
         }, refreshBotToken);
-        console.log(`Shoutout: official /shoutout sent for ${targetName}`);
+        Logger.log(`Shoutout: official /shoutout sent for ${targetName}`);
     } catch (err) {
         if (err.response?.status === 429) {
-            console.warn(`Shoutout: official /shoutout for ${targetName} skipped — cooldown active`);
+            Logger.warn(`Shoutout: official /shoutout for ${targetName} skipped — cooldown active`);
         } else {
-            console.error('Shoutout: official /shoutout API error:', err.response?.data || err);
+            Logger.error(`Shoutout: official /shoutout API error: ${err.response?.data || err}`);
         }
     }
 }
@@ -87,12 +88,12 @@ async function eventShoutout(event, client, config) {
     const raiderId = event.from_broadcaster_user_id;
     const viewers = event.viewers;
 
-    console.log(`EventHandlers: ${raider} raided with ${viewers} viewers`);
+    Logger.log(`EventHandlers: ${raider} raided with ${viewers} viewers`);
 
     client.say(
         `#${config.CHANNEL_NAME}`,
         `🟢 Active network expanded: ${raider} arrived with ${viewers} connections! Welcome in, raiders, the Glosso-Sphere just got a little brighter ✨ Be sure to check out ${raider} and return the signal: https://www.twitch.tv/${raider} 🦊💬`
-    ).catch(err => console.error('EventHandlers: Raid message failed:', err));
+    ).catch(err => Logger.error(`EventHandlers: Raid message failed: ${err}`));
 
     await sendTwitchShoutout(raiderId, raider, config);
 }
@@ -125,14 +126,14 @@ async function shoutout(client, config, users) {
     const results = await getUsersAndGames(users, config);
 
     if (results.length === 0) {
-        console.warn(`Shoutout: none of the provided usernames resolved`, users);
+        Logger.warn(`Shoutout: none of the provided usernames resolved ${users}`);
         return;
     }
 
     if (results.length === 1) {
         const line = soPool[Math.floor(Math.random() * soPool.length)];
         await client.say(`#${config.CHANNEL_NAME}`, fillTemplate(line, results[0]))
-            .catch(err => console.error('Shoutout: message failed:', err));
+            .catch(err => Logger.error(`Shoutout: message failed: ${err}`));
 
         // ✅ official Twitch shoutout for single-user case
         await sendTwitchShoutout(results[0].id, results[0].user, config);
@@ -142,12 +143,12 @@ async function shoutout(client, config, users) {
     await client.say(
         `#${config.CHANNEL_NAME}`,
         massSoPool[Math.floor(Math.random() * massSoPool.length)]
-    ).catch(err => console.error('Shoutout: opener failed:', err));
+    ).catch(err => Logger.error(`Shoutout: opener failed: ${err}`));
 
     for (const data of results) {
         const line = massSoUserPool[Math.floor(Math.random() * massSoUserPool.length)];
         await client.say(`#${config.CHANNEL_NAME}`, fillTemplate(line, data))
-            .catch(err => console.error('Shoutout: user line failed:', err));
+            .catch(err => Logger.error(`Shoutout: user line failed: ${err}`));
     }
 }
 
