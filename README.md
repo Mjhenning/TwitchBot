@@ -325,7 +325,7 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 |---|---|
 | `data/bot_refresh_token.json` | Bot OAuth refresh token (auto-refreshed) |
 | `data/broadcaster_refresh_token.json` | Broadcaster OAuth refresh token (auto-refreshed) |
-| `data/glossels_db.json` | Glossels currency database |
+| `data/glossels_db.json` | Glossels currency database. Each entry: `usrName`, `usrId` (Twitch), `amount`, `lastCheckin`, `discordUserId` (linked Discord account, nullable) |
 | `data/counters.json` | Counter definitions and current values |
 | `data/moderation.json` | Link filter config: allowed domains, trusted badges, warn cooldown |
 | `data/ssr_queue.json` | Current song request queue |
