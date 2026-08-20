@@ -518,36 +518,48 @@ function handleSysCache(client, channel) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const HANDSHAKE_OUTCOMES = [
-    {type: 'accepted', weight: 35, multiplier: 2, messages: [
-        'Node accepted {user} handshake. Packets returned doubled.',
-        'Connection established. Node amplified {user} signal. +{amount} Glossels.',
-        'Handshake successful. Network node returned {user} data with interest.'
-    ]},
-    {type: 'unstable', weight: 30, multiplier: 1, messages: [
-        'Signal unstable. Packets retained, no change.',
-        'Node acknowledged but refused to route. Glossels unchanged.',
-        'Connection flickered. Data returned as sent. No loss, no gain.'
-    ]},
-    {type: 'rejected', weight: 25, multiplier: 0, messages: [
-        'Node rejected transmission. Packets corrupted. -{amount} Glossels.',
-        'Handshake failed. Network firewall severed {user} connection. Data lost.',
-        'Unknown node dropped {user} signal. Glossels absorbed into the void.'
-    ]},
-    {type: 'amplified', weight: 8, multiplier: 3, messages: [
-        '>> UNKNOWN NODE AMPLIFYING SIGNAL. 3x recovery. +{amount} Glossels.',
-        '>> CRITICAL: Node running unknown protocol. Packets tripled. This should not be possible.',
-        '>> ANOMALY DETECTED. Node returned 3x {user} original transmission.'
-    ]},
-    {type: 'captured', weight: 2, multiplier: -0.5, messages: [
-        'Node partially captured {user} packets. Half recovered. -{amount} Glossels.',
-        'WARNING: Intercepted mid-transfer. Partial data salvage. {user} lost more than {user} kept.',
-        'Hostile node detected. Packet capture partial. What remains has been returned.'
-    ]},
-    {type: 'drained', weight: 2, multiplier: 1, messages: [
-        '>> NETWORK CACHE DRAINED. All buffered packets recovered. +{cache} Glossels.',
-        '>> CENTRAL CACHE SIPHONED. {user} retrieved every lost packet from the buffer. +{cache} Glossels.',
-        '>> CACHE BREACH. Buffered data extracted. {user} recovered {cache} Glossels from the network cache.'
-    ]}
+    {
+        type: 'accepted', weight: 35, multiplier: 2, messages: [
+            'Node accepted {user} handshake. Packets returned doubled.',
+            'Connection established. Node amplified {user} signal. +{amount} Glossels.',
+            'Handshake successful. Network node returned {user} data with interest.'
+        ]
+    },
+    {
+        type: 'unstable', weight: 30, multiplier: 1, messages: [
+            'Signal unstable. Packets retained, no change.',
+            'Node acknowledged but refused to route. Glossels unchanged.',
+            'Connection flickered. Data returned as sent. No loss, no gain.'
+        ]
+    },
+    {
+        type: 'rejected', weight: 25, multiplier: 0, messages: [
+            'Node rejected transmission. Packets corrupted. -{amount} Glossels.',
+            'Handshake failed. Network firewall severed {user} connection. Data lost.',
+            'Unknown node dropped {user} signal. Glossels absorbed into the void.'
+        ]
+    },
+    {
+        type: 'amplified', weight: 8, multiplier: 3, messages: [
+            '>> UNKNOWN NODE AMPLIFYING SIGNAL. 3x recovery. +{amount} Glossels.',
+            '>> CRITICAL: Node running unknown protocol. Packets tripled. This should not be possible.',
+            '>> ANOMALY DETECTED. Node returned 3x {user} original transmission.'
+        ]
+    },
+    {
+        type: 'captured', weight: 2, multiplier: -0.5, messages: [
+            'Node partially captured {user} packets. Half recovered. -{amount} Glossels.',
+            'WARNING: Intercepted mid-transfer. Partial data salvage. {user} lost more than {user} kept.',
+            'Hostile node detected. Packet capture partial. What remains has been returned.'
+        ]
+    },
+    {
+        type: 'drained', weight: 0.5, multiplier: 1, messages: [
+            '>> NETWORK CACHE DRAINED. All buffered packets recovered. +{cache} Glossels.',
+            '>> CENTRAL CACHE SIPHONED. {user} retrieved every lost packet from the buffer. +{cache} Glossels.',
+            '>> CACHE BREACH. Buffered data extracted. {user} recovered {cache} Glossels from the network cache.'
+        ]
+    }
 ];
 
 function rollHandshakeOutcome() {
@@ -563,7 +575,16 @@ function rollHandshakeOutcome() {
 }
 
 function handleSysHandshake(client, channel, userId, senderName, msg) {
-    const {addGlossels, removeGlossels, retrieveGlossels, getUserByName, giveGlossels, addToCache, drainCache, getCacheBalance} = require('../../modules/functions/glossels');
+    const {
+        addGlossels,
+        removeGlossels,
+        retrieveGlossels,
+        getUserByName,
+        giveGlossels,
+        addToCache,
+        drainCache,
+        getCacheBalance
+    } = require('../../modules/functions/glossels');
 
     const parts = msg.trim().split(/\s+/);
     const amount = parseInt(parts[2], 10);
