@@ -50,7 +50,7 @@ function saveCurrencySystem() {
     try {
         fs.writeFileSync(config.CURRENCY_FILE, JSON.stringify(users, null, 2), 'utf8');
     } catch (err) {
-        Logger.error(`[Glossels] Failed to save glossels_db.json: ${err.message}`);
+        Logger.error(`[Glossels] Failed to save user_data.json: ${err.message}`);
     }
 }
 
@@ -176,6 +176,44 @@ function giveGlossels(fromId, toId, amount) {
     return {success: true, newSenderBalance: sender.amount, newReceiverBalance: receiver.amount};
 }
 
+// ---------------- NETWORK CACHE ----------------
+const CACHE_PATH = path.join(__dirname, '../../data/network_cache.json');
+
+function readCache() {
+    try {
+        return JSON.parse(fs.readFileSync(CACHE_PATH, 'utf8'));
+    } catch {
+        return {balance: 0};
+    }
+}
+
+function writeCache(data) {
+    try {
+        fs.writeFileSync(CACHE_PATH, JSON.stringify(data, null, 2), 'utf8');
+    } catch (err) {
+        Logger.error(`[Glossels] Failed to save network_cache.json: ${err.message}`);
+    }
+}
+
+function addToCache(amount) {
+    const cache = readCache();
+    cache.balance += amount;
+    writeCache(cache);
+    return cache.balance;
+}
+
+function drainCache() {
+    const cache = readCache();
+    const balance = cache.balance;
+    cache.balance = 0;
+    writeCache(cache);
+    return balance;
+}
+
+function getCacheBalance() {
+    return readCache().balance;
+}
+
 // ---------------- LEADERBOARD ----------------
 function rebuildLeaderboard() {
     leaderboard = [...users]
@@ -252,5 +290,8 @@ module.exports = {
     getUserRank,
     getUserByName,
     giveGlossels,
+    addToCache,
+    drainCache,
+    getCacheBalance,
     getUserMap: () => userMap
 };

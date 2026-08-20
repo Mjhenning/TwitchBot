@@ -21,12 +21,12 @@ const {
     skipSong
 } = require('../modules/song_requests/pear-desktop-music');
 
-const {retrieveGlossels, getUserRank, getTop5, addGlossels, removeGlossels, getUserByName, giveAll, removeAll, getUserMap} = require('../modules/functions/glossels');
+const {retrieveGlossels, getUserRank, getTop5, addGlossels, removeGlossels, getUserByName, giveAll, removeAll, getUserMap, addToCache, drainCache, getCacheBalance} = require('../modules/functions/glossels');
 
 const {
     handleSys, handleSysHelp, handleSysDir, handleSysRead
     , sysHandleProbe, handleSysConnect
-    , handleSysPing, handleSysLs, sysAddCoherence, sysRemoveCoherence, handleSysCwd,
+    , handleSysPing, handleSysCache, handleSysLs, sysAddCoherence, sysRemoveCoherence, handleSysCwd,
     sysIsTerminalActive, handleSysHandshake, unmarkPortFound
 } = require('../ARG/modules/arg_main')
 
@@ -495,6 +495,18 @@ function argSystemCommand(client, channel, userId, senderName, tags, msg) {
         case 'ping':
             handleSysPing(client, channel);
             break;
+        case 'cache':
+            handleSysCache(client, channel);
+            break;
+        case 'balance':
+            getBalanceCommand(client, channel, userId, senderName);
+            break;
+        case 'rank':
+            getRankCommand(client, channel, userId, senderName);
+            break;
+        case 'top':
+            getTop5Command(client, channel);
+            break;
         case 'handshake':
             if (handleCooldown(userId, senderName, 'handshake', tags, client, channel, 30)) return;
             handleSysHandshake(client, channel, userId, senderName, msg);
@@ -627,7 +639,36 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
         return true;
     }
 
-    client.say(channel, `Unknown admin command. Use: grant/revoke probe | bump/reduce coherence | grant/revoke glossels`);
+    // !sysAdmin grant cache {number}
+    if (action === 'grant' && target === 'cache') {
+        const amount = parseInt(arg1);
+        if (isNaN(amount) || amount <= 0) {
+            client.say(channel, `Usage — !sysAdmin grant cache [amount]`);
+            return true;
+        }
+        const newBalance = addToCache(amount);
+        client.say(channel, `Network cache granted — +${amount}. Current: ${newBalance} Glossels.`);
+        return true;
+    }
+
+    // !sysAdmin revoke cache {number}
+    if (action === 'revoke' && target === 'cache') {
+        const amount = parseInt(arg1);
+        if (isNaN(amount) || amount <= 0) {
+            client.say(channel, `Usage — !sysAdmin revoke cache [amount]`);
+            return true;
+        }
+        const current = getCacheBalance();
+        const removed = Math.min(amount, current);
+        const newBalance = drainCache();
+        if (removed < amount) {
+            addToCache(newBalance - removed);
+        }
+        client.say(channel, `Network cache revoked — -${removed}. Current: ${current - removed} Glossels.`);
+        return true;
+    }
+
+    client.say(channel, `Unknown admin command. Use: grant/revoke probe | bump/reduce coherence | grant/revoke glossels | grant/revoke cache`);
     return true;
 }
 

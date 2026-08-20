@@ -26,7 +26,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 - **Shield System**: Automatically enables Twitch Shield Mode when the stream goes offline and disables it when live, via EventSub `stream.online` / `stream.offline`.
 - **EventSub Integration**: Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), and ad break notifications with countdown warnings.
 - **Ad Schedule Poller**: Adaptive polling of the Twitch ad schedule API. Warns chat ~45 seconds before a scheduled ad. Pauses when stream is offline, resumes on online.
-- **Virtual Currency (Glossels)**: Viewers earn Glossels through `!system connect` daily check-ins and participating in ARG events. Gamble Glossels by sending them into unknown network nodes (`!system handshake <amount>`), or transfer them to other viewers. Leaderboard and rank tracking via `!glossels`, `!rank`, `!top5`.
+- **Virtual Currency (Glossels)**: Viewers earn Glossels through `!system connect` daily check-ins and participating in ARG events. Gamble Glossels by sending them into unknown network nodes (`!system handshake <amount>`), or transfer them to other viewers. Lost Glossels accumulate in the Network Cache, and a rare `drained` outcome lets a player retrieve everything. Leaderboard and rank tracking via `!system balance`, `!system rank`, `!system top`.
 - **Alternate Reality Game (ARG)**: An in-chat terminal simulation ("AETHER-OS") with a virtual filesystem, coherence system, bit-rot decay, port probing, lore files, file access gated by coherence level and discovered events, and a network gamble/transfer system for Glossels.
 - **Moderation**: Automatic link filtering with domain allowlists. Links are deleted and the user warned unless they have a trusted badge or the link matches an allowed domain. Song-request and media-request domains are conditionally permitted.
 - **Counters**: Configurable chat counters (e.g. death, yawn, 404) with increment, set, stats, and last-counted subcommands.
@@ -148,9 +148,6 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 
 | Command | Description |
 |---|---|
-| `!glossels` | Check your Glossels balance |
-| `!rank` | See your leaderboard rank |
-| `!top5` | Top 5 Glossels leaderboard |
 | `!system` / `!sys` | Activate the AETHER-OS terminal |
 | `!system help` | List available terminal commands |
 | `!system dir <path>` | Navigate the virtual filesystem |
@@ -160,14 +157,20 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!system probe <port>` | Probe a port for lore/unlocks |
 | `!system connect` | Daily check-in to earn Glossels |
 | `!system ping` | Ping the system (+2% coherence) |
-| `!system handshake <amount>` | Gamble Glossels by sending them into an unknown network node (weighted outcomes: 2x, push, lose, 3x, partial loss) |
+| `!system handshake <amount>` | Gamble Glossels by sending them into an unknown network node (weighted outcomes: 2x, push, lose, 3x, partial loss, or drain the Network Cache) |
 | `!system handshake <amount> <user>` | Transfer Glossels directly to another viewer |
+| `!system cache` | Check the current Network Cache balance |
+| `!system balance` | Check your Glossels balance |
+| `!system rank` | See your leaderboard rank |
+| `!system top` | Top 5 Glossels leaderboard |
 | `!sysAdmin grant probe <port>` | Admin: unlock a port (broadcaster only) |
 | `!sysAdmin revoke probe <port>` | Admin: lock a port (broadcaster only) |
 | `!sysAdmin bump coherence <n>` | Admin: add coherence (broadcaster only) |
 | `!sysAdmin reduce coherence <n>` | Admin: remove coherence (broadcaster only) |
 | `!sysAdmin grant glossels <n> <user>` | Admin: add Glossels to a user, or `SYSTEM` for all (broadcaster only) |
 | `!sysAdmin revoke glossels <n> <user>` | Admin: remove Glossels from a user, or `SYSTEM` for all (broadcaster only) |
+| `!sysAdmin grant cache <n>` | Admin: add Glossels to the Network Cache (broadcaster only) |
+| `!sysAdmin revoke cache <n>` | Admin: remove Glossels from the Network Cache (broadcaster only) |
 
 ### Counters
 
@@ -305,7 +308,7 @@ TwitchBot/
 │   ├── bot_refresh_token.json
 │   ├── broadcaster_refresh_token.json
 │   ├── counters.json
-│   ├── glossels_db.json
+│   ├── user_data.json
 │   ├── moderation.json
 │   ├── ssr_queue.json
 │   ├── state.json
@@ -325,7 +328,8 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 |---|---|
 | `data/bot_refresh_token.json` | Bot OAuth refresh token (auto-refreshed) |
 | `data/broadcaster_refresh_token.json` | Broadcaster OAuth refresh token (auto-refreshed) |
-| `data/glossels_db.json` | Glossels currency database. Each entry: `usrName`, `usrId` (Twitch), `amount`, `lastCheckin`, `discordUserId` (linked Discord account, nullable) |
+| `data/user_data.json` | Cross-platform user dictionary (Twitch + Discord). Each entry: `usrName`, `usrId`, `amount`, `lastCheckin`, `discordUserId` |
+| `data/network_cache.json` | Network Cache: accumulated lost Glossels from failed handshakes, drainable via rare `drained` outcome |
 | `data/counters.json` | Counter definitions and current values |
 | `data/moderation.json` | Link filter config: allowed domains, trusted badges, warn cooldown |
 | `data/ssr_queue.json` | Current song request queue |

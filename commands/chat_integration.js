@@ -38,7 +38,6 @@ const {
     closeMrCommand
 } = require('./registry');
 
-const {getBalanceCommand, getRankCommand, getTop5Command} = require('./registry');
 const {argSystemCommand, argSystemAdminCommand} = require('./registry')
 
 //--------------------------------- HELPERS ------------------------------------
@@ -208,21 +207,6 @@ function setupChatCommands(client, config) {
 
         if (hasCommand(lower, '!tail') || hasCommand(lower, '!tails')) {
             tailCommand(client);
-            return;
-        }
-
-        if (hasCommand(lower, '!glossels')) {
-            getBalanceCommand(client, channel, userId, senderName);
-            return
-        }
-
-        if (hasCommand(lower, '!rank')) {
-            getRankCommand(client, channel, userId, senderName);
-            return;
-        }
-
-        if (hasCommand(lower, '!top5')) {
-            getTop5Command(client, channel);
             return;
         }
 

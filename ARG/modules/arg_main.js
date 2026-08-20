@@ -292,6 +292,10 @@ function handleSysHelp(client, channel) {
         '!system probe',
         '!system connect',
         '!system ping',
+        '!system cache',
+        '!system balance',
+        '!system rank',
+        '!system top',
         '!system handshake <amount>',
         '!system handshake <amount> <user>'
     ];
@@ -503,6 +507,12 @@ function handleSysPing(client, channel) {
     client.say(channel, pool[Math.floor(Math.random() * pool.length)]);
 }
 
+function handleSysCache(client, channel) {
+    const {getCacheBalance} = require('../../modules/functions/glossels');
+    const balance = getCacheBalance();
+    client.say(channel, `Network Cache: ${balance} Glossels buffered. !system handshake to retrieve.`);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 8B) !system handshake — NETWORK GAMBLE / TRANSFER
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -532,6 +542,11 @@ const HANDSHAKE_OUTCOMES = [
         'Node partially captured {user} packets. Half recovered. -{amount} Glossels.',
         'WARNING: Intercepted mid-transfer. Partial data salvage. {user} lost more than {user} kept.',
         'Hostile node detected. Packet capture partial. What remains has been returned.'
+    ]},
+    {type: 'drained', weight: 2, multiplier: 1, messages: [
+        '>> NETWORK CACHE DRAINED. All buffered packets recovered. +{cache} Glossels.',
+        '>> CENTRAL CACHE SIPHONED. {user} retrieved every lost packet from the buffer. +{cache} Glossels.',
+        '>> CACHE BREACH. Buffered data extracted. {user} recovered {cache} Glossels from the network cache.'
     ]}
 ];
 
@@ -548,7 +563,7 @@ function rollHandshakeOutcome() {
 }
 
 function handleSysHandshake(client, channel, userId, senderName, msg) {
-    const {addGlossels, removeGlossels, retrieveGlossels, getUserByName, giveGlossels} = require('../../modules/functions/glossels');
+    const {addGlossels, removeGlossels, retrieveGlossels, getUserByName, giveGlossels, addToCache, drainCache, getCacheBalance} = require('../../modules/functions/glossels');
 
     const parts = msg.trim().split(/\s+/);
     const amount = parseInt(parts[2], 10);
@@ -591,30 +606,50 @@ function handleSysHandshake(client, channel, userId, senderName, msg) {
 
     // Solo gamble mode
     const outcome = rollHandshakeOutcome();
-    const netChange = Math.floor(amount * outcome.multiplier);
     const msgTemplate = outcome.messages[Math.floor(Math.random() * outcome.messages.length)];
 
     let displayAmount;
-    if (outcome.type === 'captured') {
+    let cacheGain = 0;
+
+    if (outcome.type === 'drained') {
+        const cacheBalance = drainCache();
+        addGlossels(userId, amount + cacheBalance, senderName);
+        displayAmount = amount + cacheBalance;
+        cacheGain = cacheBalance;
+    } else if (outcome.type === 'captured') {
         const lost = Math.ceil(amount * 0.5);
         removeGlossels(userId, lost, senderName);
+        addToCache(lost);
         displayAmount = lost;
     } else if (outcome.multiplier > 1) {
+        const netChange = Math.floor(amount * outcome.multiplier);
         addGlossels(userId, netChange, senderName);
         displayAmount = netChange;
     } else if (outcome.multiplier === 0) {
         removeGlossels(userId, amount, senderName);
+        addToCache(amount);
         displayAmount = amount;
     }
 
     const newBalance = retrieveGlossels(userId, senderName);
-    const flavor = msgTemplate.replace(/{amount}/g, displayAmount).replace(/{user}/g, senderName);
+    const flavor = msgTemplate
+        .replace(/{amount}/g, displayAmount)
+        .replace(/{user}/g, senderName)
+        .replace(/{cache}/g, cacheGain);
 
-    staggerSay(client, channel, [
+    const lines = [
         `>> NETWORK HANDSHAKE — SENDING ${amount} GLOSSELS`,
-        flavor,
-        `${senderName} Balance: ${newBalance} Glossels.`
-    ]);
+        flavor
+    ];
+
+    if (outcome.type === 'rejected' || outcome.type === 'captured') {
+        const cacheBalance = getCacheBalance();
+        lines.push(`Network cache absorbing. ${cacheBalance} Glossels buffered.`);
+    }
+
+    lines.push(`${senderName} Balance: ${newBalance} Glossels.`);
+
+    staggerSay(client, channel, lines);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -675,6 +710,7 @@ module.exports = {
     handleSysRead,
     handleSysConnect,
     handleSysPing,
+    handleSysCache,
     handleSysHandshake,
     sysHandleProbe,
 
