@@ -566,8 +566,8 @@ function handleSysHandshake(client, channel, userId, senderName, msg) {
     }
 
     // Transfer mode: !system handshake <amount> <user>
-    if (parts[3]) {
-        const rawTarget = parts[3].replace(/^@/, '');
+    const rawTarget = (parts[3] ?? '').replace(/^@/, '').replace(/[^a-zA-Z0-9_]/g, '');
+    if (rawTarget) {
         const targetUser = getUserByName(rawTarget);
 
         if (!targetUser) {
