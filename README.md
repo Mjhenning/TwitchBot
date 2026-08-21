@@ -309,7 +309,9 @@ TwitchBot/
 │   ├── broadcaster_refresh_token.json
 │   ├── counters.json
 │   ├── user_data.json
+│   ├── network_cache.json
 │   ├── moderation.json
+│   ├── pendingRedemptions.json
 │   ├── ssr_queue.json
 │   ├── state.json
 │   └── timed_commands.json
