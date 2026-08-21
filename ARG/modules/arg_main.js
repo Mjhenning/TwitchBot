@@ -643,9 +643,10 @@ function handleSysHandshake(client, channel, userId, senderName, msg) {
         addToCache(lost);
         displayAmount = lost;
     } else if (outcome.multiplier > 1) {
-        const netChange = Math.floor(amount * outcome.multiplier);
-        addGlossels(userId, netChange, senderName);
-        displayAmount = netChange;
+        const returnAmount = Math.floor(amount * outcome.multiplier);
+        removeGlossels(userId, amount, senderName);
+        addGlossels(userId, returnAmount, senderName);
+        displayAmount = returnAmount - amount;
     } else if (outcome.multiplier === 0) {
         removeGlossels(userId, amount, senderName);
         addToCache(amount);
