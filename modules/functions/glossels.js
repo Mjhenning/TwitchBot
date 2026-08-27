@@ -24,8 +24,9 @@ function loadCurrencySystem() {
     try {
         users = JSON.parse(fs.readFileSync(config.CURRENCY_FILE, 'utf8'));
 
-        // normalize + safety
+        // normalize + safety, preserve unknown fields (e.g. discordUserId from Discord bot)
         users = users.map(u => ({
+            ...(u ?? {}),
             usrName: u.usrName ?? "unknown",
             usrId: u.usrId,
             amount: Number(u.amount) || 0,

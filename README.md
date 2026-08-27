@@ -330,7 +330,7 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 |---|---|
 | `data/bot_refresh_token.json` | Bot OAuth refresh token (auto-refreshed) |
 | `data/broadcaster_refresh_token.json` | Broadcaster OAuth refresh token (auto-refreshed) |
-| `data/user_data.json` | Cross-platform user dictionary (Twitch + Discord). Each entry: `usrName`, `usrId`, `amount`, `lastCheckin`, `discordUserId` |
+| `data/user_data.json` | Cross-platform user dictionary (Twitch + Discord). Each entry: `usrName`, `usrId`, `amount`, `lastCheckin`, `discordUserId` (unknown fields are preserved across reloads) |
 | `data/network_cache.json` | Network Cache: accumulated lost Glossels from failed handshakes, drainable via rare `drained` outcome |
 | `data/counters.json` | Counter definitions and current values |
 | `data/moderation.json` | Link filter config: allowed domains, trusted badges, warn cooldown |
