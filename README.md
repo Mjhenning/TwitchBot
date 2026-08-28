@@ -208,6 +208,7 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 - Loads refresh tokens from `data/*.json`, fetches app/bot/broadcaster OAuth tokens.
 - `withTokenRetry()` wrapper handles 401 → refresh → retry for any Twitch API call.
 - Broadcaster token proactively refreshed every 3 hours.
+- If chat login is rejected (stale bot OAuth), the bot refreshes the bot token and reconnects automatically instead of staying mute.
 - `initPearToken()` authenticates with Pear Desktop Music (3s timeout, gracefully skipped if unavailable).
 
 ### EventSub (`modules/helpers/eventsub/`)

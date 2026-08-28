@@ -1,7 +1,7 @@
 // bot.js
 const tmi = require('tmi.js');
 const {Logger} = require('./services');
-const {initTokens, refreshBroadcasterToken} = require('./auth');
+const {initTokens, refreshBroadcasterToken, refreshBotToken} = require('./auth');
 const {startShieldSystem, stopShieldSystem} = require('./modules/helpers/shield_system');
 const {startTimers, stopTimers} = require('./modules/helpers/timer');
 const {startAdSchedulePoller, stopAdSchedulePoller} = require('./modules/helpers/ad_schedule_poller');
@@ -68,8 +68,32 @@ async function startBot() {
 
         await tmiClient.connect();
 
+        let recovering = false;
+        const recoverChatAuth = async (reason) => {
+            if (recovering) return;
+            if (!/login|authenticat|Unable to authenticate/i.test(reason || '')) return;
+            recovering = true;
+            Logger.warn(`[Bot] Chat auth rejected (${reason}), refreshing bot token and reconnecting...`);
+            try {
+                await refreshBotToken();
+                tmiClient.opts.identity.password = cfg.BOT_OAUTH_TOKEN;
+                tmiClient.reconnect = true;
+                await tmiClient.connect();
+                Logger.log('[Bot] Chat reconnected after token refresh');
+            } catch (err) {
+                Logger.error(`[Bot] Chat auth recovery failed: ${err.message}`);
+                tmiClient.reconnect = true;
+            } finally {
+                recovering = false;
+            }
+        };
+
         tmiClient.on('connected', (address, port) => {
             Logger.log(`[Bot] Chat connected (${cfg.BOT_NAME}) on ${address}:${port}`);
+        });
+
+        tmiClient.on('disconnected', (reason) => {
+            recoverChatAuth(reason);
         });
 
         startShieldSystem(tmiClient, cfg);
