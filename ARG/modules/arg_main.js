@@ -184,7 +184,7 @@ function isFileAccessible(file, coherence) {
 }
 
 function rewardConnectedUsers(client, channel, amount, reason) {
-    const {addGlossels} = require('../../modules/functions/glossels');
+    const {addGlossels} = require('../../modules/functions/currency/glossels');
     for (const [userId, username] of sysConnectedUsers) {
         addGlossels(userId, amount, username);
     }
@@ -443,7 +443,7 @@ function handleSysRead(client, channel, userInput) {
 }
 
 function handleSysConnect(client, channel, userId, username) {
-    const {checkin} = require('../../modules/functions/glossels');
+    const {checkin} = require('../../modules/functions/currency/glossels');
     const reward = checkin(userId, username);
 
     if (reward === null) {
@@ -508,7 +508,7 @@ function handleSysPing(client, channel) {
 }
 
 function handleSysCache(client, channel) {
-    const {getCacheBalance} = require('../../modules/functions/glossels');
+    const {getCacheBalance} = require('../../modules/functions/currency/glossels');
     const balance = getCacheBalance();
     client.say(channel, `Network Cache: ${balance} Glossels buffered. !system handshake to retrieve.`);
 }
@@ -584,7 +584,7 @@ function handleSysHandshake(client, channel, userId, senderName, msg) {
         addToCache,
         drainCache,
         getCacheBalance
-    } = require('../../modules/functions/glossels');
+    } = require('../../modules/functions/currency/glossels');
 
     const parts = msg.trim().split(/\s+/);
     const amount = parseInt(parts[2], 10);
@@ -694,7 +694,7 @@ function sysResetSession() {
 //-------------------------------------------------------------------------------
 
 function startARGElements(client, config) {
-    const {loadCurrencySystem} = require('../../modules/functions/glossels');
+    const {loadCurrencySystem} = require('../../modules/functions/currency/glossels');
     loadCurrencySystem();
 
     const foundPorts = getFoundPorts();

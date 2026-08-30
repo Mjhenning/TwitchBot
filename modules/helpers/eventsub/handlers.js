@@ -12,6 +12,7 @@ const {registerSubscription} = require('./core');
 const {Logger} = require('../../../services');
 const {eventShoutout} = require('../../functions/shoutout')
 const {getIsOnline} = require('../stream-state');
+const {handleRedeemAdd, handleRedeemUpdate} = require('../twitchRedemption');
 
 let adEndTimer = null;
 
@@ -91,12 +92,29 @@ registerSubscription(
     }
 );
 
+//---------------------channel.channel_points_custom_reward_redemption---------------------
+// Single add/update pair routes every reward through the redemption dispatcher,
+// which fans out to the module registered for each reward_id. Omitting reward_id
+// subscribes to all rewards for the broadcaster.
+registerSubscription(
+    'channel.channel_points_custom_reward_redemption.add',
+    '1',
+    (config) => ({broadcaster_user_id: config.BROADCASTER_ID}),
+    (event, client, config) => handleRedeemAdd(event, client, config)
+);
+registerSubscription(
+    'channel.channel_points_custom_reward_redemption.update',
+    '1',
+    (config) => ({broadcaster_user_id: config.BROADCASTER_ID}),
+    (event, client, config) => handleRedeemUpdate(event, client, config)
+);
+
 //---------------------ADD MORE SUBSCRIPTIONS BELOW---------------------
+// For new channel point rewards, do NOT add subscriptions here. Create a module
+// that calls registerReward() from '../twitchRedemption' at require-time instead.
 // registerSubscription(
-//   'channel.channel_points_custom_reward_redemption.add',
+//   'channel.poll.begin',
 //   '1',
-//   (config) => ({ broadcaster_user_id: config.CHANNEL_ID }),
-//   (event, client, config) => {
-//     console.log(`${event.user_name} redeemed "${event.reward.title}"`);
-//   }
+//   (config) => ({ broadcaster_user_id: config.BROADCASTER_ID }),
+//   (event, client, config) => { ... }
 // );

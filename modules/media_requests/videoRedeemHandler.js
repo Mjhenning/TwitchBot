@@ -1,144 +1,65 @@
-const {registerSubscription} = require('../helpers/eventsub/core');
-const {extractRedeemUrl, ValidationError} = require('../moderation/link_filter');
-const {fetchMetadata, MetadataError} = require('./metadataService');
+const {registerReward, reconcilePendingOnStartup, startExpirySweep, stopExpirySweep} = require('../helpers/twitchRedemption');
+const {extractRedeemUrl} = require('../moderation/link_filter');
+const {fetchMetadata} = require('./metadataService');
 const {downloadVideo, deleteVideo} = require('./downloadService');
-const {updateRedemptionStatus, getRedemptionStatus} = require('../helpers/twitchRedemption');
-const {setPending, getPending, deletePending, getAllPending} = require('./pendingStore');
 const playbackManager = require('./playbackManager');
+const {config} = require('../../config');
 const {Logger} = require('../../services');
 
-const MAX_PENDING_AGE_MS = 60 * 60 * 1000; // 1 hour
+// Self-registers with the redemption dispatcher; future rewards just add
+// their own registerReward call in a new module.
+registerReward({
+    rewardId: config.MR_REDEEM_ID,
+    name: 'VideoRedeem',
+    startClosed: true, // paused by default, opened with !openmr
 
-const isExpired = (entry) => Date.now() - entry.createdAt > MAX_PENDING_AGE_MS;
+    // Runs on the "add" event. Downloads the clip, then returns the pending
+    // entry stored for mod approval. Errors with a .reason auto-reject instead.
+    onRedeem: async ({redemptionId, userInput, userName}, client, cfg) => {
+        // ValidationError and MetadataError carry .reason; dispatcher auto-rejects on them.
+        const url = extractRedeemUrl(userInput);
+        const metadata = await fetchMetadata(url);
 
-async function autoReject(config, rewardId, redemptionId, reason) {
-    Logger.warn(`[VideoRedeem] auto-rejecting ${redemptionId}: ${reason}`);
-    await updateRedemptionStatus(config, rewardId, redemptionId, 'CANCELED');
-}
+        let filePath;
+        try {
+            filePath = await downloadVideo(url, redemptionId);
+        } catch (err) {
+            Logger.error(`[VideoRedeem] download failed for ${redemptionId}: ${err.message}`);
+            const e = new Error('download_failed');
+            e.reason = 'download_failed';
+            throw e;
+        }
 
-async function expireEntry(config, redemptionId, entry) {
-    Logger.warn(`[VideoRedeem] ${redemptionId} expired, auto-rejecting`);
-    await deletePending(redemptionId);
-    await autoReject(config, entry.rewardId, redemptionId, 'expired');
-    await deleteVideo(redemptionId);
-}
+        client.say(
+            cfg.CHANNEL_NAME,
+            `🎬 ${userName}'s video is downloaded and waiting for a moderator's approval.`
+        );
 
-async function resolveEntry(config, redemptionId, entry, status) {
-    if (status === 'fulfilled') {
-        Logger.log(`[VideoRedeem] ${redemptionId} approved, playing`);
+        return {filePath, metadata};
+    },
+
+    // Runs when a mod approves the pending clip.
+    onResolve: async (entry, event, client, cfg) => {
+        Logger.log(`[VideoRedeem] ${entry.redemptionId} approved, playing`);
         await playbackManager.play({
-            redemptionId, filePath: entry.filePath, title: entry.metadata.title, userName: entry.userName,
+            redemptionId: entry.redemptionId,
+            filePath: entry.filePath,
+            title: entry.metadata.title,
+            userName: entry.userName
         });
-    } else if (status === 'canceled') {
-        Logger.log(`[VideoRedeem] ${redemptionId} rejected by mod, deleting file`);
-        await deleteVideo(redemptionId);
+    },
+
+    // Runs when a mod rejects the pending clip.
+    onReject: async (entry) => {
+        Logger.log(`[VideoRedeem] ${entry.redemptionId} rejected by mod, deleting file`);
+        await deleteVideo(entry.redemptionId);
+    },
+
+    // Runs when a pending clip expires before a decision.
+    onExpire: async (entry, client, cfg) => {
+        await deleteVideo(entry.redemptionId);
     }
-}
+});
 
-async function onRedemptionAdd(event, client, config) {
-    const {id: redemptionId, reward, user_name: userName, user_input: userInput} = event;
-
-    let url;
-    try {
-        url = extractRedeemUrl(userInput);
-    } catch (err) {
-        if (err instanceof ValidationError) return autoReject(config, reward.id, redemptionId, err.reason);
-        throw err;
-    }
-
-    let metadata;
-    try {
-        metadata = await fetchMetadata(url);
-    } catch (err) {
-        if (err instanceof MetadataError) return autoReject(config, reward.id, redemptionId, err.reason);
-        throw err;
-    }
-
-    let filePath;
-    try {
-        filePath = await downloadVideo(url, redemptionId);
-    } catch (err) {
-        Logger.error(`[VideoRedeem] download failed for ${redemptionId}: ${err.message}`);
-        return autoReject(config, reward.id, redemptionId, 'download_failed');
-    }
-
-    await setPending(redemptionId, {userName, filePath, metadata, rewardId: reward.id, createdAt: Date.now()});
-    Logger.log(`[VideoRedeem] ${redemptionId} ready, "${metadata.title}" awaiting mod decision`);
-
-    client.say(
-        config.CHANNEL_NAME,
-        `🎬 ${userName}'s video is downloaded and waiting for a moderator's approval.`
-    );
-}
-
-async function onRedemptionUpdate(event, client, config) {
-    const redemptionId = event.id;
-    const entry = await getPending(redemptionId);
-    if (!entry) return; // not tracked, or already resolved elsewhere
-
-    await deletePending(redemptionId);
-    await resolveEntry(config, redemptionId, entry, event.status);
-}
-
-// self-registers on require, same pattern as other redemption modules
-registerSubscription(
-    'channel.channel_points_custom_reward_redemption.add',
-    '1',
-    (config) => ({broadcaster_user_id: config.BROADCASTER_ID, reward_id: config.MR_REDEEM_ID}),
-    onRedemptionAdd
-);
-registerSubscription(
-    'channel.channel_points_custom_reward_redemption.update',
-    '1',
-    (config) => ({broadcaster_user_id: config.BROADCASTER_ID, reward_id: config.MR_REDEEM_ID}),
-    onRedemptionUpdate
-);
-
-async function reconcilePendingOnStartup(config) {
-    const pending = await getAllPending();
-    if (pending.length === 0) return;
-    Logger.log(`[VideoRedeem] reconciling ${pending.length} pending redemption(s) after restart`);
-
-    for (const {redemptionId, ...entry} of pending) {
-        try {
-            if (isExpired(entry)) {
-                await expireEntry(config, redemptionId, entry);
-                continue;
-            }
-
-            const status = await getRedemptionStatus(config, entry.rewardId, redemptionId);
-            if (status === 'unfulfilled') {
-                Logger.log(`[VideoRedeem] ${redemptionId} still pending`);
-                continue;
-            }
-
-            await deletePending(redemptionId);
-            await resolveEntry(config, redemptionId, entry, status);
-        } catch (err) {
-            Logger.error(`[VideoRedeem] reconcile failed for ${redemptionId}: ${err.message}`);
-        }
-    }
-}
-
-let sweepInterval = null;
-
-function startExpirySweep(config, intervalMs = 5 * 60 * 1000) {
-    if (sweepInterval) return;
-    sweepInterval = setInterval(async () => {
-        try {
-            const pending = await getAllPending();
-            for (const {redemptionId, ...entry} of pending) {
-                if (isExpired(entry)) await expireEntry(config, redemptionId, entry);
-            }
-        } catch (err) {
-            Logger.error(`[VideoRedeem] expiry sweep failed: ${err.message}`);
-        }
-    }, intervalMs);
-}
-
-function stopExpirySweep() {
-    clearInterval(sweepInterval);
-    sweepInterval = null;
-}
-
+// Kept exported for bot.js lifecycle; all delegate to the dispatcher.
 module.exports = {reconcilePendingOnStartup, startExpirySweep, stopExpirySweep};

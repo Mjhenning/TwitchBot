@@ -21,7 +21,7 @@ const {
     skipSong
 } = require('../modules/song_requests/pear-desktop-music');
 
-const {retrieveGlossels, getUserRank, getTop5, addGlossels, removeGlossels, getUserByName, giveAll, removeAll, getUserMap, addToCache, drainCache, getCacheBalance} = require('../modules/functions/glossels');
+const {retrieveGlossels, getUserRank, getTop5, addGlossels, removeGlossels, getUserByName, giveAll, removeAll, getUserMap, addToCache, drainCache, getCacheBalance} = require('../modules/functions/currency/glossels');
 
 const {
     handleSys, handleSysHelp, handleSysDir, handleSysRead
@@ -35,11 +35,9 @@ const {shoutout} = require('../modules/functions/shoutout');
 const {handleCounter} = require("../modules/helpers/counters");
 
 const {handleLinkBlocker} = require("../modules/moderation/link_filter");
-const {setRewardPaused} = require('../modules/helpers/twitchRedemption');
+const {openReward, closeReward, isRewardOpen, resetRewardStates} = require('../modules/helpers/twitchRedemption');
 const {handleCooldown} = require('../modules/helpers/cooldown');
 
-
-let mrEnabled = false;
 
 //--------------------------------- HELPERS ------------------------------------
 function formatTime(ms) {
@@ -56,7 +54,7 @@ function getSsrEnabled() {
 }
 
 function getMrEnabled() {
-    return mrEnabled;
+    return isRewardOpen(config.MR_REDEEM_ID);
 }
 
 //--------------------------------- AutoMod ------------------------------------
@@ -398,9 +396,8 @@ function openQCommand(client, channel) {
 //--------------------------------- MEDIA REQUESTS ------------------------------------
 
 async function openMrCommand(client, channel, config) {
-    mrEnabled = true;
     try {
-        await setRewardPaused(config, config.MR_REDEEM_ID, false);
+        await openReward(config, config.MR_REDEEM_ID);
     } catch (err) {
         Logger.error(`[MediaRequest] failed to unpause reward: ${err.message}`);
     }
@@ -408,9 +405,8 @@ async function openMrCommand(client, channel, config) {
 }
 
 async function closeMrCommand(client, channel, config) {
-    mrEnabled = false;
     try {
-        await setRewardPaused(config, config.MR_REDEEM_ID, true);
+        await closeReward(config, config.MR_REDEEM_ID);
     } catch (err) {
         Logger.error(`[MediaRequest] failed to pause reward: ${err.message}`);
     }
@@ -675,7 +671,7 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
 //--------------------------------- HELPER ------------------------------------
 function resetCommandState() {
     ssrEnabled = false;
-    mrEnabled = false;
+    resetRewardStates();
 }
 
 

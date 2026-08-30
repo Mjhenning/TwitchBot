@@ -2,8 +2,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const {config} = require('../../config');
-const {Logger} = require('../../services');
+const {config} = require('../../../config');
+const {Logger} = require('../../../services');
 
 // ---------------- CONFIG ----------------
 const glosselsGain = [
@@ -178,7 +178,7 @@ function giveGlossels(fromId, toId, amount) {
 }
 
 // ---------------- NETWORK CACHE ----------------
-const CACHE_PATH = path.join(__dirname, '../../data/network_cache.json');
+const CACHE_PATH = path.join(__dirname, '../../../data/network_cache.json');
 
 function readCache() {
     try {

@@ -57,6 +57,7 @@ const config = {
     // ---------- Redeems ----------
     MR_REDEEM_ID: process.env.MR_REDEEM_ID,
     MEDIA_QUEUE_DIR: process.env.MEDIA_QUEUE_DIR,
+    GLOSSELS_REDEEM_ID: process.env.GLOSSELS_REDEEM_ID,
 
     VLC_HOST: process.env.VLC_HOST,
     VLC_PASSWORD: process.env.VLC_PASSWORD,

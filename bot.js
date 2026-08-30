@@ -17,7 +17,8 @@ const {clearLurkers} = require('./modules/functions/lurk_tracker');
 const {resetCommandState} = require('./commands/registry');
 
 const {reconcilePendingOnStartup, startExpirySweep} = require('./modules/media_requests/videoRedeemHandler');
-const {setRewardPaused} = require('./modules/helpers/twitchRedemption');
+require('./modules/functions/currency/glosselsRedeemHandler'); // self-registers its reward
+const {applyStartupStates} = require('./modules/helpers/twitchRedemption');
 
 const {startEventSub, stopEventSub} = require('./modules/helpers/eventsub/core');
 require('./modules/helpers/eventsub/handlers');
@@ -102,10 +103,10 @@ async function startBot() {
         startExpirySweep(cfg);
 
         try {
-            await setRewardPaused(cfg, cfg.MR_REDEEM_ID, true);
-            Logger.log('[Bot] Media request reward paused on startup (matches default-closed state)');
+            await applyStartupStates(cfg);
+            Logger.log('[Bot] Applied per-reward startup states');
         } catch (err) {
-            Logger.error(`[Bot] Failed to pause media request reward on startup: ${err.message}`);
+            Logger.error(`[Bot] Failed to apply reward startup states: ${err.message}`);
         }
 
         startAdSchedulePoller(tmiClient, cfg);
