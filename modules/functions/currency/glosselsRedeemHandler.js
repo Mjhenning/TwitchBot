@@ -16,6 +16,7 @@ registerReward({
     rewardId: config.GLOSSELS_REDEEM_ID,
     name: 'PointsToGlossels',
     startClosed: false, // always open
+    autoFulfill: false, // reward uses Twitch skip-approval queue, already accepted
 
     onRedeem: async ({userId, userName}, client, cfg) => {
         const balance = addGlossels(userId, YIELD, userName);

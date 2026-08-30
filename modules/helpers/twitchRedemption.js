@@ -15,13 +15,15 @@ const isExpired = (entry) => Date.now() - entry.createdAt > MAX_PENDING_AGE_MS;
 
 // Register a reward module. The presence of onResolve opts into the mod-approval
 // flow; without it the reward is fulfilled instantly on redeem. startClosed tells
-// applyStartupStates to pause the reward on bot start.
-function registerReward({rewardId, name, startClosed = false, onRedeem, onResolve, onReject, onExpire}) {
+// applyStartupStates to pause the reward on bot start. Set autoFulfill: false when
+// a reward uses Twitch's Skip Reward Requests Queue (already auto-accepted), so the
+// dispatcher skips the redundant Helix status update.
+function registerReward({rewardId, name, startClosed = false, autoFulfill = true, onRedeem, onResolve, onReject, onExpire}) {
     if (!rewardId || !onRedeem) {
         Logger.error(`[Redemption] registerReward skipped, missing rewardId or onRedeem for "${name || 'untitled'}"`);
         return;
     }
-    rewards.set(rewardId, {rewardId, name, startClosed, onRedeem, onResolve, onReject, onExpire});
+    rewards.set(rewardId, {rewardId, name, startClosed, autoFulfill, onRedeem, onResolve, onReject, onExpire});
     Logger.log(`[Redemption] Registered reward "${name}" (${rewardId})`);
 }
 
@@ -59,8 +61,11 @@ async function handleRedeemAdd(event, client, config) {
         return;
     }
 
-    // No onResolve: instant reward, fulfil immediately.
-    await autoFulfill(config, rewardId, redemptionId);
+    // No onResolve: instant reward. Skip the status update when the reward uses
+    // Twitch's skip-approval queue, which already accepts the redemption.
+    if (rewardDef.autoFulfill) {
+        await autoFulfill(config, rewardId, redemptionId);
+    }
 }
 
 // Route an "update" notification (mod fulfill/reject) to the pending reward module.
