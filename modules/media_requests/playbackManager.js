@@ -5,16 +5,17 @@ const {Logger} = require('../../services');
 
 const POLL_INTERVAL_MS = 1000;
 
-let current = null; // { redemptionId, filePath, title, userName }
+let current = null; // { redemptionId, filePath, title, userName }; null means idle
 let pollTimer = null;
 
+// True while a video is playing; throttles new play calls.
 function isBusy() {
     return current !== null;
 }
 
 async function play(entry) {
     if (current) {
-        Logger.warn(`[Playback] already playing ${current.redemptionId}, dropping ${entry.redemptionId} (cooldown should prevent this — check reward config if this fires)`);
+        Logger.warn(`[Playback] already playing ${current.redemptionId}, dropping ${entry.redemptionId} (cooldown should prevent this, check reward config if this fires)`);
         await deleteVideo(entry.redemptionId).catch(() => {
         });
         return;
@@ -34,6 +35,7 @@ async function play(entry) {
         return;
     }
 
+    // Poll VLC and tear down once the clip finishes playing.
     pollTimer = setInterval(checkStatus, POLL_INTERVAL_MS);
 }
 
@@ -52,7 +54,8 @@ async function finishCurrent() {
     pollTimer = null;
 
     const finished = current;
-    current = null;
+    current = null; // release the slot before the async cleanup below
+
     Logger.log(`[Playback] finished "${finished.title}" (${finished.redemptionId})`);
 
     try {

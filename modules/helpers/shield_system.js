@@ -4,11 +4,11 @@ const axios = require('axios');
 const {Logger} = require('../../services');
 const {setOnline, setOffline} = require('./stream-state');
 
-let shieldWs = null;  // ← save handle
+let shieldWs = null;
 
 function startShieldSystem(client, config) {
     const ws = new WebSocket('wss://eventsub.wss.twitch.tv/ws');
-    shieldWs = ws;  // ← store it
+    shieldWs = ws;
     let sessionId = null;
 
     ws.on('open', async () => {
@@ -117,11 +117,11 @@ async function syncShieldState(config) {
         const isLive = res.data.data && res.data.data.length > 0;
 
         if (isLive) {
-            Logger.log('[ShieldDaemon] Stream is LIVE on startup → disabling shield');
+            Logger.log('[ShieldDaemon] Stream is LIVE on startup, disabling shield');
             setOnline();
             await disableShieldMode(config);
         } else {
-            Logger.log('[ShieldDaemon] Stream is OFFLINE on startup → enabling shield');
+            Logger.log('[ShieldDaemon] Stream is OFFLINE on startup, enabling shield');
             setOffline();
             await enableShieldMode(config);
         }

@@ -2,7 +2,7 @@ const axios = require("axios");
 const {refreshAppToken, refreshBotToken, withTokenRetry} = require('../../auth');
 const {Logger} = require('../../services');
 
-//SHOUTOUT HELPERS
+//---------------------SHOUTOUT HELPERS---------------------
 
 async function getUsersByLogin(logins, config) {
     const params = new URLSearchParams();
@@ -73,7 +73,7 @@ async function sendTwitchShoutout(targetId, targetName, config) {
         Logger.log(`Shoutout: official /shoutout sent for ${targetName}`);
     } catch (err) {
         if (err.response?.status === 429) {
-            Logger.warn(`Shoutout: official /shoutout for ${targetName} skipped — cooldown active`);
+            Logger.warn(`Shoutout: official /shoutout for ${targetName} skipped, cooldown active`);
         } else {
             Logger.error(`Shoutout: official /shoutout API error: ${err.response?.data || err}`);
         }
@@ -81,7 +81,7 @@ async function sendTwitchShoutout(targetId, targetName, config) {
 }
 
 
-//SHOUTOUT LOGIC
+//---------------------SHOUTOUT LOGIC---------------------
 
 async function eventShoutout(event, client, config) {
     const raider = event.from_broadcaster_user_name;
@@ -100,10 +100,10 @@ async function eventShoutout(event, client, config) {
 
 async function shoutout(client, config, users) {
     const soPool = [
-        `Hey! go say hi to {user} 🦊💙 they were last streaming {game} — go give them some signal: {link}`,
+        `Hey! go say hi to {user} 🦊💙 they were last streaming {game}, go give them some signal: {link}`,
         `Connection worth checking out: {user}, last seen playing {game}. go reinforce it: {link}`,
         `🦊 Quick signal boost for {user}! catch their last stream of {game} here: {link}`,
-        `Psst, go connect with {user} — last spotted streaming {game}: {link}`,
+        `Psst, go connect with {user}, last spotted streaming {game}: {link}`,
         `{user} deserves some signal today 💙 they were last live with {game}: {link}`
     ];
 
@@ -116,7 +116,7 @@ async function shoutout(client, config, users) {
 
     const massSoUserPool = [
         `> {user}, last streaming {game}: {link}`,
-        `> {user} — last seen with {game}: {link}`,
+        `> {user}, last seen with {game}: {link}`,
         `> {user}, signal reinforced. last playing {game}: {link}`
     ];
 
@@ -135,7 +135,7 @@ async function shoutout(client, config, users) {
         await client.say(`#${config.CHANNEL_NAME}`, fillTemplate(line, results[0]))
             .catch(err => Logger.error(`Shoutout: message failed: ${err}`));
 
-        // ✅ official Twitch shoutout for single-user case
+        // official Twitch shoutout for single-user case
         await sendTwitchShoutout(results[0].id, results[0].user, config);
         return;
     }

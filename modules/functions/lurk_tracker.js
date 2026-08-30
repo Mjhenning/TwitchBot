@@ -1,6 +1,6 @@
 // modules/lurk_tracker.js
 
-const lurkers = new Map(); // userId -> { startedAt, name }
+const lurkers = new Map(); // userId mapped to { startedAt, name }
 
 function startLurk(userId, username) {
     if (lurkers.has(userId)) return; // already lurking

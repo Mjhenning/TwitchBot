@@ -11,6 +11,7 @@ function saveCounters() {
     fs.writeFileSync(config.COUNTER_PATH, JSON.stringify(counters, null, 2));
 }
 
+// Parse the action string: bare "increment by 1", "+N"/"-N" adjustment, or "=N" set.
 function parseAction(action) {
 
     if (!action)
@@ -36,6 +37,7 @@ function parseAction(action) {
 
 let counters = loadCounters();
 
+// Handle counter fallback commands. Returns true when the command was consumed, false to pass through.
 function handleCounter(client, channel, command, action, isMod) {
 
     const commandName = command.toLowerCase();
@@ -100,6 +102,7 @@ function handleCounter(client, channel, command, action, isMod) {
     counter.lastCounted = new Date().toISOString();
     saveCounters();
 
+    // Reply with a random response template from the config, filling in the new count.
     const response =
         counter.responses[
             Math.floor(Math.random() * counter.responses.length)

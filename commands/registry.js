@@ -153,7 +153,7 @@ function tailCommand(client) {
         `Status: running. Status: fine. Status: glad you asked, actually.`
     ];
 
-    // rare warmer response — only if gratitude module unlocked
+    // rare warmer response, only if gratitude module unlocked
     if (Math.random() < 0.15) {
         warmResponse = !warmResponse;
     }
@@ -199,10 +199,10 @@ function hugCommand(client, channel, senderName, msg) {
     const specialHugs = {
         'layavulpes': [
             `${senderName} wraps Laya in a hug... signal holds steady 🫧`,
-            `${senderName} hugs Laya — coherence stabilizes, no static today ✧`,
+            `${senderName} hugs Laya, coherence stabilizes, no static today ✧`,
             `A hug from ${senderName} reaches Laya through the line... always a steady connection 💾`,
             `${senderName} wraps Laya in a hug... signal holds steady, the perimeter stays quiet 🫧`,
-            `${senderName} hugs Laya — coherence stabilizes, the space stays safe under her watch ✧`,
+            `${senderName} hugs Laya, coherence stabilizes, the space stays safe under her watch ✧`,
             `A hug from ${senderName} reaches Laya through the line... she keeps the static out for the rest of us 💾`
         ]
     };
@@ -244,7 +244,7 @@ async function clipCommand(client, channel, senderName) {
         `📎 Fragment captured by ${senderName} ✧ ${clipUrl}`,
         `🎬 ${senderName} created a memory fragment... ${clipUrl}`,
         `💾 Snapshot saved by ${senderName}... ${clipUrl}`,
-        `🫧 Moment recorded... signal preserved by ${senderName} → ${clipUrl}`
+        `🫧 Moment recorded... signal preserved by ${senderName} -> ${clipUrl}`
     ];
 
     client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
@@ -294,7 +294,7 @@ async function shoutoutCommand(client, msg) {
     const users = parts.slice(1); // everything after "!so"
 
     if (users.length === 0) {
-        client.say(config.CHANNEL_NAME, `Usage — !so [username] or !so [username1] [username2] ...`);
+        client.say(config.CHANNEL_NAME, `Usage, !so [username] or !so [username1] [username2] ...`);
         return;
     }
 
@@ -352,7 +352,7 @@ async function ssrCommand(client, channel, senderName, msg, isBroadcaster) {
 
     await addSongToSSRQueue(result.videoId, result.title, senderName);
 
-    client.say(channel, `✅ ${senderName}, queued: ${result.title} → https://music.youtube.com/watch?v=${result.videoId} 💾`);
+    client.say(channel, `✅ ${senderName}, queued: ${result.title} -> https://music.youtube.com/watch?v=${result.videoId} 💾`);
 }
 
 async function skipCommand(client, channel) {
@@ -512,7 +512,7 @@ function argSystemCommand(client, channel, userId, senderName, tags, msg) {
             handleSysHandshake(client, channel, userId, senderName, msg);
             break;
         default:
-            client.say(channel, `Unknown subcommand — ${sub}. Run !system help.`);
+            client.say(channel, `Unknown subcommand, ${sub}. Run !system help.`);
     }
 }
 
@@ -532,7 +532,7 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
     if (action === 'grant' && target === 'probe') {
         const port = parseInt(arg1);
         if (isNaN(port)) {
-            client.say(channel, `Usage — !sysAdmin grant probe [port]`);
+            client.say(channel, `Usage, !sysAdmin grant probe [port]`);
             return true;
         }
         sysHandleProbe(client, channel, String(port));
@@ -543,11 +543,11 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
     if (action === 'revoke' && target === 'probe') {
         const port = parseInt(arg1);
         if (isNaN(port)) {
-            client.say(channel, `Usage — !sysAdmin revoke probe [port]`);
+            client.say(channel, `Usage, !sysAdmin revoke probe [port]`);
             return true;
         }
         unmarkPortFound(port);
-        client.say(channel, `Port ${port} — lock restored. Probe state cleared.`);
+        client.say(channel, `Port ${port}, lock restored. Probe state cleared.`);
         return true;
     }
 
@@ -555,7 +555,7 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
     if (action === 'bump' && target === 'coherence') {
         const amount = parseInt(arg1);
         if (isNaN(amount)) {
-            client.say(channel, `Usage — !sysAdmin bump coherence [amount]`);
+            client.say(channel, `Usage, !sysAdmin bump coherence [amount]`);
             return true;
         }
         const newCoherence = sysAddCoherence(amount);
@@ -567,7 +567,7 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
     if (action === 'reduce' && target === 'coherence') {
         const amount = parseInt(arg1);
         if (isNaN(amount)) {
-            client.say(channel, `Usage — !sysAdmin reduce coherence [amount]`);
+            client.say(channel, `Usage, !sysAdmin reduce coherence [amount]`);
             return true;
         }
         const newCoherence = sysRemoveCoherence(amount);
@@ -579,7 +579,7 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
     if (action === 'grant' && target === 'glossels') {
         const amount = parseInt(arg1);
         if (isNaN(amount) || amount <= 0) {
-            client.say(channel, `Usage — !sysAdmin grant glossels [amount] [user]`);
+            client.say(channel, `Usage, !sysAdmin grant glossels [amount] [user]`);
             return true;
         }
         const targetUser = arg2?.replace(/^@/, '');
@@ -587,12 +587,12 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
         if (targetUser?.toUpperCase() === 'SYSTEM') {
             const allIds = [...getUserMap().keys()];
             const affected = giveAll(allIds, amount);
-            client.say(channel, `Glossels granted to SYSTEM — +${amount} each. ${affected} users affected.`);
+            client.say(channel, `Glossels granted to SYSTEM, +${amount} each. ${affected} users affected.`);
             return true;
         }
 
         if (!targetUser) {
-            client.say(channel, `Usage — !sysAdmin grant glossels [amount] [user]`);
+            client.say(channel, `Usage, !sysAdmin grant glossels [amount] [user]`);
             return true;
         }
 
@@ -603,7 +603,7 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
         }
 
         addGlossels(user.usrId, amount, user.usrName);
-        client.say(channel, `Glossels granted to ${user.usrName} — +${amount}. New balance: ${retrieveGlossels(user.usrId, user.usrName)}.`);
+        client.say(channel, `Glossels granted to ${user.usrName}, +${amount}. New balance: ${retrieveGlossels(user.usrId, user.usrName)}.`);
         return true;
     }
 
@@ -611,7 +611,7 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
     if (action === 'revoke' && target === 'glossels') {
         const amount = parseInt(arg1);
         if (isNaN(amount) || amount <= 0) {
-            client.say(channel, `Usage — !sysAdmin revoke glossels [amount] [user]`);
+            client.say(channel, `Usage, !sysAdmin revoke glossels [amount] [user]`);
             return true;
         }
         const targetUser = arg2?.replace(/^@/, '');
@@ -619,12 +619,12 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
         if (targetUser?.toUpperCase() === 'SYSTEM') {
             const allIds = [...getUserMap().keys()];
             const affected = removeAll(allIds, amount);
-            client.say(channel, `Glossels revoked from SYSTEM — -${amount} each. ${affected} users affected.`);
+            client.say(channel, `Glossels revoked from SYSTEM, -${amount} each. ${affected} users affected.`);
             return true;
         }
 
         if (!targetUser) {
-            client.say(channel, `Usage — !sysAdmin revoke glossels [amount] [user]`);
+            client.say(channel, `Usage, !sysAdmin revoke glossels [amount] [user]`);
             return true;
         }
 
@@ -635,7 +635,7 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
         }
 
         removeGlossels(user.usrId, amount, user.usrName);
-        client.say(channel, `Glossels revoked from ${user.usrName} — -${amount}. New balance: ${retrieveGlossels(user.usrId, user.usrName)}.`);
+        client.say(channel, `Glossels revoked from ${user.usrName}, -${amount}. New balance: ${retrieveGlossels(user.usrId, user.usrName)}.`);
         return true;
     }
 
@@ -643,11 +643,11 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
     if (action === 'grant' && target === 'cache') {
         const amount = parseInt(arg1);
         if (isNaN(amount) || amount <= 0) {
-            client.say(channel, `Usage — !sysAdmin grant cache [amount]`);
+            client.say(channel, `Usage, !sysAdmin grant cache [amount]`);
             return true;
         }
         const newBalance = addToCache(amount);
-        client.say(channel, `Network cache granted — +${amount}. Current: ${newBalance} Glossels.`);
+        client.say(channel, `Network cache granted, +${amount}. Current: ${newBalance} Glossels.`);
         return true;
     }
 
@@ -655,7 +655,7 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
     if (action === 'revoke' && target === 'cache') {
         const amount = parseInt(arg1);
         if (isNaN(amount) || amount <= 0) {
-            client.say(channel, `Usage — !sysAdmin revoke cache [amount]`);
+            client.say(channel, `Usage, !sysAdmin revoke cache [amount]`);
             return true;
         }
         const current = getCacheBalance();
@@ -664,7 +664,7 @@ function argSystemAdminCommand(client, channel, userId, senderName, tags, msg) {
         if (removed < amount) {
             addToCache(newBalance - removed);
         }
-        client.say(channel, `Network cache revoked — -${removed}. Current: ${current - removed} Glossels.`);
+        client.say(channel, `Network cache revoked, -${removed}. Current: ${current - removed} Glossels.`);
         return true;
     }
 

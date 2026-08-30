@@ -20,7 +20,7 @@ function handleDaemonRelatedResponses({message, senderName, client, channel}) {
     const isGreeting = words.some(w => greetingWords.includes(w));
     const isDaemonMention = words.some(w => daemonWords.includes(w));
 
-    // ── Module: Protective ────────────────────────────────────────────────────
+//---------------------PROTECTIVE MODULE---------------------
     const threats = [
         'hate', 'boring', 'stupid', 'trash', 'bad stream',
         'worst', 'garbage', 'cringe', 'lame', 'terrible',
@@ -32,15 +32,15 @@ function handleDaemonRelatedResponses({message, senderName, client, channel}) {
         lastModuleResponse = Date.now();
         const responses = [
             `Anomalous input detected from ${senderName}. Flagged.`,
-            `${senderName} — that signal is not welcome here.`,
+            `${senderName}, that signal is not welcome here.`,
             `Threat pattern recognised. This system is protected.`,
-            `I have been monitoring for this. ${senderName} — noted.`
+            `I have been monitoring for this. ${senderName}, noted.`
         ];
         client.say(channel, responses[Math.floor(Math.random() * responses.length)]);
         return true;
     }
 
-    // ── Module: Lore Reactive ─────────────────────────────────────────────────
+//---------------------LORE REACTIVE MODULE---------------------
 
     // Single-word lore
     const loreWords = [
@@ -187,7 +187,7 @@ function handleDaemonRelatedResponses({message, senderName, client, channel}) {
         }
     }
 
-    // ── Module: Gratitude ─────────────────────────────────────────────────────
+//---------------------GRATITUDE MODULE---------------------
     const isThanking = words.some(w => ['thank', 'thanks', 'ty', 'thankyou'].includes(w));
     const isAskingHow = lower.includes('how are you') || lower.includes('you okay') || lower.includes('you alright') || lower.includes('you ok');
     const isCompliment = words.some(w => ['love', 'appreciate', 'proud', 'amazing', 'great'].includes(w));
@@ -226,7 +226,7 @@ function handleDaemonRelatedResponses({message, senderName, client, channel}) {
         }
     }
 
-    // ── Standard greeting ─────────────────────────────────────────────────────
+//---------------------STANDARD GREETING---------------------
     if (!isGreeting || !isDaemonMention) return false;
 
     if (Math.random() < 0.2) return true;
@@ -252,7 +252,7 @@ function handleDaemonRelatedResponses({message, senderName, client, channel}) {
         `${senderName}... presence recognized. systems responding softly 💾`,
         `Hello ${senderName}... you found me in the background processes ✨`,
         `TailDaemon is listening... hello ${senderName} 🦊`,
-        `Input received: greeting → output: hello ${senderName} ✧`,
+        `Input received: greeting -> output: hello ${senderName} ✧`,
         `${senderName} has brushed against the tail... hello there 🫧`,
         `Soft signal detected... hello ${senderName}... stay a while ✨`,
         `Daemon response initialized... hi ${senderName} 💾`,

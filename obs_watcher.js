@@ -7,10 +7,10 @@ const RECONNECT_DELAY = 20000;
 async function startOBSWatcher({onOBSOnline, onOBSOFfline}) {
     const obs = new OBSWebSocket();
     let connected = false;
-    let reconnectTimer = null; // ← track the single pending retry
+    let reconnectTimer = null; // track the single pending retry
 
     function scheduleReconnect() {
-        if (reconnectTimer) return; // ← prevent duplicate scheduling
+        if (reconnectTimer) return; // prevent duplicate scheduling
         reconnectTimer = setTimeout(() => {
             reconnectTimer = null;
             tryConnect();
@@ -22,14 +22,14 @@ async function startOBSWatcher({onOBSOnline, onOBSOFfline}) {
             await obs.connect(config.OBS_WS_URL, config.OBS_WS_PASSWORD || undefined);
         } catch (err) {
             Logger.log(`[OBS] Connection failed (${err.message}), retrying in ${RECONNECT_DELAY / 1000}s...`);
-            scheduleReconnect(); // ← use the guarded scheduler, not setTimeout directly
+            scheduleReconnect(); // use the guarded scheduler, not setTimeout directly
         }
     }
 
     obs.on('Identified', () => {
         if (!connected) {
             connected = true;
-            Logger.log('[OBS] Connected — starting bot');
+            Logger.log('[OBS] Connected, starting bot');
             onOBSOnline();
         }
     });
@@ -37,15 +37,15 @@ async function startOBSWatcher({onOBSOnline, onOBSOFfline}) {
     obs.on('ConnectionClosed', () => {
         if (connected) {
             connected = false;
-            Logger.log('[OBS] Disconnected — stopping bot');
+            Logger.log('[OBS] Disconnected, stopping bot');
             onOBSOFfline();
         }
-        scheduleReconnect(); // ← same guarded scheduler — no duplicate with tryConnect's catch
+        scheduleReconnect(); // same guarded scheduler, no duplicate with tryConnect's catch
     });
 
     obs.on('ConnectionError', (err) => {
         Logger.error(`[OBS] WebSocket error: ${err.message}`);
-        // No retry scheduled here — ConnectionClosed handles it
+        // No retry scheduled here, ConnectionClosed handles it
     });
 
     Logger.log(`[OBS] Watching for OBS at ${config.OBS_WS_URL}...`);

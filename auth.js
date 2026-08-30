@@ -123,7 +123,7 @@ async function withTokenRetry(apiCall, refreshFn = refreshBroadcasterToken) {
         const msg = err.response?.data?.message ?? err.message ?? '';
 
         if (status === 401 || msg.toLowerCase().includes('invalid oauth token')) {
-            Logger.warn('[Auth] 401 detected — refreshing token and retrying...');
+            Logger.warn('[Auth] 401 detected, refreshing token and retrying...');
             await refreshFn();
             return await apiCall();
         }

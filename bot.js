@@ -186,7 +186,7 @@ async function stopBot() {
         Logger.error(`[Bot] resetCommandState error: ${e}`);
     }
 
-    resetListeners(); //clear stream-state listener arrays before next startBot()
+    resetListeners(); // clear stream-state listener arrays before next startBot()
 
     if (tokenRefreshInterval) {
         clearInterval(tokenRefreshInterval);

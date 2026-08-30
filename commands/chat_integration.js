@@ -132,7 +132,7 @@ function setupChatCommands(client, config) {
             ];
 
             client.say(channel, returnMessages[Math.floor(Math.random() * returnMessages.length)]);
-            return; // STOP everything else
+            return; // stop everything else
         }
 
 
@@ -212,7 +212,7 @@ function setupChatCommands(client, config) {
 
         if (lower.startsWith('!sysadmin')) {
             if (tags.badges?.broadcaster !== '1') {
-                client.say(channel, `${senderName} — nice try. Admin protocols are broadcaster locked. 🫧`);
+                client.say(channel, `${senderName}, nice try. Admin protocols are broadcaster locked. 🫧`);
                 return;
             }
             argSystemAdminCommand(client, channel, userId, senderName, tags, msg);
@@ -316,7 +316,7 @@ function setupChatCommands(client, config) {
                 return;
         }
 
-        // ------------------- daemon greeting ------------------- (AT BOTTOM TO AVOID OVERWRITING COMMANDS)
+        // ------------------- daemon greeting ------------------- (at bottom to avoid overwriting commands)
         if (
             handleDaemonRelatedResponses({
                 message: msg,

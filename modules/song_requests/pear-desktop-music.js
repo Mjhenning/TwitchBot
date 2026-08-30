@@ -29,7 +29,7 @@ async function apiGet(endpoint) {
         return res.data;
     } catch (err) {
         if (err.response?.status === 401) {
-            config.PEAR_ACCESS_TOKEN = null;  // ← force re-auth on next call
+            config.PEAR_ACCESS_TOKEN = null;  // force re-auth on next call
         }
         Logger.error(`[ERROR] API GET ${endpoint} failed: ${err.response?.status} ${err.response?.data || err.message}`);
         return null;
@@ -53,7 +53,7 @@ async function apiPost(endpoint, body = {}) {
         return res.data;
     } catch (err) {
         if (err.response?.status === 401) {
-            config.PEAR_ACCESS_TOKEN = null;  // ← force re-auth on next call
+            config.PEAR_ACCESS_TOKEN = null;  // force re-auth on next call
         }
         Logger.error(`[ERROR] API POST ${endpoint} failed: ${err.response?.status} ${err.response?.data || err.message}`);
         return null;
@@ -77,7 +77,7 @@ async function apiPatch(endpoint, body = {}) {
         return res.data;
     } catch (err) {
         if (err.response?.status === 401) {
-            config.PEAR_ACCESS_TOKEN = null;  // ← force re-auth on next call
+            config.PEAR_ACCESS_TOKEN = null;  // force re-auth on next call
         }
         Logger.error(`[ERROR] API PATCH ${endpoint} failed: ${err.response?.status} ${err.response?.data || err.message}`);
         return null;
@@ -191,7 +191,7 @@ async function addSongToSSRQueue(videoId, title, requester) {
     // 0. wait if current song is about to end
     await waitIfSongEnding();
 
-    // 1. insert right after current — always lands at currentIndex + 1
+    // 1. insert right after current, always lands at currentIndex + 1
     await apiPost('/queue', {videoId, insertPosition: 'INSERT_AFTER_CURRENT_VIDEO'});
 
     // 2. wait briefly for Pear to register

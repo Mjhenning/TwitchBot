@@ -83,7 +83,7 @@ async function handleLinkBlocker(client, channel, tags, message, ssrEnabled, mrE
         // Allowed only while Song Requests are enabled
         if (srCommand && domainMatches(link, moderationConfig.songRequestDomains))
             continue;
-        // Allowed while Media Requests are open — same domain list, different gate
+        // Allowed while Media Requests are open, same domain list, different gate
         if (mrEnabled && domainMatches(link, moderationConfig.songRequestDomains))
             continue;
         return await block(client, channel, tags);
@@ -131,7 +131,7 @@ async function block(client, channel, tags) {
     return true;
 }
 
-// ── Video redeem URL validation ────────────────────────────────────────────
+//---------------------VIDEO REDEEM URL VALIDATION---------------------
 
 const PLAYLIST_RE = /[?&]list=/i;
 

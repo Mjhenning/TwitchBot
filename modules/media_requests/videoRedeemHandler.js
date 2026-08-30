@@ -17,7 +17,7 @@ async function autoReject(config, rewardId, redemptionId, reason) {
 }
 
 async function expireEntry(config, redemptionId, entry) {
-    Logger.warn(`[VideoRedeem] ${redemptionId} expired — auto-rejecting`);
+    Logger.warn(`[VideoRedeem] ${redemptionId} expired, auto-rejecting`);
     await deletePending(redemptionId);
     await autoReject(config, entry.rewardId, redemptionId, 'expired');
     await deleteVideo(redemptionId);
@@ -25,12 +25,12 @@ async function expireEntry(config, redemptionId, entry) {
 
 async function resolveEntry(config, redemptionId, entry, status) {
     if (status === 'fulfilled') {
-        Logger.log(`[VideoRedeem] ${redemptionId} approved — playing`);
+        Logger.log(`[VideoRedeem] ${redemptionId} approved, playing`);
         await playbackManager.play({
             redemptionId, filePath: entry.filePath, title: entry.metadata.title, userName: entry.userName,
         });
     } else if (status === 'canceled') {
-        Logger.log(`[VideoRedeem] ${redemptionId} rejected by mod — deleting file`);
+        Logger.log(`[VideoRedeem] ${redemptionId} rejected by mod, deleting file`);
         await deleteVideo(redemptionId);
     }
 }
@@ -63,7 +63,7 @@ async function onRedemptionAdd(event, client, config) {
     }
 
     await setPending(redemptionId, {userName, filePath, metadata, rewardId: reward.id, createdAt: Date.now()});
-    Logger.log(`[VideoRedeem] ${redemptionId} ready — "${metadata.title}" awaiting mod decision`);
+    Logger.log(`[VideoRedeem] ${redemptionId} ready, "${metadata.title}" awaiting mod decision`);
 
     client.say(
         config.CHANNEL_NAME,
@@ -80,7 +80,7 @@ async function onRedemptionUpdate(event, client, config) {
     await resolveEntry(config, redemptionId, entry, event.status);
 }
 
-// Self-registers on require, same pattern as your other redeem-type modules.
+// self-registers on require, same pattern as other redemption modules
 registerSubscription(
     'channel.channel_points_custom_reward_redemption.add',
     '1',

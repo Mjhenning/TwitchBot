@@ -1,5 +1,5 @@
 // modules/arg_main.js
-// Self-contained ARG module — all state, filesystem, and command logic in one file
+// Self-contained ARG module, all state, filesystem, and command logic in one file
 
 const fs = require('fs');
 const path = require('path');
@@ -14,9 +14,9 @@ const FOUND_PORTS_PATH = path.join(__dirname, '../data/found_ports.json');
 let terminalActivated = false;
 let FullCoherenceAchieved = false;
 
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 // 1) JSON HELPERS
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 
 function readJSON(filePath) {
     try {
@@ -34,9 +34,9 @@ function writeJSON(filePath, data) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 2) STATE — persists to JSON between streams
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
+// 2) STATE: persists to JSON between streams
+//-------------------------------------------------------------------------------
 
 function getState() {
     return readJSON(STATE_PATH) ?? {
@@ -81,13 +81,13 @@ function applyBitRot() {
     return {decay, newCoherence: state.coherence};
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 3) PORTS — reads fresh on every probe
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
+// 3) PORTS: reads fresh on every probe
+//-------------------------------------------------------------------------------
 
 function getPorts() {
     const ports = readJSON(PORTS_PATH);
-    if (!ports) Logger.error('[ARG] ports.json could not be read — check for syntax errors.');
+    if (!ports) Logger.error('[ARG] ports.json could not be read, check for syntax errors.');
     return ports;
 }
 
@@ -114,17 +114,17 @@ function unmarkPortFound(port) {
     sysProbedPorts.delete(port);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 4) SESSION STATE — resets each stream, lives in memory only
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
+// 4) SESSION STATE: resets each stream, lives in memory only
+//-------------------------------------------------------------------------------
 
-const sysConnectedUsers = new Map(); // userId -> username
+const sysConnectedUsers = new Map(); // userId mapped to username
 const sysProbedPorts = new Set();
 let cwd = '/';
 
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 // 5) HELPER FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 
 function staggerSay(client, channel, messages, delay = 1500) {
     messages.forEach((msg, i) => {
@@ -188,51 +188,51 @@ function rewardConnectedUsers(client, channel, amount, reason) {
     for (const [userId, username] of sysConnectedUsers) {
         addGlossels(userId, amount, username);
     }
-    Logger.log(`[ARG] Rewarded ${sysConnectedUsers.size} users ${amount} Glossels — ${reason}`);
+    Logger.log(`[ARG] Rewarded ${sysConnectedUsers.size} users ${amount} Glossels, ${reason}`);
     if (sysConnectedUsers.size > 0) {
-        client.say(channel, `${sysConnectedUsers.size} connection${sysConnectedUsers.size === 1 ? '' : 's'} rewarded ${amount} Glossels — ${reason}.`);
+        client.say(channel, `${sysConnectedUsers.size} connection${sysConnectedUsers.size === 1 ? '' : 's'} rewarded ${amount} Glossels, ${reason}.`);
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 // 7) PORT PROBE LOGIC
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 
 function sysHandleProbe(client, channel, portInput) {
     if (!portInput) {
-        client.say(channel, `Specify a port. Usage: !system probe [port] — example: !system probe 4096`);
+        client.say(channel, `Specify a port. Usage: !system probe [port], example: !system probe 4096`);
         return;
     }
 
     const port = parseInt(portInput);
 
     if (isNaN(port)) {
-        client.say(channel, `Invalid port — ${portInput}. Provide a numeric port.`);
+        client.say(channel, `Invalid port, ${portInput}. Provide a numeric port.`);
         return;
     }
 
     // read ports fresh every probe
     const ports = getPorts();
     if (!ports) {
-        client.say(channel, `Port probe failed. System error — check logs.`);
+        client.say(channel, `Port probe failed. System error, check logs.`);
         return;
     }
 
-    // already probed — use port's unique already probed message
+    // already probed, use port's unique already probed message
     if (sysProbedPorts.has(port) || wasPortFound(port)) {
         const alreadyMsg = ports?.[port]?.alreadyProbedMessage
-            ?? `Port ${port} — already recovered. Signal stable.`;
+            ?? `Port ${port}, already recovered. Signal stable.`;
         client.say(channel, alreadyMsg);
         return;
     }
 
-    // not in ports at all — dead signal, don't record
+    // not in ports at all, dead signal, don't record
     if (!ports[port]) {
         const responses = [
-            `Port ${port} — no response. Dead signal.`,
-            `Port ${port} — endpoint unreachable.`,
-            `Port ${port} — nothing there. Or nothing left.`,
-            `Port ${port} — probe returned empty. Keep looking.`
+            `Port ${port}, no response. Dead signal.`,
+            `Port ${port}, endpoint unreachable.`,
+            `Port ${port}, nothing there. Or nothing left.`,
+            `Port ${port}, probe returned empty. Keep looking.`
         ];
         client.say(channel, responses[Math.floor(Math.random() * responses.length)]);
         return;
@@ -244,13 +244,13 @@ function sysHandleProbe(client, channel, portInput) {
     sysProbedPorts.add(port);
     markPortFound(port);
 
-    // lore type — fire announce but no unlock
+    // lore type, fire announce but no unlock
     if (unlock.type === 'lore') {
         staggerSay(client, channel, unlock.announce, 1800);
         return;
     }
 
-    // valid unlock port — fire unlock and reward
+    // valid unlock port, fire unlock and reward
     const typeMap = {
         command: 'commands',
         daemon_module: 'daemonModules',
@@ -258,17 +258,17 @@ function sysHandleProbe(client, channel, portInput) {
     };
 
     // write unlock to unlocked_features if needed
-    // keeping this lightweight — just log it, actual feature checks
+    // keeping this lightweight, just log it, actual feature checks
     // happen in bot_response_modules via sysIsDaemonModuleUnlocked
-    Logger.log(`[ARG] Port ${port} unlocked — type: ${unlock.type} label: ${unlock.label}`);
+    Logger.log(`[ARG] Port ${port} unlocked, type: ${unlock.type} label: ${unlock.label}`);
 
     rewardConnectedUsers(client, channel, 64, `port ${port} discovered`);
     staggerSay(client, channel, unlock.announce, 2000);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 // 8) !system COMMAND HANDLERS
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 
 function handleSys(client, channel) {
     if (!terminalActivated) {
@@ -299,16 +299,16 @@ function handleSysHelp(client, channel) {
         '!system handshake <amount>',
         '!system handshake <amount> <user>'
     ];
-    client.say(channel, `SYSTEM HELP — Available: ${commands.join(' | ')}`);
+    client.say(channel, `SYSTEM HELP, Available: ${commands.join(' | ')}`);
 }
 
 function handleSysCwd(client, channel) {
-    client.say(channel, `Current directory — ${cwd}`);
+    client.say(channel, `Current directory, ${cwd}`);
 }
 
 function handleSysDir(client, channel, userPath) {
     if (!userPath) {
-        client.say(channel, `Specify a directory. Usage: !system dir [path] — example: !system dir /boot`);
+        client.say(channel, `Specify a directory. Usage: !system dir [path], example: !system dir /boot`);
         return;
     }
 
@@ -316,7 +316,7 @@ function handleSysDir(client, channel, userPath) {
     const targetPath = getAbsolutePath(userPath);
 
     if (!fs.existsSync(targetPath) || !fs.statSync(targetPath).isDirectory()) {
-        client.say(channel, `./${userPath} — directory not found. Current directory unchanged.`);
+        client.say(channel, `./${userPath}, directory not found. Current directory unchanged.`);
         return;
     }
 
@@ -366,19 +366,19 @@ function handleSysLs(client, channel) {
     const all = [...visible, ...locked];
 
     if (all.length === 0) {
-        client.say(channel, `${cwd} — empty or fully inaccessible.`);
+        client.say(channel, `${cwd}, empty or fully inaccessible.`);
         return;
     }
 
     staggerSay(client, channel, [
-        `${cwd} — ${all.length} entr${all.length === 1 ? 'y' : 'ies'} found.`,
+        `${cwd}, ${all.length} entr${all.length === 1 ? 'y' : 'ies'} found.`,
         all.join(' | ')
     ]);
 }
 
 function handleSysRead(client, channel, userInput) {
     if (!userInput) {
-        client.say(channel, `Specify a file. Usage: !system read [file] — example: !system read readme.txt`);
+        client.say(channel, `Specify a file. Usage: !system read [file], example: !system read readme.txt`);
         return;
     }
 
@@ -397,37 +397,37 @@ function handleSysRead(client, channel, userInput) {
     }
 
     if (!fs.existsSync(jsonFile)) {
-        client.say(channel, `File not found — ${userInput}. Run !system ls to check available files.`);
+        client.say(channel, `File not found, ${userInput}. Run !system ls to check available files.`);
         return;
     }
 
     const file = readJSON(jsonFile);
     if (!file) {
-        client.say(channel, `Read error — ${userInput} could not be parsed.`);
+        client.say(channel, `Read error, ${userInput} could not be parsed.`);
         return;
     }
 
     if (file.unlockedAtCoherence && coherence < file.unlockedAtCoherence) {
         client.say(channel,
-            `${file.filename} — access denied. ` +
+            `${file.filename}, access denied. ` +
             `Coherence insufficient. Required: ${file.unlockedAtCoherence}% | Current: ${coherence}%`
         );
         return;
     }
 
     if (!isFileAccessible(file, coherence)) {
-        client.say(channel, file.lockedMessage?.[0] ?? `${file.filename} — not accessible yet.`);
+        client.say(channel, file.lockedMessage?.[0] ?? `${file.filename}, not accessible yet.`);
         return;
     }
 
     if (file.corrupted && coherence < 60) {
         if (file.corruptedContent?.length) {
             staggerSay(client, channel, [
-                `${file.filename} — signal degraded. Partial recovery only.`,
+                `${file.filename}, signal degraded. Partial recovery only.`,
                 ...file.corruptedContent
             ], 1200);
         } else {
-            client.say(channel, `${file.filename} — corrupted. Cannot render.`);
+            client.say(channel, `${file.filename}, corrupted. Cannot render.`);
         }
         return;
     }
@@ -437,7 +437,7 @@ function handleSysRead(client, channel, userInput) {
     );
 
     staggerSay(client, channel, [
-        `${file.filename} — rendering.`,
+        `${file.filename}, rendering.`,
         ...lines.map(line => line.startsWith('/') || line.startsWith('!') ? `· ${line}` : line)
     ]);
 }
@@ -456,7 +456,7 @@ function handleSysConnect(client, channel, userId, username) {
         sysConnectedUsers.set(userId, username);
     }
 
-    client.say(channel, `${username} — connection maintained. ${reward} Glossels retrieved. Thank you for keeping the signal alive. 🫧`);
+    client.say(channel, `${username}, connection maintained. ${reward} Glossels retrieved. Thank you for keeping the signal alive. 🫧`);
 }
 
 function handleSysPing(client, channel) {
@@ -489,18 +489,18 @@ function handleSysPing(client, channel) {
 
     const pool = {
         low: [
-            `PING — coherence: ${newCoherence}%.${nextHint} Signal degraded. Bit-rot accumulating.`,
-            `PING — coherence: ${newCoherence}%.${nextHint} System fragmented. Input required.`,
-            `PING — coherence: ${newCoherence}%.${nextHint} Holding. Barely. Keep pinging.`
+            `PING, coherence: ${newCoherence}%.${nextHint} Signal degraded. Bit-rot accumulating.`,
+            `PING, coherence: ${newCoherence}%.${nextHint} System fragmented. Input required.`,
+            `PING, coherence: ${newCoherence}%.${nextHint} Holding. Barely. Keep pinging.`
         ],
         mid: [
-            `PING — coherence: ${newCoherence}%.${nextHint} Partial recovery detected. Continuing.`,
-            `PING — coherence: ${newCoherence}%.${nextHint} Signal stabilising. Do not stop.`,
-            `PING — coherence: ${newCoherence}%.${nextHint} Cache refreshing. Connection appreciated.`
+            `PING, coherence: ${newCoherence}%.${nextHint} Partial recovery detected. Continuing.`,
+            `PING, coherence: ${newCoherence}%.${nextHint} Signal stabilising. Do not stop.`,
+            `PING, coherence: ${newCoherence}%.${nextHint} Cache refreshing. Connection appreciated.`
         ],
         high: [
-            `PING — coherence: ${newCoherence}%.${nextHint} Strong signal. Almost there.`,
-            `PING — coherence: ${newCoherence}%.${nextHint} This is what it should feel like.`
+            `PING, coherence: ${newCoherence}%.${nextHint} Strong signal. Almost there.`,
+            `PING, coherence: ${newCoherence}%.${nextHint} This is what it should feel like.`
         ]
     }[tier];
 
@@ -513,9 +513,9 @@ function handleSysCache(client, channel) {
     client.say(channel, `Network Cache: ${balance} Glossels buffered. !system handshake to retrieve.`);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 8B) !system handshake — NETWORK GAMBLE / TRANSFER
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
+// 8B) !system handshake: NETWORK GAMBLE / TRANSFER
+//-------------------------------------------------------------------------------
 
 const HANDSHAKE_OUTCOMES = [
     {
@@ -590,14 +590,14 @@ function handleSysHandshake(client, channel, userId, senderName, msg) {
     const amount = parseInt(parts[2], 10);
 
     if (!amount || amount <= 0) {
-        client.say(channel, `Usage: !system handshake <amount> — send Glossels into an unknown network node.`);
+        client.say(channel, `Usage: !system handshake <amount>, send Glossels into an unknown network node.`);
         return;
     }
 
     const currentBalance = retrieveGlossels(userId, senderName);
 
     if (currentBalance < amount) {
-        client.say(channel, `${senderName} — insufficient Glossels. Balance: ${currentBalance} Glossels.`);
+        client.say(channel, `${senderName}, insufficient Glossels. Balance: ${currentBalance} Glossels.`);
         return;
     }
 
@@ -613,13 +613,13 @@ function handleSysHandshake(client, channel, userId, senderName, msg) {
 
         const result = giveGlossels(userId, targetUser.usrId, amount);
         if (!result.success) {
-            client.say(channel, `Transfer failed — ${result.reason}.`);
+            client.say(channel, `Transfer failed, ${result.reason}.`);
             return;
         }
 
         staggerSay(client, channel, [
             `>> DIRECT TRANSFER INITIATED`,
-            `${senderName} → ${targetUser.usrName}: ${amount} Glossels`,
+            `${senderName} -> ${targetUser.usrName}: ${amount} Glossels`,
             `Transfer complete. Sender Balance: ${result.newSenderBalance} Glossels. Receiver Balance: ${result.newReceiverBalance} Glossels.`
         ]);
         return;
@@ -660,7 +660,7 @@ function handleSysHandshake(client, channel, userId, senderName, msg) {
         .replace(/{cache}/g, cacheGain);
 
     const lines = [
-        `>> NETWORK HANDSHAKE — SENDING ${amount} GLOSSELS`,
+        `>> NETWORK HANDSHAKE, SENDING ${amount} GLOSSELS`,
         flavor
     ];
 
@@ -674,9 +674,9 @@ function handleSysHandshake(client, channel, userId, senderName, msg) {
     staggerSay(client, channel, lines);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 // 9) EVENT STATE HELPERS
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 
 function sysIsTerminalActive() {
     return terminalActivated;
@@ -689,9 +689,9 @@ function sysResetSession() {
     terminalActivated = false;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 // 10) STARTUP & EXPORTS
-// ═══════════════════════════════════════════════════════════════════════════════
+//-------------------------------------------------------------------------------
 
 function startARGElements(client, config) {
     const {loadCurrencySystem} = require('../../modules/functions/glossels');

@@ -41,7 +41,7 @@ function scheduleCommand(entry, client, channel) {
             if (entry.condition) {
                 const conditionFn = conditionMap[entry.condition];
                 if (conditionFn && !conditionFn()) {
-                    Logger.log(`[Timer] "${entry.id}" skipped — condition "${entry.condition}" is false`);
+                    Logger.log(`[Timer] "${entry.id}" skipped, condition "${entry.condition}" is false`);
                     const nextFire = parseTime(entry.interval);
                     Logger.log(`[Timer] "${entry.id}" next fire in ${Math.round(nextFire / 1000)}s`);
                     activeTimeout = setTimeout(fire, nextFire);
@@ -85,7 +85,7 @@ function scheduleCommand(entry, client, channel) {
     onOffline(stop);
     onOnline(startSequence);
 
-    activeStopFunctions.push(stop);  // ← register for module-level stop
+    activeStopFunctions.push(stop);  // register for module-level stop
 
     if (getIsOnline()) {
         startSequence();

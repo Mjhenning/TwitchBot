@@ -11,14 +11,11 @@ let stopped = false;
 // Each entry: { type, version, condition(config), handler(event, client, config) }
 const subscriptionRegistry = [];
 
-/**
- * Register a new EventSub subscription type.
- *
- * @param {string}   type       - Twitch EventSub subscription type, e.g. 'channel.follow'
- * @param {string}   version    - Subscription version, e.g. '2'
- * @param {function} condition  - (config) => { ...condition object }
- * @param {function} handler    - (event, client, config) => void  — called on notification
- */
+// Register a new EventSub subscription type.
+// @param type    Twitch EventSub subscription type, e.g. 'channel.follow'
+// @param version Subscription version, e.g. '2'
+// @param condition (config) => { ...condition object }
+// @param handler   (event, client, config) => void, called on notification
 function registerSubscription(type, version, condition, handler) {
     subscriptionRegistry.push({type, version, condition, handler});
 }
@@ -55,7 +52,7 @@ function handleEventSubMessage(msg, client, config) {
 
         case 'session_reconnect':
             Logger.log('TwitchEvents: EventSub requested reconnect');
-            if (!stopped) {          // ← only reconnect if we weren't manually stopped
+            if (!stopped) {          // only reconnect if we weren't manually stopped
                 client._ws.close();
                 startEventSub(client, config);
             }
@@ -68,7 +65,7 @@ function handleEventSubMessage(msg, client, config) {
 
 async function subscribeAll(client, config) {
     if (!sessionId) {
-        Logger.error('TwitchEvents: No session ID — cannot subscribe');
+        Logger.error('TwitchEvents: No session ID, cannot subscribe');
         return;
     }
 
@@ -113,7 +110,7 @@ async function subscribeAll(client, config) {
 }
 
 async function startEventSub(client, config) {
-    stopped = false;  // ← reset on each start
+    stopped = false;  // reset on each start
     _client = client;
     const ws = new WebSocket('wss://eventsub.wss.twitch.tv/ws');
     client._ws = ws;

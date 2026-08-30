@@ -1,6 +1,6 @@
 // modules/cooldown.js
-const cooldowns = new Map(); // key: userId:command → timestamp
-const COMMAND_COOLDOWN = 5; // fallabck 30 seconds
+const cooldowns = new Map(); // key is userId:command, maps to timestamp
+const COMMAND_COOLDOWN = 5; // default 5s
 
 function getCooldownRemaining(userId, command, customCooldown = null) {
     const key = `${userId}:${command}`;

@@ -1,7 +1,7 @@
 // modules/testing_events.js
 const {Logger} = require('../../services');
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+//---------------------HELPERS---------------------
 
 function dispatch(client, config, fakeEvent, label) {
     Logger.log(`[SIMULATION] Triggering: ${label}`);
@@ -10,7 +10,7 @@ function dispatch(client, config, fakeEvent, label) {
     if (client._eventSubHandler) {
         client._eventSubHandler(fakeEvent);
     } else {
-        Logger.warn('[SIMULATION] No _eventSubHandler found — event not dispatched');
+        Logger.warn('[SIMULATION] No _eventSubHandler found, event not dispatched');
     }
 
     return fakeEvent;
@@ -23,7 +23,7 @@ function notification(type, event) {
     };
 }
 
-// ─── channel.follow ────────────────────────────────────────────────────────────
+//---------------------CHANNEL.FOLLOW---------------------
 
 function simulateFollow(client, config, username = 'TestUser') {
     return dispatch(client, config, notification('channel.follow', {
@@ -33,7 +33,7 @@ function simulateFollow(client, config, username = 'TestUser') {
     }), `channel.follow for ${username}`);
 }
 
-// ─── channel.raid ──────────────────────────────────────────────────────────────
+//---------------------CHANNEL.RAID---------------------
 
 function simulateRaid(client, config, raiderName = 'TestRaider', viewers = 42) {
     return dispatch(client, config, notification('channel.raid', {
@@ -46,7 +46,7 @@ function simulateRaid(client, config, raiderName = 'TestRaider', viewers = 42) {
     }), `channel.raid from ${raiderName} with ${viewers} viewers`);
 }
 
-// ─── channel.ad_break.begin ────────────────────────────────────────────────────
+//---------------------CHANNEL.AD_BREAK.BEGIN---------------------
 
 function simulateAdBreak(client, config, durationSeconds = 30, isAutomatic = true, requester = null) {
     return dispatch(client, config, notification('channel.ad_break.begin', {
@@ -56,19 +56,16 @@ function simulateAdBreak(client, config, durationSeconds = 30, isAutomatic = tru
         requester_user_login: isAutomatic ? null : (requester ?? 'TestMod').toLowerCase(),
         requester_user_name: isAutomatic ? null : (requester ?? 'TestMod'),
         started_at: new Date().toISOString()
-    }), `channel.ad_break.begin — ${durationSeconds}s, automatic=${isAutomatic}`);
+    }), `channel.ad_break.begin, ${durationSeconds}s, automatic=${isAutomatic}`);
 }
 
-// ─── Batch runner ──────────────────────────────────────────────────────────────
+//---------------------BATCH RUNNER---------------------
 
-/**
- * Run all simulations in sequence with a delay between each.
- * Useful for a quick end-to-end smoke test.
- *
- * @param {object} client
- * @param {object} config
- * @param {number} delayMs  - ms between each event (default 1500)
- */
+// Run all simulations in sequence with a delay between each.
+// Useful for a quick end-to-end smoke test.
+// @param {object} client
+// @param {object} config
+// @param {number} delayMs, ms between each event (default 1500)
 async function simulateAll(client, config, delayMs = 1500) {
     const delay = (ms) => new Promise(res => setTimeout(res, ms));
 

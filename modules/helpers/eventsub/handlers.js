@@ -1,14 +1,11 @@
 // data/twitch_events_handlers.js
 //
-// This is where you define what happens for each Twitch EventSub event.
-// To add a new subscription, call registerSubscription() with:
-//   - The Twitch event type  (https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/)
-//   - The version string
-//   - A condition factory:  (config) => { ...condition fields }
-//   - A handler function:   (event, client, config) => void
+// Registers all EventSub subscriptions for this project.
+// Each registration supplies a type, version, condition factory,
+// and a handler function: (event, client, config) => void.
 //
 // All registrations here are automatically subscribed when the EventSub
-// session becomes ready — no changes needed in twitch_events.js.
+// session becomes ready, no changes needed in twitch_events.js.
 
 const axios = require('axios');
 const {registerSubscription} = require('./core');
@@ -18,7 +15,7 @@ const {getIsOnline} = require('../stream-state');
 
 let adEndTimer = null;
 
-// ─── channel.follow ────────────────────────────────────────────────────────────
+//---------------------channel.follow---------------------
 registerSubscription(
     'channel.follow',
     '2',
@@ -36,19 +33,19 @@ registerSubscription(
     }
 );
 
-// ─── channel.raid ──────────────────────────────────────────────────────────────
+//---------------------channel.raid---------------------
 registerSubscription(
     'channel.raid',
     '1',
     (config) => ({
-        to_broadcaster_user_id: config.BROADCASTER_ID  // fires when someone raids YOU
+        to_broadcaster_user_id: config.BROADCASTER_ID  // fires when someone raids the channel
     }),
     async (event, client, config) => {
         await eventShoutout(event, client, config)
     }
 );
 
-// ─── channel.ad_break.begin ────────────────────────────────────────────────────
+//---------------------channel.ad_break.begin---------------------
 registerSubscription(
     'channel.ad_break.begin',
     '1',
@@ -60,7 +57,7 @@ registerSubscription(
         const isAutomatic = event.is_automatic;
         const requester = event.requester_user_name;
 
-        Logger.log(`EventHandlers: Ad break started — ${duration}s, automatic=${isAutomatic}`);
+        Logger.log(`EventHandlers: Ad break started, ${duration}s, automatic=${isAutomatic}`);
 
         const who = isAutomatic
             ? 'Automatic ad break'
@@ -68,7 +65,7 @@ registerSubscription(
 
         client.say(
             `#${config.CHANNEL_NAME}`,
-            `📡 Bitrot interference detected — ${who} for ${duration} seconds. Hold steady, the Glosso-Sphere will stabilize shortly 🫧`
+            `📡 Bitrot interference detected, ${who} for ${duration} seconds. Hold steady, the Glosso-Sphere will stabilize shortly 🫧`
         ).catch(err => Logger.error(`EventHandlers: Ad break message failed: ${err}`));
 
         // Cancel any previous timer just in case.
@@ -87,14 +84,14 @@ registerSubscription(
 
             client.say(
                 `#${config.CHANNEL_NAME}`,
-                `🫧 Bitrot interference has cleared! The Glosso-Sphere has stabilized — welcome back, everyone! ✨`
+                `🫧 Bitrot interference has cleared! The Glosso-Sphere has stabilized, welcome back, everyone! ✨`
             ).catch(err => Logger.error(`EventHandlers: Welcome back message failed: ${err}`));
 
         }, (duration + 1) * 1000); // 1 second buffer
     }
 );
 
-// ─── Add more subscriptions below ──────────────────────────────────────────────
+//---------------------ADD MORE SUBSCRIPTIONS BELOW---------------------
 // registerSubscription(
 //   'channel.channel_points_custom_reward_redemption.add',
 //   '1',
