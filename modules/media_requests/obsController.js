@@ -4,9 +4,6 @@ const {Logger} = require('../../services');
 
 const obs = new OBSWebSocket();
 let connected = false;
-let sceneItemId = null;
-
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function connectObs() {
     if (connected) return;
@@ -16,27 +13,37 @@ async function connectObs() {
         connected = false;
         Logger.warn('[OBS] connection closed');
     });
-
-    ({sceneItemId} = await obs.call('GetSceneItemId', {
-        sceneName: config.OBS_SCENE_NAME,
-        sourceName: config.OBS_SOURCE_NAME,
-    }));
 }
 
 async function ensureConnected() {
     if (!connected) await connectObs();
 }
 
-async function enableMediaGroup() {
+// Toggles the media source on the current active scene only. Scene swaps keep
+// each item's own enabled state, so enabling on the active scene is enough and
+// won't force the source on elsewhere.
+async function getActiveSceneItem() {
+    const {currentProgramSceneName} = await obs.call('GetCurrentProgramScene');
+    const {sceneItems} = await obs.call('GetSceneItemList', {sceneName: currentProgramSceneName});
+    return sceneItems.find((item) => item.sourceName === config.OBS_SOURCE_NAME) || null;
+}
+
+async function setMediaGroupVisible(visible) {
     await ensureConnected();
-    // await delay(500);
-    await obs.call('SetSceneItemEnabled', {sceneName: config.OBS_SCENE_NAME, sceneItemId, sceneItemEnabled: true});
+    const target = await getActiveSceneItem();
+    if (!target) {
+        Logger.warn(`[OBS] source "${config.OBS_SOURCE_NAME}" not found in active scene`);
+        return;
+    }
+    await obs.call('SetSceneItemEnabled', {sceneName: target.sceneName, sceneItemId: target.sceneItemId, sceneItemEnabled: visible});
+}
+
+async function enableMediaGroup() {
+    await setMediaGroupVisible(true);
 }
 
 async function disableMediaGroup() {
-    await ensureConnected();
-    // await delay(500);
-    await obs.call('SetSceneItemEnabled', {sceneName: config.OBS_SCENE_NAME, sceneItemId, sceneItemEnabled: false});
+    await setMediaGroupVisible(false);
 }
 
 module.exports = {connectObs, enableMediaGroup, disableMediaGroup};

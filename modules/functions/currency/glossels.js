@@ -225,6 +225,10 @@ function getTop5() {
     return leaderboard.slice(0, 5);
 }
 
+function getLeaderboard() {
+    return [...leaderboard]; // copy, always sorted by amount desc
+}
+
 function getUserRank(userId) {
     const index = leaderboard.findIndex(u => u.usrId === userId);
     return index === -1 ? null : index + 1;
@@ -288,6 +292,7 @@ module.exports = {
     removeAll,
     removeUserEntry,
     getTop5,
+    getLeaderboard,
     getUserRank,
     getUserByName,
     giveGlossels,

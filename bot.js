@@ -23,6 +23,8 @@ const {applyStartupStates} = require('./modules/helpers/twitchRedemption');
 const {startEventSub, stopEventSub} = require('./modules/helpers/eventsub/core');
 require('./modules/helpers/eventsub/handlers');
 
+const {startTop10OverlayServer} = require('./modules/helpers/top10_overlay_server');
+
 let tmiClient = null;
 let isRunning = false;
 let tokenRefreshInterval = null;
@@ -113,6 +115,10 @@ async function startBot() {
         startTimers(tmiClient, cfg.CHANNEL_NAME);
         setupChatCommands(tmiClient, cfg);
         startARGElements(tmiClient, cfg);
+        startTop10OverlayServer({
+            getAccessToken: () => cfg.APP_TOKEN, // fetched by initTokens
+            clientId: cfg.CLIENT_ID,
+        });
 
         Logger.log('[Bot] All modules running');
     } catch (err) {

@@ -27,6 +27,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 - **EventSub Integration**: Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), and ad break notifications with countdown warnings.
 - **Ad Schedule Poller**: Adaptive polling of the Twitch ad schedule API. Warns chat ~45 seconds before a scheduled ad. Pauses when stream is offline, resumes on online.
 - **Virtual Currency (Glossels)**: Viewers earn Glossels through `!system connect` daily check-ins and participating in ARG events, or instantly convert 1000 channel points into 50 Glossels via the Points to Glossels channel points redeem (Twitch enforces the per-user per-stream limit and approval-skip). Gamble Glossels by sending them into unknown network nodes (`!system handshake <amount>`), or transfer them to other viewers. Lost Glossels accumulate in the Network Cache, and a rare `drained` outcome lets a player retrieve everything. Leaderboard and rank tracking via `!system balance`, `!system rank`, `!system top`.
+- **Top 10 Overlay**: A small WebSocket server (`top10_overlay_server.js`) that drives an OBS browser-source leaderboard. Running `!system top` broadcasts the top 10 Glossels holders (with their Twitch chat colors) to the overlay on port 8420.
 - **Alternate Reality Game (ARG)**: An in-chat terminal simulation ("AETHER-OS") with a virtual filesystem, coherence system, bit-rot decay, port probing, lore files, file access gated by coherence level and discovered events, and a network gamble/transfer system for Glossels.
 - **Moderation**: Automatic link filtering with domain allowlists. Links are deleted and the user warned unless they have a trusted badge or the link matches an allowed domain. Song-request and media-request domains are conditionally permitted.
 - **Counters**: Configurable chat counters (e.g. death, yawn, 404) with increment, set, stats, and last-counted subcommands.
@@ -162,7 +163,7 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!system cache` | Check the current Network Cache balance |
 | `!system balance` | Check your Glossels balance |
 | `!system rank` | See your leaderboard rank |
-| `!system top` | Top 5 Glossels leaderboard |
+| `!system top` | Top 5 Glossels leaderboard (also triggers the Top 10 OBS overlay) |
 | `!sysAdmin grant probe <port>` | Admin: unlock a port (broadcaster only) |
 | `!sysAdmin revoke probe <port>` | Admin: lock a port (broadcaster only) |
 | `!sysAdmin bump coherence <n>` | Admin: add coherence (broadcaster only) |
@@ -220,11 +221,16 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 - Toggles Twitch Shield Mode via the Helix API.
 - Broadcasts stream state via `stream-state.js` pub/sub (used by ad poller, timers, ARG, and the shield system itself).
 
+### Top 10 Overlay (`modules/helpers/top10_overlay_server.js`)
+- Runs a small WebSocket server that an OBS browser source connects to.
+- `!system top` triggers a broadcast of the top 10 Glossels holders (from the glossels leaderboard) with each user's Twitch chat color (batched Helix call, cached 24h, deterministic palette fallback).
+- Listens on `TOP10_OVERLAY_PORT` (default 8420); only needs to be reachable from the OBS machine.
+
 ### Media Requests Pipeline (`modules/media_requests/`)
  1. **`videoRedeemHandler.js`**: Self-registers the video reward with the redemption dispatcher. Feature logic only: validate URL → fetch metadata → download → delegate approval/playback to the dispatcher. New redemption rewards add a `registerReward()` call in their own module, no EventSub or pending-store code needed.
  2. **`metadataService.js`**: Extracts video metadata via `yt-dlp --dump-json`.
 3. **`downloadService.js`**: Downloads video via `yt-dlp` to `MEDIA_QUEUE_DIR`.
-4. **`obsController.js`**: Shows/hides the media source in OBS via WebSocket.
+4. **`obsController.js`**: Shows/hides the media source in OBS via WebSocket. Targets only the currently active scene, so media playback never forces the source visible on other scenes.
 5. **`vlcController.js`**: Controls VLC playback via HTTP API (play, stop, status).
 6. **`playbackManager.js`**: Coordinates OBS source visibility and VLC playback.
 7. **`pendingStore.js`**: Atomic write (tmp + rename) persistence for in-flight redemptions. Survives crashes.
@@ -281,6 +287,7 @@ TwitchBot/
 │   │   ├── shield_system.js        # Shield Mode auto-toggle on stream online/offline
 │   │   ├── stream-state.js         # Online/offline state pub/sub
 │   │   ├── timer.js                # Timed/recurring chat messages
+│   │   ├── top10_overlay_server.js # OBS Top 10 leaderboard browser-source WS server
 │   │   └── twitchRedemption.js     # Redemption dispatcher + Twitch channel point API helpers
 │   ├── media_requests/
 │   │   ├── downloadService.js      # yt-dlp video download
@@ -352,6 +359,7 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 - **OBS-gated startup**: The bot connects to OBS first and only starts all other modules once OBS is online. If OBS disconnects, everything tears down and the bot waits for OBS to reconnect (polls every 20s).
 - **Dual EventSub connections**: The Shield System uses its own dedicated WebSocket for `stream.online`/`stream.offline`. The main EventSub hub (`core.js`) handles follow, raid, ad, and media request events. Both auto-reconnect.
 - **Stream-state pub/sub**: A simple observer pattern (`onOnline`/`onOffline` in `stream-state.js`) decouples stream lifecycle from individual modules. The ad poller, timers, ARG, and shield system all subscribe to it.
+- **Browser-source overlay**: The Top 10 overlay exposes its own small WebSocket that the OBS browser source connects to (unlike `obsController.js`, which drives OBS via the OBS WebSocket). It reuses the glossels in-memory leaderboard as the single source of truth. Both address their target by source name / port rather than a hard-coded scene: the overlay's browser source connects from any scene, and the media source is toggled on the currently active scene only.
 - **Self-registering handlers**: EventSub handler modules (e.g. `videoRedeemHandler.js`) register at require-time. Redemption reward modules call `registerReward()` on the dispatcher in `twitchRedemption.js`; other subscription types are registered in `handlers.js`. Importing the file is enough to register, no explicit wiring needed.
 - **Redemption dispatcher**: All channel point redemptions flow through a generic EventSub `add`/`update` pair in `handlers.js` into `twitchRedemption.js`, which routes to the module registered for each reward id. Rewards define an `onRedeem` plus optional `onResolve`/`onReject`/`onExpire`; if no `onResolve` is given the reward is fulfilled instantly (a reward using Twitch's skip-approval queue sets `autoFulfill: false` so the dispatcher skips the redundant Helix status update). The dispatcher owns the pending store, startup reconciliation, the 5-minute expiry sweep for mod-approval rewards, and each reward's open/closed state (a reward's `startClosed` flag decides whether it begins paused on bot start, e.g. media requests).
 - **Atomic persistence**: `pendingStore.js` writes to a `.tmp` file then renames, preventing corruption on crash. All other JSON files are read on demand and written after every mutation.

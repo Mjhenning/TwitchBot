@@ -21,7 +21,20 @@ const {
     skipSong
 } = require('../modules/song_requests/pear-desktop-music');
 
-const {retrieveGlossels, getUserRank, getTop5, addGlossels, removeGlossels, getUserByName, giveAll, removeAll, getUserMap, addToCache, drainCache, getCacheBalance} = require('../modules/functions/currency/glossels');
+const {
+    retrieveGlossels,
+    getUserRank,
+    getTop5,
+    addGlossels,
+    removeGlossels,
+    getUserByName,
+    giveAll,
+    removeAll,
+    getUserMap,
+    addToCache,
+    drainCache,
+    getCacheBalance
+} = require('../modules/functions/currency/glossels');
 
 const {
     handleSys, handleSysHelp, handleSysDir, handleSysRead
@@ -37,6 +50,8 @@ const {handleCounter} = require("../modules/helpers/counters");
 const {handleLinkBlocker} = require("../modules/moderation/link_filter");
 const {openReward, closeReward, isRewardOpen, resetRewardStates} = require('../modules/helpers/twitchRedemption');
 const {handleCooldown} = require('../modules/helpers/cooldown');
+
+const {triggerTop10Overlay} = require('../modules/helpers/top10_overlay_server');
 
 
 //--------------------------------- HELPERS ------------------------------------
@@ -433,6 +448,8 @@ function getRankCommand(client, channel, userId, senderName) {
 }
 
 function getTop5Command(client, channel) {
+    triggerTop10Overlay(); // fire-and-forget: broadcasts the same leaderboard to the OBS overlay
+
     const top = getTop5();
 
     if (top.length === 0) {

@@ -36,7 +36,6 @@ const config = {
     // ---------- OBS WebSocket ----------
     OBS_WS_URL: process.env.OBS_WS_URL,
     OBS_WS_PASSWORD: process.env.OBS_WS_PASSWORD,
-    OBS_SCENE_NAME: process.env.OBS_SCENE_NAME,
     OBS_SOURCE_NAME: process.env.OBS_SOURCE_NAME,
 
     // ---------- BOT AUTH (runtime) ----------
@@ -61,6 +60,9 @@ const config = {
 
     VLC_HOST: process.env.VLC_HOST,
     VLC_PASSWORD: process.env.VLC_PASSWORD,
+
+    // ---------- Overlay ----------
+    TOP10_OVERLAY_PORT: process.env.TOP10_OVERLAY_PORT || 8420,
 
     // ---------- Data ----------
     COUNTER_PATH,
