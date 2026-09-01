@@ -32,6 +32,18 @@ function fallbackColor(userId) {
 const COLOR_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h, chat colors rarely change
 const colorCache = new Map(); // userId -> { color, expires }
 
+// Trailing debounce so a burst of !system top collapses into one broadcast
+// instead of spamming the overlay (which would replay its animation each time).
+const DEBOUNCE_MS = 800; // post-burst delay before the broadcast fires
+let debounceTimer = null;
+
+// "Busy" lock: once a sequence is broadcast to the overlay, further triggers
+// are ignored until the browser source ACKs back that it finished playing.
+// The html sends {"type":"done"} at the very end of its animation. Tracks per
+// client so the lock clears reliably even when clients drop mid-sequence.
+const awaitingAck = new Set(); // sockets currently being shown, not yet ACKed
+let busy = false;
+
 let wss = null;
 
 // Wired by startTop10OverlayServer() from bot.js (app token + client id).
@@ -54,8 +66,17 @@ function startTop10OverlayServer(options = {}) {
 
     wss.on('connection', (socket) => {
         Logger.log(`[Top10Overlay] Browser source connected (${wss.clients.size} total)`);
+        socket.on('message', (data) => {
+            try {
+                const msg = JSON.parse(data.toString());
+                if (msg.type === 'done') clearAck(socket);
+            } catch {
+                // ignore malformed frames from the browser source
+            }
+        });
         socket.on('close', () => {
             Logger.log(`[Top10Overlay] Browser source disconnected (${wss.clients.size} total)`);
+            clearAck(socket); // gone, so it can't be holding the lock
         });
         socket.on('error', (err) => {
             Logger.error(`[Top10Overlay] Client socket error: ${err.message}`);
@@ -122,11 +143,25 @@ async function attachChatColors(leaderboard) {
     });
 }
 
-async function triggerTop10Overlay() {
+function clearAck(socket) {
+    awaitingAck.delete(socket);
+    if (awaitingAck.size === 0) busy = false;
+}
+
+function triggerTop10Overlay() {
     if (!wss) {
         Logger.warn('[Top10Overlay] triggerTop10Overlay() called before startTop10OverlayServer()');
         return;
     }
+    if (busy) return; // a sequence is still showing, drop the re-trigger
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        void broadcastTop10();
+    }, DEBOUNCE_MS);
+}
+
+async function broadcastTop10() {
     let leaderboard = getTop10();
     if (leaderboard.length === 0) {
         Logger.warn('[Top10Overlay] No leaderboard data to show, skipping trigger');
@@ -136,10 +171,19 @@ async function triggerTop10Overlay() {
     leaderboard = await attachChatColors(leaderboard);
 
     const payload = JSON.stringify({type: 'show-top10', leaderboard});
+    let sent = false;
     wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) client.send(payload);
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(payload);
+            awaitingAck.add(client);
+            sent = true;
+        }
     });
-    Logger.log(`[Top10Overlay] Triggered (${wss.clients.size} client(s))`);
+
+    if (sent) {
+        busy = true;
+        Logger.log(`[Top10Overlay] Triggered (${wss.clients.size} client(s)), awaiting ACK`);
+    }
 }
 
 module.exports = {startTop10OverlayServer, triggerTop10Overlay};
