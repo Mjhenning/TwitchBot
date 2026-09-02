@@ -437,14 +437,20 @@ async function closeMrCommand(client, channel, config) {
 
 //--------------------------------- GLOSSELS ------------------------------------
 
-function getBalanceCommand(client, channel, userId, senderName) {
+function getBalanceCommand(client, channel, userId, senderName, tags) {
     const amount = retrieveGlossels(userId, senderName);
+
+    // fire the profile popup for whoever was looked up
+    triggerProfileOverlay({userId, userName: senderName, tags});
 
     client.say(channel, `${senderName} has acquired a total of ${amount} Glossels by maintaining their connection! 🫧`);
 }
 
-function getRankCommand(client, channel, userId, senderName) {
+function getRankCommand(client, channel, userId, senderName, tags) {
     const rank = getUserRank(userId);
+
+    // fire the profile popup for whoever was looked up
+    triggerProfileOverlay({userId, userName: senderName, tags});
 
     if (!rank) {
         client.say(channel, `${senderName}, you are not ranked yet!`);
@@ -549,11 +555,10 @@ function argSystemCommand(client, channel, userId, senderName, tags, msg) {
             handleSysCache(client, channel);
             break;
         case 'balance':
-            getBalanceCommand(client, channel, userId, senderName);
+            getBalanceCommand(client, channel, userId, senderName, tags);
             break;
         case 'rank':
-            getRankCommand(client, channel, userId, senderName);
-            profileCommand(client, channel, userId, senderName, tags);
+            getRankCommand(client, channel, userId, senderName, tags);
             break;
         case 'ball':
             profileCommand(client, channel, userId, senderName, tags);
