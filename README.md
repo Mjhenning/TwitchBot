@@ -124,7 +124,7 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!hug @user` | Send a themed hug to another viewer (special responses for Laya) |
 | `fih` / `fish` / `feesh` | Fish acknowledgment |
 | `!clip` | Creates a Twitch clip |
-| `!followage` / `!followage @user` | Shows how long you (or someone) have been following |
+| `!followage` / `!followage @user` | Shows how long you (or someone) have been following (also triggers the profile overlay popup) |
 | `!watchtime` | Shows your watchtime with a themed message and triggers the profile overlay popup |
 | `!so @user1 [@user2 ...]` | Shoutout one or more users (also sends official Twitch `/shoutout`) |
 
@@ -235,7 +235,7 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 - **`modules/functions/profile_cache.js`**: Disk cache of display name, pfp and Twitch chat colour per user, so the overlay only hits Helix when data is stale (default 30 days).
 - **`modules/helpers/profile_overlay_server.js`**: WebSocket server (`PROFILE_OVERLAY_PORT`, default 8430). `triggerProfileOverlay({userId, userName, tags})` gathers the viewer's pfp/name, Glossels balance, leaderboard rank, followage, watchtime and badges, then broadcasts `{"type":"show-profile", profile}` to the OBS browser source. Uses the same busy/ACK lock as the Top 10 overlay so the popup isn't replayed over itself.
 - The browser source runs `html/user-profile-overlay-win7.html`: a Windows 7 aeroglass card with the pfp in a glass frame (tinted to the viewer's Twitch chat colour), name, Glossels + rank + watchtime + followage, and a wrapped badge grid in the left column. It stays visible 8 seconds, then ACKs back `{"type":"done"}`.
-- Triggered by `!watchtime`, `!system rank` and `!system ball`.
+- Triggered by `!watchtime`, `!followage`, `!system rank` and `!system ball`.
 
 ### Media Requests Pipeline (`modules/media_requests/`)
  1. **`videoRedeemHandler.js`**: Self-registers the video reward with the redemption dispatcher. Feature logic only: validate URL → fetch metadata → download → delegate approval/playback to the dispatcher. New redemption rewards add a `registerReward()` call in their own module, no EventSub or pending-store code needed.

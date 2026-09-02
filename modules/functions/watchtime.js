@@ -7,7 +7,7 @@ const path = require('path');
 const {config} = require('../../config');
 const {Logger} = require('../../services');
 
-// ---------------- STATE ----------------
+//-------------------STATE-------------------
 const WATCH_FILE = path.join(__dirname, '../../data/watchtime.json');
 const FLUSH_INTERVAL_MS = 60 * 1000; // flush accrued time every minute
 
@@ -15,7 +15,7 @@ let store = {}; // userId -> seconds
 let active = new Map(); // userId -> { name, lastTick, accrued }
 let flushTimer = null;
 
-// ---------------- LOAD ----------------
+//--------------------LOAD--------------------
 function loadWatchtime() {
     try {
         store = JSON.parse(fs.readFileSync(WATCH_FILE, 'utf8')) || {};
@@ -33,7 +33,7 @@ function saveWatchtime() {
     }
 }
 
-// ---------------- TRACKING ----------------
+//------------------TRACKING------------------
 // Called on every chat message from a viewer. Bumps their active session and
 // banks the time that elapsed since their previous marker.
 function markActive(userId, userName) {
@@ -74,7 +74,7 @@ function stopTracking() {
     active.clear();
 }
 
-// ---------------- LOOKUP ----------------
+//--------------------LOOKUP--------------------
 function getWatchtime(userId) {
     // include unflushed active time so a just-typed user sees an up to date total
     const banked = store[userId] || 0;
@@ -103,7 +103,7 @@ function startFlush() {
     if (flushTimer.unref) flushTimer.unref();
 }
 
-// ---------------- INIT ----------------
+//--------------------INIT--------------------
 function initWatchtime() {
     loadWatchtime();
     startFlush();

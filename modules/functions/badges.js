@@ -7,7 +7,7 @@ const {config} = require('../../config');
 const {Logger} = require('../../services');
 const {withTokenRetry, refreshAppToken} = require('../../auth');
 
-// ---------------- CACHE ----------------
+//--------------------CACHE--------------------
 const BADGE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 let badgeCatalog = null; // { set -> { version -> { title, image } } }
 let badgeCatalogExpires = 0;
