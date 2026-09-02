@@ -13,8 +13,6 @@ const {retrieveGlossels, getUserRank} = require('../functions/currency/glossels'
 const {getWatchtime} = require('../functions/watchtime');
 const {getFollowage} = require('../functions/followage');
 const {resolveBadges} = require('../functions/badges');
-const {getProfile, setProfile} = require('../functions/profile_cache');
-
 const PROFILE_WS_PORT = config.PROFILE_OVERLAY_PORT || 8430;
 
 const awaitingAck = new Set();
@@ -69,17 +67,17 @@ function clearAck(socket) {
     if (awaitingAck.size === 0) busy = false;
 }
 
-// Fetch display name + pfp + chat color from Helix, falling back to the disk cache.
+// Fetch display name + pfp + chat color fresh from Helix on every trigger.
+// Name + pfp come from /users, chat color from /chat/color (color is not
+// part of the users payload). Nothing is cached.
 async function fetchUserProfile(userId, userName) {
-    const cached = getProfile(userId);
-    if (cached) return cached;
-
     try {
         const token = await getAccessToken();
         const headers = {
             'Client-ID': clientId,
             Authorization: `Bearer ${token}`,
         };
+
         const userRes = await axios.get('https://api.twitch.tv/helix/users', {
             params: {id: userId},
             headers,
@@ -97,17 +95,15 @@ async function fetchUserProfile(userId, userName) {
             Logger.warn(`[ProfileOverlay] Failed to fetch chat color for ${userName}: ${e.message}`);
         }
 
-        const profile = {
+        return {
             name: u?.display_name || userName || 'unknown',
             login: u?.login || userName || '',
             pfp: u?.profile_image_url || '',
             color,
         };
-        setProfile(userId, profile);
-        return profile;
     } catch (err) {
         Logger.error(`[ProfileOverlay] Failed to fetch profile for ${userName}: ${err.message}`);
-        return {name: userName || 'unknown', login: '', pfp: '', color: null};
+        return {name: userName || 'unknown', login: userName || '', pfp: '', color: null};
     }
 }
 
