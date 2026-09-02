@@ -25,7 +25,8 @@ async function ensureConnected() {
 async function getActiveSceneItem() {
     const {currentProgramSceneName} = await obs.call('GetCurrentProgramScene');
     const {sceneItems} = await obs.call('GetSceneItemList', {sceneName: currentProgramSceneName});
-    return sceneItems.find((item) => item.sourceName === config.OBS_SOURCE_NAME) || null;
+    const item = sceneItems.find((item) => item.sourceName === config.OBS_SOURCE_NAME) || null;
+    return item ? {sceneName: currentProgramSceneName, ...item} : null;
 }
 
 async function setMediaGroupVisible(visible) {
