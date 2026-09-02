@@ -52,6 +52,8 @@ const {openReward, closeReward, isRewardOpen, resetRewardStates} = require('../m
 const {handleCooldown} = require('../modules/helpers/cooldown');
 
 const {triggerTop10Overlay} = require('../modules/helpers/top10_overlay_server');
+const {triggerProfileOverlay} = require('../modules/helpers/profile_overlay_server');
+const {getWatchtime, getWatchtimeFormatted} = require('../modules/functions/watchtime');
 
 
 //--------------------------------- HELPERS ------------------------------------
@@ -263,10 +265,11 @@ async function clipCommand(client, channel, senderName) {
     client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
 }
 
-async function followAgeCommand(client, channel, userId, senderName, msg) {
+async function followAgeCommand(client, channel, userId, senderName, tags, msg) {
     try {
         let targetId = userId;
         let targetName = senderName;
+        let targetTags = tags;
 
         const parts = msg.split(' ');
         if (parts[1]) {
@@ -287,9 +290,13 @@ async function followAgeCommand(client, channel, userId, senderName, msg) {
 
             targetId = userRes.data.data[0].id;
             targetName = userRes.data.data[0].display_name;
+            targetTags = null; // we only have the sender's badge tags, not the target's
         }
 
         const followageStr = await getFollowage(targetId, config);
+
+        // fire the profile popup for whoever was looked up
+        triggerProfileOverlay({userId: targetId, userName: targetName, tags: targetTags});
 
         if (!followageStr) {
             client.say(channel, `${targetName} is not following yet or an error occurred.`);
@@ -464,6 +471,36 @@ function getTop5Command(client, channel) {
     client.say(channel, `🫧 Glosso-Leaderboard: ${formatted}`);
 }
 
+// Fires the Win7 profile popup and returns a chat summary too.
+async function profileCommand(client, channel, userId, senderName, tags) {
+    const profile = await triggerProfileOverlay({userId, userName: senderName, tags});
+
+    const balance = retrieveGlossels(userId, senderName);
+    const rank = getUserRank(userId);
+    const rankText = rank ? `#${rank}` : 'unranked';
+
+    if (profile) {
+        client.say(channel, `${senderName} is ranked ${rankText} with ${balance} Glossels and ${getWatchtimeFormatted(getWatchtime(userId))} of watchtime. 🫧`);
+    }
+}
+
+const WATCHTIME_MESSAGES = [
+    (n, t) => `${n}, you've held the connection for ${t} in the Glosso-Sphere! The Proxy registered every second. 🫧`,
+    (n, t) => `${n}, telemetry shows ${t} of uninterrupted signal. Your presence is logged, always. ✧`,
+    (n, t) => `${n}, uptime secured at ${t}. The system has been watching, and it knows you stayed. 💾`,
+    (n, t) => `${n}, connection solid for ${t}. Every frame you watched keeps the Proxy coherent. 🦊`,
+    (n, t) => `Signal integrity for ${n}: ${t} and counting. The Glosso-Sphere hums a little steadier with you in it. 📡`,
+];
+
+function watchtimeCommand(client, channel, userId, senderName, tags) {
+    triggerProfileOverlay({userId, userName: senderName, tags}); // fire-and-forget popup
+    const seconds = getWatchtime(userId);
+    const message = WATCHTIME_MESSAGES[
+        Math.floor(Math.random() * WATCHTIME_MESSAGES.length)
+    ](senderName, getWatchtimeFormatted(seconds));
+    client.say(channel, message);
+}
+
 //--------------------------------- ARG ------------------------------------
 
 function argSystemCommand(client, channel, userId, senderName, tags, msg) {
@@ -516,6 +553,10 @@ function argSystemCommand(client, channel, userId, senderName, tags, msg) {
             break;
         case 'rank':
             getRankCommand(client, channel, userId, senderName);
+            profileCommand(client, channel, userId, senderName, tags);
+            break;
+        case 'ball':
+            profileCommand(client, channel, userId, senderName, tags);
             break;
         case 'top':
             getTop5Command(client, channel);
@@ -729,6 +770,8 @@ module.exports = {
     getBalanceCommand,
     getRankCommand,
     getTop5Command,
+    profileCommand,
+    watchtimeCommand,
 
     argSystemCommand,
     argSystemAdminCommand,

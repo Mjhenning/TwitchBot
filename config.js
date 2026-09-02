@@ -63,6 +63,7 @@ const config = {
 
     // ---------- Overlay ----------
     TOP10_OVERLAY_PORT: process.env.TOP10_OVERLAY_PORT || 8420,
+    PROFILE_OVERLAY_PORT: process.env.PROFILE_OVERLAY_PORT || 8430,
 
     // ---------- Data ----------
     COUNTER_PATH,

@@ -24,6 +24,8 @@ const {startEventSub, stopEventSub} = require('./modules/helpers/eventsub/core')
 require('./modules/helpers/eventsub/handlers');
 
 const {startTop10OverlayServer} = require('./modules/helpers/top10_overlay_server');
+const {startProfileOverlayServer} = require('./modules/helpers/profile_overlay_server');
+const {initWatchtime, stopWatchtime} = require('./modules/functions/watchtime');
 
 let tmiClient = null;
 let isRunning = false;
@@ -115,8 +117,13 @@ async function startBot() {
         startTimers(tmiClient, cfg.CHANNEL_NAME);
         setupChatCommands(tmiClient, cfg);
         startARGElements(tmiClient, cfg);
+        initWatchtime();
         startTop10OverlayServer({
             getAccessToken: () => cfg.APP_TOKEN, // fetched by initTokens
+            clientId: cfg.CLIENT_ID,
+        });
+        startProfileOverlayServer({
+            getAccessToken: () => cfg.APP_TOKEN,
             clientId: cfg.CLIENT_ID,
         });
 
@@ -186,6 +193,11 @@ async function stopBot() {
         clearLurkers();
     } catch (e) {
         Logger.error(`[Bot] clearLurkers error: ${e}`);
+    }
+    try {
+        stopWatchtime();
+    } catch (e) {
+        Logger.error(`[Bot] stopWatchtime error: ${e}`);
     }
     try {
         resetCommandState();

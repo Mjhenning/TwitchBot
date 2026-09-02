@@ -5,6 +5,7 @@ const {Logger} = require('../services');
 // modules
 const {handleDaemonRelatedResponses} = require('../modules/bot_specific/bot_response_modules');
 const {endLurk, isLurking} = require('../modules/functions/lurk_tracker');
+const {markActive} = require('../modules/functions/watchtime');
 const {clearQueue} = require('../modules/song_requests/ssr-queue');
 const {startSSRPolling} = require('../modules/song_requests/pear-desktop-music');
 const {handleCooldown: _handleCooldown} = require('../modules/helpers/cooldown');
@@ -35,7 +36,8 @@ const {
     counterCommand,
     handleModeration,
     openMrCommand,
-    closeMrCommand
+    closeMrCommand,
+    watchtimeCommand
 } = require('./registry');
 
 const {argSystemCommand, argSystemAdminCommand} = require('./registry')
@@ -80,6 +82,9 @@ function setupChatCommands(client, config) {
         const senderName = tags['display-name'] || tags['username'];
         const userId = tags['user-id'];
         const isBroadcaster = tags.badges?.broadcaster === '1';
+
+        // bank watchtime for this viewer while they're active in chat
+        markActive(userId, senderName);
 
         // ------------------- AUTOMOD -------------------
 
@@ -156,7 +161,13 @@ function setupChatCommands(client, config) {
 
         if (lower.startsWith('!followage')) {
             if (handleCooldown('followage')) return;
-            await followAgeCommand(client, channel, userId, senderName, msg);
+            await followAgeCommand(client, channel, userId, senderName, tags, msg);
+            return;
+        }
+
+        if (hasCommand(lower, '!watchtime')) {
+            if (handleCooldown('watchtime', 15)) return;
+            watchtimeCommand(client, channel, userId, senderName, tags);
             return;
         }
 
