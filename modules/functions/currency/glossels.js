@@ -19,6 +19,41 @@ let users = [];
 let userMap = new Map();
 let leaderboard = [];
 
+// ---------------- WATCH (shared file) ----------------
+let watcher = null;
+let watchTimer = null;
+
+// user_data.json is also written by the Discord bot. Watch the data directory
+// (the atomic rename used here changes the inode, so we watch the dir not the
+// file) and fold any foreign changes into our in-memory state without losing
+// our own pending mutations.
+function startUserDataWatch() {
+    if (watcher) return;
+
+    const dir = path.dirname(config.CURRENCY_FILE);
+    const base = path.basename(config.CURRENCY_FILE);
+
+    try {
+        watcher = fs.watch(dir, (eventType, filename) => {
+            if (filename !== base) return;
+
+            // debounce the burst of events a single write triggers
+            if (watchTimer) clearTimeout(watchTimer);
+            watchTimer = setTimeout(() => {
+                try {
+                    mergeForeignChanges();
+                } catch (err) {
+                    Logger.error(`[Glossels] Failed to fold foreign change: ${err.message}`);
+                }
+            }, 300);
+        });
+        Logger.log(`[Glossels] Watching ${base} for external changes`);
+    } catch (err) {
+        Logger.warn(`[Glossels] User data watcher failed: ${err.message}`);
+        watcher = null;
+    }
+}
+
 // ---------------- LOAD ----------------
 function loadCurrencySystem() {
     try {
@@ -37,22 +72,67 @@ function loadCurrencySystem() {
 
         rebuildLeaderboard();
 
+        startUserDataWatch();
+
     } catch (err) {
         Logger.warn(`[Glossels] Creating new database file: ${err.message}`);
         users = [];
         userMap = new Map();
         leaderboard = [];
         saveCurrencySystem();
+        startUserDataWatch();
     }
 }
 
 // ---------------- SAVE ----------------
+// user_data.json is shared with an external Discord bot. Before writing we
+// re-read the file from disk and merge any foreign changes (e.g. discordUserId)
+// into this process's copy so we never clobber the other writer's data.
 function saveCurrencySystem() {
+    mergeForeignChanges();
+
+    const tmp = config.CURRENCY_FILE + '.tmp';
     try {
-        fs.writeFileSync(config.CURRENCY_FILE, JSON.stringify(users, null, 2), 'utf8');
+        fs.writeFileSync(tmp, JSON.stringify(users, null, 2), 'utf8');
+        fs.renameSync(tmp, config.CURRENCY_FILE);
     } catch (err) {
         Logger.error(`[Glossels] Failed to save user_data.json: ${err.message}`);
     }
+}
+
+// Adopt any entries/fields written to user_data.json by the Discord bot.
+// For users this process already knows, keep the freshly mutated in-memory
+// values but preserve unknown fields (like discordUserId). Users added by the
+// other process while we were running get pulled into our in-memory state.
+function mergeForeignChanges() {
+    let disk = [];
+    try {
+        disk = JSON.parse(fs.readFileSync(config.CURRENCY_FILE, 'utf8')) || [];
+    } catch {
+        return; // no readable file, nothing to merge
+    }
+
+    const diskMap = new Map(disk.map(u => [u.usrId, u]));
+
+    diskMap.forEach((diskUser, id) => {
+        const memUser = userMap.get(id);
+        if (memUser) {
+            // preserve fields the Twitch bot doesn't manage (e.g. discordUserId)
+            for (const key of Object.keys(diskUser)) {
+                if (memUser[key] === undefined) memUser[key] = diskUser[key];
+            }
+            // pick up a display name the other process may have normalized
+            if (memUser.usrName === 'unknown' && diskUser.usrName) {
+                memUser.usrName = diskUser.usrName;
+            }
+        } else {
+            // new user created by the other process, adopt it
+            userMap.set(id, diskUser);
+            users.push(diskUser);
+        }
+    });
+
+    rebuildLeaderboard();
 }
 
 // ---------------- CORE ----------------
