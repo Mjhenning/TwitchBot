@@ -18,6 +18,7 @@ const glosselsGain = [
 let users = [];
 let userMap = new Map();
 let leaderboard = [];
+let dirtyUsers = new Set(); // users with in-memory mutations not yet flushed to disk
 
 // ---------------- WATCH (shared file) ----------------
 let watcher = null;
@@ -95,14 +96,17 @@ function saveCurrencySystem() {
     try {
         fs.writeFileSync(tmp, JSON.stringify(users, null, 2), 'utf8');
         fs.renameSync(tmp, config.CURRENCY_FILE);
+        dirtyUsers.clear(); // all pending mutations are now on disk
     } catch (err) {
         Logger.error(`[Glossels] Failed to save user_data.json: ${err.message}`);
     }
 }
 
 // Adopt any entries/fields written to user_data.json by the Discord bot.
-// For users this process already knows, keep the freshly mutated in-memory
-// values but preserve unknown fields (like discordUserId). Users added by the
+// Users this process has pending (unsaved) local mutations on keep their
+// in-memory values so we don't clobber our own newer change. Everyone else
+// adopts the full disk record (amount, lastCheckin, names), so balance
+// changes made by the other process show up in real time. Users added by the
 // other process while we were running get pulled into our in-memory state.
 function mergeForeignChanges() {
     let disk = [];
@@ -117,9 +121,17 @@ function mergeForeignChanges() {
     diskMap.forEach((diskUser, id) => {
         const memUser = userMap.get(id);
         if (memUser) {
-            // preserve fields the Twitch bot doesn't manage (e.g. discordUserId)
-            for (const key of Object.keys(diskUser)) {
-                if (memUser[key] === undefined) memUser[key] = diskUser[key];
+            if (dirtyUsers.has(id)) {
+                // pending local mutation: keep it, only preserve unknown fields (e.g. discordUserId)
+                for (const key of Object.keys(diskUser)) {
+                    if (memUser[key] === undefined) memUser[key] = diskUser[key];
+                }
+            } else {
+                // no pending local change: adopt the external record wholesale
+                for (const key of Object.keys(diskUser)) {
+                    memUser[key] = diskUser[key];
+                }
+                memUser.amount = Number(memUser.amount) || 0;
             }
             // pick up a display name the other process may have normalized
             if (memUser.usrName === 'unknown' && diskUser.usrName) {
@@ -224,6 +236,7 @@ function removeUserEntry(userId) {
 
     users = users.filter(u => u.usrId !== userId);
     userMap.delete(userId);
+    dirtyUsers.delete(userId);
 
     rebuildLeaderboard();
 
@@ -316,6 +329,7 @@ function getUserRank(userId) {
 
 // ---------------- HELPERS ----------------
 function markDirty(user) {
+    dirtyUsers.add(user.usrId);
     userMap.set(user.usrId, user);
     rebuildLeaderboard(); // keeps leaderboard always fresh
 }
