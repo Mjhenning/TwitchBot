@@ -1,17 +1,23 @@
-// modules/timer.js
+// modules/helpers/timed_commands.js
+// Drives data/timed_commands.json: periodic chat messages and function calls with
+// randomized offsets, intervals, and optional conditions. Auto-pauses offline,
+// auto-resumes online. Add new scheduled entries in the JSON config; register new
+// condition/function names in conditionMap/functionMap below.
 const fs = require('fs');
 const path = require('path');
 const {config} = require('../../config');
 const {Logger} = require('../../services');
 const {getIsOnline, onOnline, onOffline} = require('./stream-state');
-const {discordCommand, getSsrEnabled} = require('../../commands/registry');
+const {discordCommand, socialCommand, getSsrEnabled, getMrEnabled} = require('../../commands/registry');
 
 const conditionMap = {
-    ssrEnabled: getSsrEnabled
+    ssrEnabled: getSsrEnabled,
+    mrEnabled: getMrEnabled
 };
 
 const functionMap = {
-    discordCommand
+    discordCommand,
+    socialCommand
 };
 
 let activeStopFunctions = [];
@@ -94,7 +100,7 @@ function scheduleCommand(entry, client, channel) {
     }
 }
 
-function startTimers(client, channel) {
+function startTimedCommands(client, channel) {
     activeStopFunctions = [];
     let entries;
     try {
@@ -113,10 +119,10 @@ function startTimers(client, channel) {
     Logger.log(`[Timer] ${entries.length} timed command(s) scheduled`);
 }
 
-function stopTimers() {
+function stopTimedCommands() {
     activeStopFunctions.forEach(fn => fn());
     activeStopFunctions = [];
     Logger.log('[Timer] All timers stopped');
 }
 
-module.exports = {startTimers, stopTimers};
+module.exports = {startTimedCommands, stopTimedCommands};

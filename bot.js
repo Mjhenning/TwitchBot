@@ -3,7 +3,7 @@ const tmi = require('tmi.js');
 const {Logger} = require('./services');
 const {initTokens, refreshBroadcasterToken, refreshBotToken} = require('./auth');
 const {startShieldSystem, stopShieldSystem} = require('./modules/helpers/shield_system');
-const {startTimers, stopTimers} = require('./modules/helpers/timer');
+const {startTimedCommands, stopTimedCommands} = require('./modules/helpers/timed_commands');
 const {startAdSchedulePoller, stopAdSchedulePoller} = require('./modules/helpers/ad_schedule_poller');
 const {resetListeners} = require('./modules/helpers/stream-state');
 const {stopSSRPolling} = require('./modules/song_requests/pear-desktop-music');
@@ -114,7 +114,7 @@ async function startBot() {
         }
 
         startAdSchedulePoller(tmiClient, cfg);
-        startTimers(tmiClient, cfg.CHANNEL_NAME);
+        startTimedCommands(tmiClient, cfg.CHANNEL_NAME);
         setupChatCommands(tmiClient, cfg);
         startARGElements(tmiClient, cfg);
         initWatchtime();
@@ -170,9 +170,9 @@ async function stopBot() {
         Logger.error(`[Bot] stopAdPoller error: ${e}`);
     }
     try {
-        stopTimers();
+        stopTimedCommands();
     } catch (e) {
-        Logger.error(`[Bot] stopTimers error: ${e}`);
+        Logger.error(`[Bot] stopTimedCommands error: ${e}`);
     }
     try {
         stopSSRPolling();

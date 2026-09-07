@@ -2,6 +2,8 @@
 
 A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1LDA3M0N (a.k.a. "Tails" / "TailDaemon") is an in-character sentient daemon that manages chat, moderation, music, media playback, a virtual currency system, and an interactive alternate reality game, all themed around the "Glosso-Sphere" lore.
 
+> **⚠️ Work In Progress.** This project is actively developed and reworked, and it **will have bugs**. It's my first project at this scale and in these languages, so any and all feedback on coding style or ways of working is very welcome. Constructive criticism is appreciated.
+
 ---
 
 ## Table of Contents
@@ -222,7 +224,7 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 ### Shield System (`modules/helpers/shield_system.js`)
 - Separate EventSub WebSocket connection for `stream.online` / `stream.offline`.
 - Toggles Twitch Shield Mode via the Helix API.
-- Broadcasts stream state via `stream-state.js` pub/sub (used by ad poller, timers, ARG, and the shield system itself).
+- Broadcasts stream state via `stream-state.js` pub/sub (used by ad poller, timed commands, ARG, and the shield system itself).
 
 ### Top 10 Overlay (`modules/helpers/top10_overlay_server.js`)
 - Runs a small WebSocket server that an OBS browser source connects to.
@@ -253,8 +255,8 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 ### Personality (`modules/bot_specific/bot_response_modules.js`)
 - Responds to greetings + daemon name mentions, threat words, lore character/place names, gratitude, and compliments. Rate-limited per module to prevent spam.
 
-### Timers (`modules/helpers/timer.js`)
-- Reads `data/timed_commands.json` for scheduled messages/functions. Each entry has a randomized offset, interval, optional condition, and type (`message` or `function`). Timers auto-pause on stream offline and resume on online.
+### Timed Commands (`modules/helpers/timed_commands.js`)
+- Periodic chat messages/functions defined in `data/timed_commands.json`. Each entry has a randomized offset, interval, optional condition, and type (`message` or `function`). Add new Scheduled entries in the JSON config. Add new `condition` (e.g. `ssrEnabled`, `mrEnabled`) and `function` names to `conditionMap`/`functionMap` in this module. Auto-pauses on stream offline and resumes on online.
 
 ---
 
@@ -298,7 +300,7 @@ TwitchBot/
 │   │   │   └── handlers.js         # Follow, raid, ad break + generic redemption subscriptions
 │   │   ├── shield_system.js        # Shield Mode auto-toggle on stream online/offline
 │   │   ├── stream-state.js         # Online/offline state pub/sub
-│   │   ├── timer.js                # Timed/recurring chat messages
+│   │   ├── timed_commands.js        # Periodic chat messages/functions from timed_commands.json
 │   │   ├── top10_overlay_server.js # OBS Top 10 leaderboard browser-source WS server
 │   │   ├── profile_overlay_server.js # OBS user-profile browser-source WS server
 │   │   └── twitchRedemption.js     # Redemption dispatcher + Twitch channel point API helpers

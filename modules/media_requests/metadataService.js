@@ -2,7 +2,7 @@ const {execFile} = require('node:child_process');
 const {promisify} = require('node:util');
 const execFileAsync = promisify(execFile);
 
-const MAX_DURATION_SECONDS = 60; // 1 minute
+const MAX_DURATION_SECONDS = 120; // 2 minutes
 
 class MetadataError extends Error {
     constructor(reason) {
