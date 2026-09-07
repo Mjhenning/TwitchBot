@@ -25,7 +25,7 @@ let activeStopFunctions = [];
 function parseTime(value) {
     if (typeof value === 'number') return value;
     const match = value.match(/^(\d+)(ms|s|m|h)$/);
-    if (!match) throw new Error(`[Timer] Invalid time format: "${value}"`);
+    if (!match) throw new Error(`[TimedCommands] Invalid time format: "${value}"`);
     const num = parseInt(match[1]);
     const unit = match[2];
     const multipliers = {ms: 1, s: 1000, m: 60000, h: 3600000};
@@ -41,15 +41,15 @@ function scheduleCommand(entry, client, channel) {
 
     const startSequence = () => {
         const offset = randomBetween(parseTime(entry.offsetMin), parseTime(entry.offsetMax));
-        Logger.log(`[Timer] "${entry.id}" starting in ${Math.round(offset / 1000)}s`);
+        Logger.log(`[TimedCommands] "${entry.id}" starting in ${Math.round(offset / 1000)}s`);
 
         const fire = async () => {
             if (entry.condition) {
                 const conditionFn = conditionMap[entry.condition];
                 if (conditionFn && !conditionFn()) {
-                    Logger.log(`[Timer] "${entry.id}" skipped, condition "${entry.condition}" is false`);
+                    Logger.log(`[TimedCommands] "${entry.id}" skipped, condition "${entry.condition}" is false`);
                     const nextFire = parseTime(entry.interval);
-                    Logger.log(`[Timer] "${entry.id}" next fire in ${Math.round(nextFire / 1000)}s`);
+                    Logger.log(`[TimedCommands] "${entry.id}" next fire in ${Math.round(nextFire / 1000)}s`);
                     activeTimeout = setTimeout(fire, nextFire);
                     return;
                 }
@@ -59,21 +59,21 @@ function scheduleCommand(entry, client, channel) {
                 if (entry.type === 'function') {
                     const fn = functionMap[entry.function];
                     if (!fn) {
-                        Logger.error(`[Timer] Unknown function: ${entry.function}`);
+                        Logger.error(`[TimedCommands] Unknown function: ${entry.function}`);
                     } else {
-                        Logger.log(`[Timer] Firing function "${entry.function}"`);
+                        Logger.log(`[TimedCommands] Firing function "${entry.function}"`);
                         await fn(client, channel);
                     }
                 } else if (entry.type === 'message') {
-                    Logger.log(`[Timer] Firing message "${entry.id}"`);
+                    Logger.log(`[TimedCommands] Firing message "${entry.id}"`);
                     client.say(channel, entry.message);
                 }
             } catch (err) {
-                Logger.error(`[Timer] Error firing "${entry.id}": ${err.message}`);
+                Logger.error(`[TimedCommands] Error firing "${entry.id}": ${err.message}`);
             }
 
             const nextFire = parseTime(entry.interval);
-            Logger.log(`[Timer] "${entry.id}" next fire in ${Math.round(nextFire / 1000)}s`);
+            Logger.log(`[TimedCommands] "${entry.id}" next fire in ${Math.round(nextFire / 1000)}s`);
             activeTimeout = setTimeout(fire, nextFire);
         };
 
@@ -84,7 +84,7 @@ function scheduleCommand(entry, client, channel) {
         if (activeTimeout) {
             clearTimeout(activeTimeout);
             activeTimeout = null;
-            Logger.log(`[Timer] "${entry.id}" stopped`);
+            Logger.log(`[TimedCommands] "${entry.id}" stopped`);
         }
     };
 
@@ -96,7 +96,7 @@ function scheduleCommand(entry, client, channel) {
     if (getIsOnline()) {
         startSequence();
     } else {
-        Logger.log(`[Timer] "${entry.id}" waiting for stream to go online...`);
+        Logger.log(`[TimedCommands] "${entry.id}" waiting for stream to go online...`);
     }
 }
 
@@ -106,7 +106,7 @@ function startTimedCommands(client, channel) {
     try {
         entries = JSON.parse(fs.readFileSync(config.TIMED_COMMANDS_FILE, 'utf8'));
     } catch (err) {
-        Logger.error(`[Timer] Failed to load TimedCommands.json: ${err.message}`);
+        Logger.error(`[TimedCommands] Failed to load TimedCommands.json: ${err.message}`);
         return;
     }
 
@@ -116,13 +116,13 @@ function startTimedCommands(client, channel) {
         scheduleCommand(entry, client, formattedChannel);
     }
 
-    Logger.log(`[Timer] ${entries.length} timed command(s) scheduled`);
+    Logger.log(`[TimedCommands] ${entries.length} timed command(s) scheduled`);
 }
 
 function stopTimedCommands() {
     activeStopFunctions.forEach(fn => fn());
     activeStopFunctions = [];
-    Logger.log('[Timer] All timers stopped');
+    Logger.log('[TimedCommands] All timers stopped');
 }
 
 module.exports = {startTimedCommands, stopTimedCommands};

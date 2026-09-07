@@ -1,8 +1,7 @@
 const {execFile} = require('node:child_process');
 const {promisify} = require('node:util');
 const execFileAsync = promisify(execFile);
-
-const MAX_DURATION_SECONDS = 120; // 2 minutes
+const {config} = require('../../config');
 
 class MetadataError extends Error {
     constructor(reason) {
@@ -34,7 +33,7 @@ async function fetchMetadata(url) {
         throw new MetadataError('unavailable');
     }
     if (!info.duration) throw new MetadataError('extraction_failed');
-    if (info.duration > MAX_DURATION_SECONDS) throw new MetadataError('too_long');
+    if (info.duration > config.MR_MAX_DURATION_SECONDS) throw new MetadataError('too_long');
 
     return {
         title: info.title,

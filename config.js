@@ -55,6 +55,7 @@ const config = {
 
     // ---------- Redeems ----------
     MR_REDEEM_ID: process.env.MR_REDEEM_ID,
+    MR_MAX_DURATION_SECONDS: parseInt(process.env.MR_MAX_DURATION_SECONDS, 10) || 60, // cap on redeemable clip length in seconds
     MEDIA_QUEUE_DIR: process.env.MEDIA_QUEUE_DIR,
     GLOSSELS_REDEEM_ID: process.env.GLOSSELS_REDEEM_ID,
 
