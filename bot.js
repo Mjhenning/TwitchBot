@@ -29,12 +29,18 @@ const {initWatchtime, stopWatchtime} = require('./modules/functions/watchtime');
 
 let tmiClient = null;
 let isRunning = false;
+let stopPromise = null;
 let tokenRefreshInterval = null;
 
 async function startBot() {
     if (isRunning) {
         Logger.log('[Bot] Already running, skipping start');
         return;
+    }
+    if (stopPromise) {
+        Logger.log('[Bot] Waiting for pending shutdown to complete...');
+        await stopPromise;
+        stopPromise = null;
     }
     isRunning = true;
     Logger.log('[Bot] Starting...');
@@ -139,8 +145,26 @@ async function stopBot() {
         Logger.log('[Bot] Already stopped, skipping teardown');
         return;
     }
+    if (stopPromise) {
+        return stopPromise;
+    }
     isRunning = false;
-    Logger.log('[Bot] Stopping...');
+
+    stopPromise = (async () => {
+        Logger.log('[Bot] Stopping...');
+
+        // Disconnect tmi FIRST to prevent race with startBot()
+        // Capture local reference since startBot() may reassign module-level tmiClient
+        const oldClient = tmiClient;
+        tmiClient = null;
+        if (oldClient) {
+            try {
+                oldClient.removeAllListeners();
+                await oldClient.disconnect();
+            } catch (e) {
+                Logger.error(`[Bot] tmi disconnect error: ${e}`);
+            }
+        }
 
     try {
         stopShieldSystem();
@@ -212,17 +236,12 @@ async function stopBot() {
         tokenRefreshInterval = null;
     }
 
-    if (tmiClient) {
-        try {
-            tmiClient.removeAllListeners();
-            await tmiClient.disconnect();
-        } catch (e) {
-            Logger.error(`[Bot] tmi disconnect error: ${e}`);
-        }
-        tmiClient = null;
-    }
-
     Logger.log('[Bot] Stopped');
+    })().finally(() => {
+        stopPromise = null;
+    });
+
+    return stopPromise;
 }
 
 Logger.init();

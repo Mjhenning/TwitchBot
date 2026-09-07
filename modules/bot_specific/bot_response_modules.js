@@ -9,7 +9,7 @@ function handleDaemonRelatedResponses({message, senderName, client, channel}) {
     const lower = message.toLowerCase();
     const words = lower.replace(/[^\w\s]/g, '').split(/\s+/);
 
-    const greetingWords = ['hi', 'hello', 'hey', 'yo', 'sup', 'heya', 'wassup', 'oi'];
+    const greetingWords = ['hi', 'hello', 'hey', 'yo', 'sup', 'heya', 'wassup', 'oi', 'hai'];
     const daemonWords = [
         'tail', 'ta1l', 'tails', 'ta1ls',
         'daemon', 'da3mon', 'da3m0n',
