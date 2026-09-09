@@ -560,9 +560,6 @@ function argSystemCommand(client, channel, userId, senderName, tags, msg) {
         case 'rank':
             getRankCommand(client, channel, userId, senderName, tags);
             break;
-        case 'ball':
-            profileCommand(client, channel, userId, senderName, tags);
-            break;
         case 'top':
             getTop5Command(client, channel);
             break;
