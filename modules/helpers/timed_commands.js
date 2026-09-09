@@ -36,6 +36,19 @@ function randomBetween(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function formatMaxDuration(seconds) {
+    if (seconds % 60 === 0) {
+        const mins = seconds / 60;
+        return `${mins} minute${mins === 1 ? '' : 's'}`;
+    }
+    return `${seconds} seconds`;
+}
+
+// Replaces config-backed tokens like {MR_MAX_DURATION} in a message with live values
+function interpolateMessage(text) {
+    return text.replace(/\{MR_MAX_DURATION\}/g, formatMaxDuration(config.MR_MAX_DURATION_SECONDS));
+}
+
 function scheduleCommand(entry, client, channel) {
     let activeTimeout = null;
 
@@ -66,7 +79,7 @@ function scheduleCommand(entry, client, channel) {
                     }
                 } else if (entry.type === 'message') {
                     Logger.log(`[TimedCommands] Firing message "${entry.id}"`);
-                    client.say(channel, entry.message);
+                    client.say(channel, interpolateMessage(entry.message));
                 }
             } catch (err) {
                 Logger.error(`[TimedCommands] Error firing "${entry.id}": ${err.message}`);

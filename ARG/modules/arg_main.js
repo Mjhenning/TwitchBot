@@ -549,7 +549,7 @@ const HANDSHAKE_OUTCOMES = [
     {
         type: 'captured', weight: 2, multiplier: -0.5, messages: [
             'Node partially captured {user} packets. Half recovered. -{amount} Glossels.',
-            'WARNING: Intercepted mid-transfer. Partial data salvage. {user} lost more than {user} kept.',
+            'WARNING: Intercepted mid-transfer. Partial data salvage. {user} lost more than they kept.',
             'Hostile node detected. Packet capture partial. What remains has been returned.'
         ]
     },
