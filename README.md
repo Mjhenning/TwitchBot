@@ -256,7 +256,7 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 - Responds to greetings + daemon name mentions, threat words, lore character/place names, gratitude, and compliments. Rate-limited per module to prevent spam.
 
 ### Timed Commands (`modules/helpers/timed_commands.js`)
-- Periodic chat messages/functions defined in `data/timed_commands.json`. Each entry has a randomized offset, interval, optional condition, and type (`message` or `function`). Message entries support interpolating `{MR_MAX_DURATION}` from `config.MR_MAX_DURATION_SECONDS` (used by the `mr_reminder` entry). Add new scheduled entries in the JSON config. Add new `condition` (e.g. `ssrEnabled`, `mrEnabled`) and `function` names to `conditionMap`/`functionMap` in this module. Auto-pauses on stream offline and resumes on online.
+- Periodic chat messages/functions defined in `data/timed_commands.json`. Each entry has a randomized offset, interval, optional condition, and type (`message` or `function`). Message entries support interpolating `{MR_MAX_DURATION}` from `config.MR_MAX_DURATION_SECONDS` (used by the `mr_reminder` entry). Currently scheduled: functions `discord` and `socials`, and messages `ssr_reminder`, `mr_reminder`, `checkin`. Add new entries in the JSON config; register new `condition` (e.g. `ssrEnabled`, `mrEnabled`) and `function` names in `conditionMap`/`functionMap` in this module. Auto-pauses on stream offline and resumes on online.
 
 ---
 
