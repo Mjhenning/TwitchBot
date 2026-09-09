@@ -9,6 +9,7 @@ const {markActive} = require('../modules/functions/watchtime');
 const {clearQueue} = require('../modules/song_requests/ssr-queue');
 const {startSSRPolling} = require('../modules/song_requests/pear-desktop-music');
 const {handleCooldown: _handleCooldown} = require('../modules/helpers/cooldown');
+const {checkFavouriteShoutout} = require('../modules/helpers/favourite_shoutout');
 
 const {
     devCommand,
@@ -85,6 +86,9 @@ function setupChatCommands(client, config) {
 
         // bank watchtime for this viewer while they're active in chat
         markActive(userId, senderName);
+
+        // text shoutout the first time a favourited streamer talks this stream
+        checkFavouriteShoutout(client, channel, tags, senderName);
 
         // ------------------- AUTOMOD -------------------
 

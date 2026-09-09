@@ -8,6 +8,8 @@ const MOD_CONFIG_PATH = path.join(__dirname, 'data', 'moderation.json');
 const PENDING_REDEMPTIONS_PATH = path.join(__dirname, 'data', 'pendingRedemptions.json');
 const CURRENCY_FILE = path.join(__dirname, 'data', 'user_data.json');
 const TIMED_COMMANDS_FILE = path.join(__dirname, 'data', 'timed_commands.json');
+// shared with the Discord bot; its Data/ folder holds the curated favourite list
+const FAVOURITES_FILE = process.env.FAVOURITES_FILE || path.join(__dirname, '..', 'DiscordBot', 'Data', 'favourites.json');
 
 // ---------- Config object ----------
 const config = {
@@ -72,6 +74,7 @@ const config = {
     PENDING_REDEMPTIONS_PATH,
     CURRENCY_FILE,
     TIMED_COMMANDS_FILE,
+    FAVOURITES_FILE,
 
     DEBUG: process.env.DEBUG === 'true'
 };

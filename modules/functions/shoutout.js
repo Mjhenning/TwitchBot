@@ -83,6 +83,30 @@ async function sendTwitchShoutout(targetId, targetName, config) {
 
 //---------------------SHOUTOUT LOGIC---------------------
 
+const soPool = [
+    `Hey! go say hi to {user} 🦊💙 they were last streaming {game}, go give them some signal: {link}`,
+    `Connection worth checking out: {user}, last seen playing {game}. go reinforce it: {link}`,
+    `🦊 Quick signal boost for {user}! catch their last stream of {game} here: {link}`,
+    `Psst, go connect with {user}, last spotted streaming {game}: {link}`,
+    `{user} deserves some signal today 💙 they were last live with {game}: {link}`
+];
+
+const massSoPool = [
+    `🦊 A few connections worth reinforcing today, go check them out:`,
+    `Signal boost time, multiple nodes detected, go say hi to all of them:`,
+    `Before we go, let's send some signal to a couple of friends of the Proxy:`,
+    `Quick batch of connections worth your time today:`
+];
+
+const massSoUserPool = [
+    `> {user}, last streaming {game}: {link}`,
+    `> {user}, last seen with {game}: {link}`,
+    `> {user}, signal reinforced. last playing {game}: {link}`
+];
+
+const fillTemplate = (template, data) =>
+    template.replace('{user}', data.user).replace('{game}', data.game).replace('{link}', data.link);
+
 async function eventShoutout(event, client, config) {
     const raider = event.from_broadcaster_user_name;
     const raiderId = event.from_broadcaster_user_id;
@@ -99,30 +123,6 @@ async function eventShoutout(event, client, config) {
 }
 
 async function shoutout(client, config, users) {
-    const soPool = [
-        `Hey! go say hi to {user} 🦊💙 they were last streaming {game}, go give them some signal: {link}`,
-        `Connection worth checking out: {user}, last seen playing {game}. go reinforce it: {link}`,
-        `🦊 Quick signal boost for {user}! catch their last stream of {game} here: {link}`,
-        `Psst, go connect with {user}, last spotted streaming {game}: {link}`,
-        `{user} deserves some signal today 💙 they were last live with {game}: {link}`
-    ];
-
-    const massSoPool = [
-        `🦊 A few connections worth reinforcing today, go check them out:`,
-        `Signal boost time, multiple nodes detected, go say hi to all of them:`,
-        `Before we go, let's send some signal to a couple of friends of the Proxy:`,
-        `Quick batch of connections worth your time today:`
-    ];
-
-    const massSoUserPool = [
-        `> {user}, last streaming {game}: {link}`,
-        `> {user}, last seen with {game}: {link}`,
-        `> {user}, signal reinforced. last playing {game}: {link}`
-    ];
-
-    const fillTemplate = (template, data) =>
-        template.replace('{user}', data.user).replace('{game}', data.game).replace('{link}', data.link);
-
     const results = await getUsersAndGames(users, config);
 
     if (results.length === 0) {
@@ -152,4 +152,20 @@ async function shoutout(client, config, users) {
     }
 }
 
-module.exports = {eventShoutout, shoutout};
+// text-only shoutout, no official /shoutout API call.
+// used to auto-greet favourited streamers when they first talk in chat.
+async function chatShoutout(client, config, username) {
+    const results = await getUsersAndGames([username], config);
+
+    if (results.length === 0) {
+        Logger.warn(`Shoutout: could not resolve ${username} for auto-shoutout`);
+        return;
+    }
+
+    const data = results[0];
+    const line = soPool[Math.floor(Math.random() * soPool.length)];
+    await client.say(`#${config.CHANNEL_NAME}`, fillTemplate(line, data))
+        .catch(err => Logger.error(`Shoutout: message failed: ${err}`));
+}
+
+module.exports = {eventShoutout, shoutout, chatShoutout};

@@ -34,6 +34,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 - **Alternate Reality Game (ARG)**: An in-chat terminal simulation ("AETHER-OS") with a virtual filesystem, coherence system, bit-rot decay, port probing, lore files, file access gated by coherence level and discovered events, and a network gamble/transfer system for Glossels.
 - **Moderation**: Automatic link filtering with domain allowlists. Links are deleted and the user warned unless they have a trusted badge or the link matches an allowed domain. Song-request and media-request domains are conditionally permitted.
 - **Counters**: Configurable chat counters (e.g. death, yawn, 404) with increment, set, stats, and last-counted subcommands.
+- **Favourite Shoutouts**: The bot greets favourited streamers with a text shoutout (no official `/shoutout` API call) the first time they talk during a stream. The favourites list is shared with the Discord bot and read from its `Data/favourites.json` (see `FAVOURITES_FILE`), so the same list that drives go-live embeds also greets friends in chat. Tracking resets each stream.
 - **Timed Commands**: Periodic chat messages or function calls driven by a JSON config, with randomized offset and interval. Auto-pause on stream offline, auto-resume on online.
 - **Daemon Personality**: Bot responds to greetings, lore character names (Ace, Joel, Mara, Dex), project names (AETHER-LINK, Glosso-Sphere, bit-rot), threats, compliments, and gratitude with characterful in-character responses.
 - **Testing Commands**: Mods can simulate follow, raid, and ad break events via `!testfollow`, `!testraid`, `!testads` without needing real events.
@@ -298,6 +299,7 @@ TwitchBot/
 │   │   ├── eventsub/
 │   │   │   ├── core.js             # EventSub WebSocket hub + subscription registry
 │   │   │   └── handlers.js         # Follow, raid, ad break + generic redemption subscriptions
+│   │   ├── favourite_shoutout.js   # Text shoutout for favourited streamers on first chat
 │   │   ├── shield_system.js        # Shield Mode auto-toggle on stream online/offline
 │   │   ├── stream-state.js         # Online/offline state pub/sub
 │   │   ├── timed_commands.js        # Periodic chat messages/functions from timed_commands.json

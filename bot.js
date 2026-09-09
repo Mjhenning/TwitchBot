@@ -7,6 +7,7 @@ const {startTimedCommands, stopTimedCommands} = require('./modules/helpers/timed
 const {startAdSchedulePoller, stopAdSchedulePoller} = require('./modules/helpers/ad_schedule_poller');
 const {resetListeners} = require('./modules/helpers/stream-state');
 const {stopSSRPolling} = require('./modules/song_requests/pear-desktop-music');
+const {resetFavouriteShoutout} = require('./modules/helpers/favourite_shoutout');
 
 const {setupChatCommands} = require('./commands/chat_integration');
 const {startARGElements, sysResetSession} = require('./ARG/modules/arg_main');
@@ -111,6 +112,7 @@ async function startBot() {
         await startEventSub(tmiClient, cfg);
         await reconcilePendingOnStartup(cfg);
         startExpirySweep(cfg);
+        resetFavouriteShoutout(); // fresh first-chat shoutout tracking per stream
 
         try {
             await applyStartupStates(cfg);
@@ -217,6 +219,11 @@ async function stopBot() {
         clearLurkers();
     } catch (e) {
         Logger.error(`[Bot] clearLurkers error: ${e}`);
+    }
+    try {
+        resetFavouriteShoutout();
+    } catch (e) {
+        Logger.error(`[Bot] resetFavouriteShoutout error: ${e}`);
     }
     try {
         stopWatchtime();
