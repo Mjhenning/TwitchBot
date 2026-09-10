@@ -4,8 +4,14 @@ const axios = require('axios');
 const {Logger} = require('../../../services');
 
 let _client = null;
+let _ws = null;
 let sessionId = null;
 let stopped = false;
+
+// Reconnect state
+let reconnectUrl = null;     // set by session_reconnect
+let reconnectTimer = null;
+let reconnectAttempts = 0;
 
 // Registry of subscriptions to create once session is ready.
 // Each entry: { type, version, condition(config), handler(event, client, config) }
@@ -20,13 +26,35 @@ function registerSubscription(type, version, condition, handler) {
     subscriptionRegistry.push({type, version, condition, handler});
 }
 
+// Reconnect after an unexpected close, with exponential backoff capped at 60s.
+function scheduleReconnect(client, config) {
+    if (stopped || reconnectTimer) return;
+    const delay = Math.min(1000 * 2 ** reconnectAttempts, 60000);
+    reconnectAttempts++;
+    Logger.log(`TwitchEvents: Reconnecting in ${Math.round(delay / 1000)}s (attempt ${reconnectAttempts})`);
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        startEventSub(client, config);
+    }, delay);
+}
+
 function handleEventSubMessage(msg, client, config) {
     switch (msg.metadata?.message_type) {
-        case 'session_welcome':
+        case 'session_welcome': {
+            // Same session id means we resumed on the reconnect_url, no resubscribe needed
+            const resumed = msg.payload.session.id === sessionId;
             sessionId = msg.payload.session.id;
-            Logger.log('TwitchEvents: Session ready, subscribing to all registered events...');
-            subscribeAll(client, config);
+            reconnectUrl = null;       // reconnect notice consumed
+            reconnectAttempts = 0;
+
+            if (resumed) {
+                Logger.log('TwitchEvents: EventSub session resumed');
+            } else {
+                Logger.log('TwitchEvents: Session ready, subscribing to all registered events...');
+                subscribeAll(client, config);
+            }
             break;
+        }
 
         case 'notification': {
             const subType = msg.payload?.subscription?.type;
@@ -52,8 +80,13 @@ function handleEventSubMessage(msg, client, config) {
 
         case 'session_reconnect':
             Logger.log('TwitchEvents: EventSub requested reconnect');
-            if (!stopped) {          // only reconnect if we weren't manually stopped
-                client._ws.close();
+            if (!stopped) {
+                reconnectUrl = msg.payload?.session?.reconnect_url || null;
+                if (reconnectTimer) {
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = null;
+                }
+                if (_ws) _ws.close();       // old socket close skips reconnect (ws !== _ws)
                 startEventSub(client, config);
             }
             break;
@@ -112,24 +145,37 @@ async function subscribeAll(client, config) {
 async function startEventSub(client, config) {
     stopped = false;  // reset on each start
     _client = client;
-    const ws = new WebSocket('wss://eventsub.wss.twitch.tv/ws');
+    const url = reconnectUrl || 'wss://eventsub.wss.twitch.tv/ws';
+    const ws = new WebSocket(url);
+    _ws = ws;
     client._ws = ws;
     client._eventSubHandler = (msg) => handleEventSubMessage(msg, client, config);
 
     ws.on('open', () => Logger.log('TwitchEvents: EventSub connected'));
     ws.on('message', (data) => client._eventSubHandler(JSON.parse(data)));
-    ws.on('close', () => Logger.log('TwitchEvents: EventSub WebSocket closed'));
+    ws.on('close', () => {
+        Logger.log('TwitchEvents: EventSub WebSocket closed');
+        if (ws !== _ws) return;   // superseded by an intentional reconnect
+        scheduleReconnect(client, config);
+    });
     ws.on('error', (err) => Logger.error(`TwitchEvents: EventSub WebSocket error: ${err}`));
 }
 
 function stopEventSub() {
     stopped = true; // prevents reconnect handler from re-opening
     sessionId = null;
-
-    if (_client?._ws) {
-        _client._ws.close();
-        _client._ws = null;
+    reconnectUrl = null;
+    reconnectAttempts = 0;
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
     }
+
+    if (_ws) {
+        _ws.close();
+        _ws = null;
+    }
+    if (_client) _client._ws = null;
 
     _client = null;
     Logger.log('TwitchEvents: Stopped');

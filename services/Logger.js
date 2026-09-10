@@ -6,6 +6,8 @@ const LOG_DIR = path.join(__dirname, '..', 'logs');
 let logStream = null;
 let client = null;
 let ownerDm = null;
+let hooksInstalled = false;
+let crashed = false;
 
 function init(discordClient) {
     client = discordClient || null;
@@ -17,6 +19,29 @@ function init(discordClient) {
     const fileName = `bot-log-${today}-${iteration}.txt`;
 
     logStream = fs.createWriteStream(path.join(LOG_DIR, fileName), { flags: 'a' });
+    installProcessHooks();
+}
+
+// Capture crashes that would otherwise vanish to stderr, then exit so the process manager restarts.
+function installProcessHooks() {
+    if (hooksInstalled) return;
+    hooksInstalled = true;
+
+    process.on('uncaughtException', (err) => crash(`uncaughtException: ${err.stack || err}`));
+    process.on('unhandledRejection', (reason) => crash(`unhandledRejection: ${reason?.stack || reason}`));
+}
+
+function crash(msg) {
+    if (crashed) return;
+    crashed = true;
+
+    console.error(`[${new Date().toLocaleTimeString()}] [Logger] ${msg}`);
+    if (logStream) {
+        // Flush the trace to the daily log before exiting
+        logStream.end(`[${new Date().toLocaleTimeString()}] [Logger] ${msg}\n`, () => process.exit(1));
+    } else {
+        process.exit(1);
+    }
 }
 
 function log(msg, dm = false) {
