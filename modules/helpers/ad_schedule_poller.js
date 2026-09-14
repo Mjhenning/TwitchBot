@@ -60,7 +60,7 @@ async function doPoll(client, config) {
         const adData = await withTokenRetry(() => getAdSchedule(config));
 
         // next_ad_at is Unix seconds, multiply by 1000 to get milliseconds
-        const nextAdTime = adData?.next_ad_at ? Date.parse(adData.next_ad_at) : 0;
+        const nextAdTime = adData?.next_ad_at ? Number(adData.next_ad_at) * 1000 : 0;
 
         // preroll_free_time > 0 means the broadcaster has earned ad-free time and
         // the scheduled ad cannot fire yet, regardless of what next_ad_at says.
@@ -116,6 +116,7 @@ async function doPoll(client, config) {
 
         //---------------------WARNING---------------------
         const alreadyWarnedThisAd = warnedAdAt === nextAdTime;
+        const inWarnWindow = secondsUntil > 0 && secondsUntil <= WARN_SECONDS_BEFORE; // for the log below
 
         const crossedThreshold =
             previousSecondsUntil === null ||
