@@ -16,7 +16,6 @@ let currentPollMs = 15_000;  // starts slow, tightens once a real ad is detected
 let warnedAdAt = null;       // Unix-second timestamp we've already warned for (number)
 let pollCount = 0;           // for log correlation across the lifetime of a session
 let lastLoggedSecondsUntil = null; // throttle the "next ad in Xs" log
-let previousSecondsUntil = null;
 
 const WARN_SECONDS_BEFORE = 45;
 
@@ -116,16 +115,10 @@ async function doPoll(client, config) {
 
         //---------------------WARNING---------------------
         const alreadyWarnedThisAd = warnedAdAt === nextAdTime;
-        const inWarnWindow = secondsUntil > 0 && secondsUntil <= WARN_SECONDS_BEFORE; // for the log below
-
-        const crossedThreshold =
-            previousSecondsUntil === null ||
-            (
-                previousSecondsUntil > WARN_SECONDS_BEFORE &&
-                secondsUntil <= WARN_SECONDS_BEFORE
-            );
-
-        previousSecondsUntil = secondsUntil;
+        // Only warn while inside the countdown window. No crossing detection is
+        // needed: warnedAdAt gates repeats until the ad passes, and it resets
+        // once the ad time is reached, so each ad is warned at most once.
+        const inWarnWindow = secondsUntil > 0 && secondsUntil <= WARN_SECONDS_BEFORE;
 
         Logger.log(
             `[AdPoller] Warning check: inWarnWindow=${inWarnWindow} ` +
@@ -134,9 +127,8 @@ async function doPoll(client, config) {
         );
 
         if (
-            crossedThreshold &&
-            !alreadyWarnedThisAd &&
-            secondsUntil > 0
+            inWarnWindow &&
+            !alreadyWarnedThisAd
         ) {
             warnedAdAt = nextAdTime;
             Logger.log(`[AdPoller] >>> FIRING warning (${secondsUntil}s out)`);
@@ -153,7 +145,6 @@ async function doPoll(client, config) {
         if (secondsUntil <= 0 && warnedAdAt !== null) {
             Logger.log(`[AdPoller] Ad has passed, resetting warnedAdAt`);
             warnedAdAt = null;
-            previousSecondsUntil = null;
             lastLoggedSecondsUntil = null;
         }
 
@@ -224,7 +215,6 @@ function stopPolling() {
     warnedAdAt = null;
     currentPollMs = 15_000;
     lastLoggedSecondsUntil = null;
-    previousSecondsUntil = null;
 
     Logger.log('[AdPoller] Stopped');
 }
