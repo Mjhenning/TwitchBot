@@ -12,6 +12,7 @@ let stopped = false;
 let reconnectUrl = null;     // set by session_reconnect
 let reconnectTimer = null;
 let reconnectAttempts = 0;
+let supersededWs = null;     // old socket kept alive until the new one is confirmed
 
 // Registry of subscriptions to create once session is ready.
 // Each entry: { type, version, condition(config), handler(event, client, config) }
@@ -41,6 +42,15 @@ function scheduleReconnect(client, config) {
 function handleEventSubMessage(msg, client, config) {
     switch (msg.metadata?.message_type) {
         case 'session_welcome': {
+            // New connection confirmed, old socket can be torn down now. On a
+            // non-resumed (fresh) session this must happen before subscribing to
+            // avoid duplicate deliveries from the old session.
+            if (supersededWs) {
+                Logger.log('TwitchEvents: Closing superseded old socket');
+                supersededWs.close();
+                supersededWs = null;
+            }
+
             // Same session id means we resumed on the reconnect_url, no resubscribe needed
             const resumed = msg.payload.session.id === sessionId;
             sessionId = msg.payload.session.id;
@@ -86,7 +96,9 @@ function handleEventSubMessage(msg, client, config) {
                     clearTimeout(reconnectTimer);
                     reconnectTimer = null;
                 }
-                if (_ws) _ws.close();       // old socket close skips reconnect (ws !== _ws)
+                // Keep the old socket open until the new one is confirmed, so the
+                // session is still live when we connect to the reconnect_url.
+                supersededWs = _ws;
                 startEventSub(client, config);
             }
             break;
@@ -155,7 +167,27 @@ async function startEventSub(client, config) {
     ws.on('message', (data) => client._eventSubHandler(JSON.parse(data)));
     ws.on('close', () => {
         Logger.log('TwitchEvents: EventSub WebSocket closed');
-        if (ws !== _ws) return;   // superseded by an intentional reconnect
+        if (ws !== _ws && ws !== supersededWs) return;   // unrelated socket
+        if (ws === supersededWs) {
+            supersededWs = null;   // old socket closed by us or by Twitch, forget it
+            return;
+        }
+        // The active socket died.
+        if (reconnectUrl) {
+            // This was a reconnect_url attempt that failed (no welcome). The old
+            // socket may still be alive and delivering, so restore it as active
+            // instead of forcing a fresh session and duplicating subscriptions.
+            if (supersededWs && supersededWs.readyState === WebSocket.OPEN) {
+                Logger.log('TwitchEvents: Reconnect URL attempt failed, restoring old socket');
+                _ws = supersededWs;
+                if (_client) _client._ws = supersededWs;
+                supersededWs = null;
+                reconnectUrl = null;
+                return;
+            }
+            Logger.warn('TwitchEvents: Reconnect URL attempt failed and old socket gone, fresh session next retry');
+            reconnectUrl = null;
+        }
         scheduleReconnect(client, config);
     });
     ws.on('error', (err) => Logger.error(`TwitchEvents: EventSub WebSocket error: ${err}`));
@@ -174,6 +206,10 @@ function stopEventSub() {
     if (_ws) {
         _ws.close();
         _ws = null;
+    }
+    if (supersededWs) {
+        supersededWs.close();
+        supersededWs = null;
     }
     if (_client) _client._ws = null;
 
