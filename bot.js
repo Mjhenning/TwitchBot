@@ -20,6 +20,7 @@ const {resetCommandState} = require('./commands/registry');
 const {reconcilePendingOnStartup, startExpirySweep} = require('./modules/media_requests/videoRedeemHandler');
 require('./modules/functions/currency/glosselsRedeemHandler'); // self-registers its reward
 const {applyStartupStates} = require('./modules/helpers/twitchRedemption');
+const {startSessionGates, restoreGates} = require('./modules/helpers/session_gates');
 
 const {startEventSub, stopEventSub} = require('./modules/helpers/eventsub/core');
 require('./modules/helpers/eventsub/handlers');
@@ -120,6 +121,14 @@ async function startBot() {
         } catch (err) {
             Logger.error(`[Bot] Failed to apply reward startup states: ${err.message}`);
         }
+
+        // Restore persisted gates (SR/MR open, terminal session) across mid-stream restarts
+        try {
+            await restoreGates(tmiClient, cfg);
+        } catch (err) {
+            Logger.error(`[Bot] Failed to restore persisted gates: ${err.message}`);
+        }
+        startSessionGates(tmiClient, cfg);
 
         startAdSchedulePoller(tmiClient, cfg);
         startTimedCommands(tmiClient, cfg.CHANNEL_NAME);

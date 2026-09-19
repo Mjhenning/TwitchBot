@@ -106,7 +106,8 @@ The bot will:
 6. Start the main EventSub hub (follows, raids, ad breaks, media request redemptions).
 7. Reconcile any pending media redemptions from a previous crash/restart.
 8. Apply each registered reward's declared startup state (rewards with `startClosed: true`, e.g. media requests, start paused and must be opened with `!openmr`).
-9. Start the ad schedule poller, timed commands, chat commands, and ARG elements.
+9. Restore persisted stream gates (`data/stream_gates.json`): song-request open/closed, media-request open/closed, ARG terminal activation with its Aether-OS session key holder, plus the ARG session (cwd, connected users, full coherence), already-greeted favourites, and active lurkers. So a mid-stream OBS reconnect or bot crash keeps the features and session state the stream already had, including in-flight lurk times. A title containing the `Aetherkey` marker left over from the previous session is used to validate that the gates belong to the current stream; otherwise the persisted gates are discarded. Gates persist across restarts and are only cleared once the Twitch stream actually goes offline.
+10. Start the ad schedule poller, timed commands, chat commands, and ARG elements.
 
 The bot tears down all modules and disconnects when OBS goes offline, then auto-reconnects to OBS every 20 seconds.
 
@@ -154,7 +155,7 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 
 | Command | Description |
 |---|---|
-| `!system` / `!sys` | Activate the AETHER-OS terminal |
+| `!system` / `!sys` | Activate the AETHER-OS terminal; the first user to activate becomes the Aether-OS session key and the stream title gets ` | Aetherkey: @{user}` appended. Re-running while active echoes the current Aether key holder. |
 | `!system help` | List available terminal commands |
 | `!system dir <path>` | Navigate the virtual filesystem |
 | `!system ls` | List current directory |
@@ -341,6 +342,7 @@ TwitchBot/
 │   ├── pendingRedemptions.json
 │   ├── ssr_queue.json
 │   ├── state.json
+│   ├── stream_gates.json
 │   └── timed_commands.json
 ├── logs/                           # Daily log files (auto-created by Logger)
 ├── package.json
@@ -366,6 +368,7 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 | `data/timed_commands.json` | Scheduled message/function definitions |
 | `data/watchtime.json` | Per-viewer accumulated watchtime (seconds), flushed periodically + on shutdown |
 | `data/state.json` | General state |
+| `data/stream_gates.json` | Per-stream "gates" persisted across mid-stream restarts: song-request open/closed, media-request open/closed, ARG terminal session (activation, Aether key holder, cwd, connected users, full coherence), already-greeted favourites, and active lurkers. Cleared on stream offline or when the restored title lacks the `Aetherkey` marker |
 | `ARG/data/state.json` | ARG coherence level and bit-rot state |
 | `ARG/data/ports.json` | Port definitions (what each port number unlocks) |
 | `ARG/data/found_ports.json` | Which ports have been discovered |

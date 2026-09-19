@@ -145,8 +145,12 @@ async function subscribeAll(client, config) {
 
             Logger.log(`✓ TwitchEvents: Successfully subscribed to "${sub.type}"`);
         } catch (err) {
+            // Note: err.response.data is {error, message, status}, interpolating the raw
+            // object would log as "[object Object]", so pick out the human-readable message.
+            const apiMessage = err.response?.data?.message;
             Logger.error(
-                `✗ TwitchEvents: Failed to subscribe to "${sub.type}": ${err.response?.data || err.message}`
+                `✗ TwitchEvents: Failed to subscribe to "${sub.type}": ${apiMessage || err.message}` +
+                (apiMessage ? ` (status ${err.response.data.status})` : '')
             );
         }
     }

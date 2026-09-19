@@ -50,6 +50,7 @@ const {handleCounter} = require("../modules/helpers/counters");
 const {handleLinkBlocker} = require("../modules/moderation/link_filter");
 const {openReward, closeReward, isRewardOpen, resetRewardStates} = require('../modules/helpers/twitchRedemption');
 const {handleCooldown} = require('../modules/helpers/cooldown');
+const {setGate, onRestoreGate} = require('../modules/helpers/session_gates');
 
 const {triggerTop10Overlay} = require('../modules/helpers/top10_overlay_server');
 const {triggerProfileOverlay} = require('../modules/helpers/profile_overlay_server');
@@ -406,12 +407,14 @@ function clearQCommand(client, channel) {
 
 function closeQCommand(client, channel) {
     ssrEnabled = false;
+    setGate('ssrEnabled', false);
     clearQueue();
     client.say(channel, `🛑 Song requests closed and queue cleared ✧`);
 }
 
 function openQCommand(client, channel) {
     ssrEnabled = true;
+    setGate('ssrEnabled', true);
     client.say(channel, `✅ Song requests are now open! Use !sr to request a song 🎶`);
 }
 
@@ -420,6 +423,7 @@ function openQCommand(client, channel) {
 async function openMrCommand(client, channel, config) {
     try {
         await openReward(config, config.MR_REDEEM_ID);
+        setGate('mrRewardOpen', true);
     } catch (err) {
         Logger.error(`[MediaRequest] failed to unpause reward: ${err.message}`);
     }
@@ -429,11 +433,23 @@ async function openMrCommand(client, channel, config) {
 async function closeMrCommand(client, channel, config) {
     try {
         await closeReward(config, config.MR_REDEEM_ID);
+        setGate('mrRewardOpen', false);
     } catch (err) {
         Logger.error(`[MediaRequest] failed to pause reward: ${err.message}`);
     }
     client.say(channel, `🛑 Media requests are now closed ✧`);
 }
+
+// Restore SR/MR gates after a mid-stream restart (OBS blip or bot crash).
+// Runs after applyStartupStates, which force-closes MR, so reopen it if needed.
+onRestoreGate((gates, client, config) => {
+    ssrEnabled = gates.ssrEnabled;
+    if (gates.mrRewardOpen) {
+        return openReward(config, config.MR_REDEEM_ID).catch(err => {
+            Logger.error(`[MediaRequest] failed to reopen reward on restore: ${err.message}`);
+        });
+    }
+});
 
 //--------------------------------- GLOSSELS ------------------------------------
 
@@ -515,7 +531,7 @@ function argSystemCommand(client, channel, userId, senderName, tags, msg) {
     const args = parts.slice(2).join(' ') || null;
 
     if (!sub) {
-        handleSys(client, channel);
+        handleSys(client, channel, senderName);
         return true;
     }
 

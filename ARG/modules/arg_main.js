@@ -3,8 +3,12 @@
 
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 const {getIsOnline, onOnline, onOffline} = require('../../modules/helpers/stream-state');
+const {setGate, onRestoreGate} = require('../../modules/helpers/session_gates');
 const {Logger} = require('../../services');
+const {config} = require('../../config');
+const {withTokenRetry} = require('../../auth');
 
 const FS_ROOT = path.join(__dirname, '../_filesystem');
 const STATE_PATH = path.join(__dirname, '../data/state.json');
@@ -12,6 +16,7 @@ const PORTS_PATH = path.join(__dirname, '../data/ports.json');
 const FOUND_PORTS_PATH = path.join(__dirname, '../data/found_ports.json');
 
 let terminalActivated = false;
+let aetherKeyHolder = null;
 let FullCoherenceAchieved = false;
 
 //-------------------------------------------------------------------------------
@@ -270,15 +275,63 @@ function sysHandleProbe(client, channel, portInput) {
 // 8) !system COMMAND HANDLERS
 //-------------------------------------------------------------------------------
 
-function handleSys(client, channel) {
+//---------------------AETHERKEY: SESSION KEY HANDLER---------------------
+
+async function appendAetherKeyToTitle(username) {
+    try {
+        await withTokenRetry(async () => {
+            // fetch the current title so we build on it, never clobber it
+            const getRes = await axios.get('https://api.twitch.tv/helix/channels', {
+                params: {broadcaster_id: config.BROADCASTER_ID},
+                headers: {
+                    'Client-ID': config.CLIENT_ID,
+                    'Authorization': `Bearer ${config.BROADCASTER_ACCESS_TOKEN}`
+                }
+            });
+
+            const currentTitle = getRes.data?.data?.[0]?.title ?? '';
+            const marker = ' | Aetherkey: @' + username;
+
+            if (currentTitle.includes(marker)) {
+                Logger.log(`[ARG] Stream title already holds an Aetherkey, not re-appending`);
+                return;
+            }
+
+            await axios.patch(
+                'https://api.twitch.tv/helix/channels',
+                {broadcaster_id: config.BROADCASTER_ID, title: currentTitle + marker},
+                {
+                    headers: {
+                        'Client-ID': config.CLIENT_ID,
+                        'Authorization': `Bearer ${config.BROADCASTER_ACCESS_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            Logger.log(`[ARG] Stream title updated with Aetherkey for "${username}"`);
+        });
+    } catch (err) {
+        Logger.error(`[ARG] Failed to append Aetherkey to stream title: ${err.response?.data?.message || err.message}`);
+    }
+}
+
+//---------------------AETHER OS TERMINAL ACTIVATION---------------------
+
+function handleSys(client, channel, senderName) {
     if (!terminalActivated) {
         terminalActivated = true;
+        aetherKeyHolder = senderName;
+        setGate('terminalActivated', true);
+        setGate('aetherKeyHolder', senderName);
         staggerSay(client, channel, [
             `AETHER-OS terminal activated.`,
+            `${senderName} is now the Aether-OS session key.`,
             `Run !system help to see available commands.`
         ]);
+        appendAetherKeyToTitle(senderName);
     } else {
-        client.say(channel, `AETHER-OS terminal currently active. Run !system help to see available commands.`);
+        client.say(channel, `AETHER-OS terminal currently active. Aether key hold: @${aetherKeyHolder}. Run !system help to see available commands.`);
     }
 }
 
@@ -326,6 +379,7 @@ function handleSysDir(client, channel, userPath) {
     }
 
     cwd = '/' + userPath.replace(/^\//, '').toLowerCase().trim();
+    setGate('argCwd', cwd);
     client.say(channel, `moved to ${cwd}`);
 }
 
@@ -454,6 +508,7 @@ function handleSysConnect(client, channel, userId, username) {
     // also register for community rewards if not already tracked
     if (!sysConnectedUsers.has(userId)) {
         sysConnectedUsers.set(userId, username);
+        setGate('sysConnectedUsers', [...sysConnectedUsers.entries()]);
     }
 
     client.say(channel, `${username}, connection maintained. ${reward} Glossels retrieved. Thank you for keeping the signal alive. 🫧`);
@@ -471,6 +526,7 @@ function handleSysPing(client, channel) {
 
     if (newCoherence >= 100) {
         FullCoherenceAchieved = true;
+        setGate('fullCoherenceAchieved', true);
         staggerSay(client, channel, [
             `>> COHERENCE: 100%`,
             `>> BIT-ROT: ABSENT`,
@@ -687,6 +743,7 @@ function sysResetSession() {
     sysProbedPorts.clear();
     cwd = '/';
     terminalActivated = false;
+    aetherKeyHolder = null;
 }
 
 //-------------------------------------------------------------------------------
@@ -719,6 +776,27 @@ function startARGElements(client, config) {
 
     Logger.log('[ARG] System online. TA1LDA3M0N active.');
 }
+
+// restore terminal/session state when gates come back from a mid-stream restart
+onRestoreGate((gates) => {
+    if (gates.terminalActivated) {
+        terminalActivated = true;
+        aetherKeyHolder = gates.aetherKeyHolder ?? null;
+        Logger.log('[ARG] Terminal restored as active, holder: ' + (aetherKeyHolder ?? 'none'));
+    }
+    if (Array.isArray(gates.sysConnectedUsers)) {
+        sysConnectedUsers.clear();
+        for (const [userId, username] of gates.sysConnectedUsers) {
+            sysConnectedUsers.set(userId, username);
+        }
+    }
+    if (typeof gates.argCwd === 'string') {
+        cwd = gates.argCwd;
+    }
+    if (gates.fullCoherenceAchieved) {
+        FullCoherenceAchieved = true;
+    }
+});
 
 module.exports = {
     startARGElements,

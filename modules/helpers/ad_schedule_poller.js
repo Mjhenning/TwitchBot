@@ -81,15 +81,11 @@ async function doPoll(client, config) {
             return;
         }
 
-        //---------------------PREROLL-FREE GATE---------------------
-        // Ad is scheduled but can't fire yet, don't warn, but do poll fast
-        // so we catch the transition when preroll_free_time reaches 0.
-        if (prerollFreeSeconds > 0) {
-            Logger.log(`[AdPoller] Ad scheduled but blocked by preroll_free_time=${prerollFreeSeconds}s, holding fast poll, no warning`);
-            currentPollMs = 2_000;
-            Logger.log(`[AdPoller] -- Poll #${pollCount} done. Next poll in ${currentPollMs / 1000}s --`);
-            return;
-        }
+        // NOTE: preroll_free_time is NOT a gate. It stays > 0 the whole stream
+        // on an active schedule (each aired ad refills it), yet the scheduled
+        // mid-roll still fires on time at next_ad_at. Gating on it suppressed
+        // every warning on 2026-09-17 while 9 real ads aired every 30 min.
+        // preroll_free_time is logged above for observability only.
 
         const secondsUntil = Math.ceil((nextAdTime - Date.now()) / 1000);
 

@@ -6,6 +6,7 @@ const fs = require('fs');
 const {config} = require('../../config');
 const {Logger} = require('../../services');
 const {chatShoutout} = require('../functions/shoutout');
+const {setGate, onRestoreGate} = require('./session_gates');
 
 //-------------------STATE-------------------
 const CACHE_TTL_MS = 30 * 1000; // reload the shared file at most every 30s
@@ -42,12 +43,20 @@ async function checkFavouriteShoutout(client, channel, tags, senderName) {
         if (!loadFavourites().has(login)) return;
 
         greeted.add(userId);
+        setGate('greetedShoutouts', [...greeted]);
         Logger.log(`[FavShoutout] First message from favourited user ${senderName}, shouting out`);
         await chatShoutout(client, config, login);
     } catch (err) {
         Logger.error(`[FavShoutout] Failed to shout out ${senderName}: ${err.message}`);
     }
 }
+
+onRestoreGate((gates) => {
+    if (Array.isArray(gates.greetedShoutouts)) {
+        greeted = new Set(gates.greetedShoutouts);
+        Logger.log(`[FavShoutout] Restored ${greeted.size} already-greeted user(s)`);
+    }
+});
 
 // clears per-stream greeted state; called on bot start/stop
 function resetFavouriteShoutout() {
