@@ -301,6 +301,7 @@ TwitchBot/
 │   │   │   ├── core.js             # EventSub WebSocket hub + subscription registry
 │   │   │   └── handlers.js         # Follow, raid, ad break + generic redemption subscriptions
 │   │   ├── favourite_shoutout.js   # Text shoutout for favourited streamers on first chat
+│   │   ├── session_gates.js        # Persists/restores per-stream gates across mid-stream restarts
 │   │   ├── shield_system.js        # Shield Mode auto-toggle on stream online/offline
 │   │   ├── stream-state.js         # Online/offline state pub/sub
 │   │   ├── timed_commands.js        # Periodic chat messages/functions from timed_commands.json
@@ -343,7 +344,8 @@ TwitchBot/
 │   ├── ssr_queue.json
 │   ├── state.json
 │   ├── stream_gates.json
-│   └── timed_commands.json
+│   ├── timed_commands.json
+│   └── watchtime.json
 ├── logs/                           # Daily log files (auto-created by Logger)
 ├── package.json
 └── package-lock.json
