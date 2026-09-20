@@ -575,42 +575,42 @@ function handleSysCache(client, channel) {
 
 const HANDSHAKE_OUTCOMES = [
     {
-        type: 'accepted', weight: 35, multiplier: 2, messages: [
-            'Node accepted {user} handshake. Packets returned doubled.',
-            'Connection established. Node amplified {user} signal. +{amount} Glossels.',
-            'Handshake successful. Network node returned {user} data with interest.'
-        ]
-    },
-    {
-        type: 'unstable', weight: 30, multiplier: 1, messages: [
+        type: 'unstable', weight: 500, multiplier: 1, messages: [
             'Signal unstable. Packets retained, no change.',
             'Node acknowledged but refused to route. Glossels unchanged.',
             'Connection flickered. Data returned as sent. No loss, no gain.'
         ]
     },
     {
-        type: 'rejected', weight: 25, multiplier: 0, messages: [
+        type: 'rejected', weight: 165, multiplier: 0, messages: [
             'Node rejected transmission. Packets corrupted. -{amount} Glossels.',
             'Handshake failed. Network firewall severed {user} connection. Data lost.',
             'Unknown node dropped {user} signal. Glossels absorbed into the void.'
         ]
     },
     {
-        type: 'amplified', weight: 8, multiplier: 3, messages: [
-            '>> UNKNOWN NODE AMPLIFYING SIGNAL. 3x recovery. +{amount} Glossels.',
-            '>> CRITICAL: Node running unknown protocol. Packets tripled. This should not be possible.',
-            '>> ANOMALY DETECTED. Node returned 3x {user} original transmission.'
-        ]
-    },
-    {
-        type: 'captured', weight: 2, multiplier: -0.5, messages: [
+        type: 'captured', weight: 165, multiplier: -0.5, messages: [
             'Node partially captured {user} packets. Half recovered. -{amount} Glossels.',
             'WARNING: Intercepted mid-transfer. Partial data salvage. {user} lost more than they kept.',
             'Hostile node detected. Packet capture partial. What remains has been returned.'
         ]
     },
     {
-        type: 'drained', weight: 0.5, multiplier: 1, messages: [
+        type: 'accepted', weight: 118, multiplier: 2, messages: [
+            'Node accepted {user} handshake. Packets returned doubled.',
+            'Connection established. Node amplified {user} signal. +{amount} Glossels.',
+            'Handshake successful. Network node returned {user} data with interest.'
+        ]
+    },
+    {
+        type: 'amplified', weight: 50, multiplier: 3, messages: [
+            '>> UNKNOWN NODE AMPLIFYING SIGNAL. 3x recovery. +{amount} Glossels.',
+            '>> CRITICAL: Node running unknown protocol. Packets tripled. This should not be possible.',
+            '>> ANOMALY DETECTED. Node returned 3x {user} original transmission.'
+        ]
+    },
+    {
+        type: 'drained', weight: 2, multiplier: 1, messages: [
             '>> NETWORK CACHE DRAINED. All buffered packets recovered. +{cache} Glossels.',
             '>> CENTRAL CACHE SIPHONED. {user} retrieved every lost packet from the buffer. +{cache} Glossels.',
             '>> CACHE BREACH. Buffered data extracted. {user} recovered {cache} Glossels from the network cache.'
@@ -618,16 +618,18 @@ const HANDSHAKE_OUTCOMES = [
     }
 ];
 
+// weights sum to 1000, so the visible 0-999 mother number maps 1:1 onto outcomes
 function rollHandshakeOutcome() {
-    const totalWeight = HANDSHAKE_OUTCOMES.reduce((sum, o) => sum + o.weight, 0);
-    let random = Math.random() * totalWeight;
+    const mother = require('./mother_number');
+    const roll = mother.roll();
+    let cursor = 0;
 
     for (const outcome of HANDSHAKE_OUTCOMES) {
-        if (random < outcome.weight) return outcome;
-        random -= outcome.weight;
+        cursor += outcome.weight;
+        if (roll < cursor) return {outcome, roll};
     }
 
-    return HANDSHAKE_OUTCOMES[0];
+    return {outcome: HANDSHAKE_OUTCOMES[0], roll};
 }
 
 function handleSysHandshake(client, channel, userId, senderName, msg) {
@@ -682,7 +684,7 @@ function handleSysHandshake(client, channel, userId, senderName, msg) {
     }
 
     // Solo gamble mode
-    const outcome = rollHandshakeOutcome();
+    const {outcome, roll} = rollHandshakeOutcome();
     const msgTemplate = outcome.messages[Math.floor(Math.random() * outcome.messages.length)];
 
     let displayAmount;
@@ -717,6 +719,7 @@ function handleSysHandshake(client, channel, userId, senderName, msg) {
 
     const lines = [
         `>> NETWORK HANDSHAKE, SENDING ${amount} GLOSSELS`,
+        `>> MOTHER SEQUENCE: ${String(roll).padStart(3, '0')}, NODE RESPONDING`,
         flavor
     ];
 
