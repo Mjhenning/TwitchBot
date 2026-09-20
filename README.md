@@ -332,7 +332,8 @@ TwitchBot/
 │   │   └── ports/                  # Port data files (lore unlocks)
 │   ├── data/                       # ARG state: ports.json, found_ports.json, state.json
 │   └── modules/
-│       └── arg_main.js             # Core ARG logic: terminal, filesystem, probes, coherence, network gamble/transfer
+│       ├── arg_main.js             # Core ARG logic: terminal, filesystem, probes, coherence, network gamble/transfer
+│       └── mother_number.js        # Marsaglia MWC "mother number" generator for handshake rolls
 ├── data/                           # Runtime persistence (JSON)
 │   ├── bot_refresh_token.json
 │   ├── broadcaster_refresh_token.json
