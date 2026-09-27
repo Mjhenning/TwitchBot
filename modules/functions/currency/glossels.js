@@ -273,13 +273,11 @@ function giveGlossels(fromId, toId, amount) {
 // ---------------- NETWORK CACHE ----------------
 const CACHE_PATH = path.join(__dirname, '../../../data/network_cache.json');
 
-// Read the shared network cache as a number. The Discord bot historically
-// wrote its own uppercase "Balance" key to the same file, so sum both keys
-// to migrate any split value into the single lowercase key going forward.
+// Read the shared network cache as a number. Both bots agree on lowercase "balance" now.
 function readCache() {
     try {
         const data = JSON.parse(fs.readFileSync(CACHE_PATH, 'utf8'));
-        return (Number(data.balance) || 0) + (Number(data.Balance) || 0);
+        return Number(data.balance) || 0;
     } catch {
         return 0;
     }
