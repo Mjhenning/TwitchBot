@@ -3,7 +3,7 @@ const {config} = require('../../config');
 const {initPearToken} = require('../../auth');
 const axios = require('axios');
 const {Logger} = require('../../services');
-const {pushToQueue, shiftQueue, getQueue, getQueueLength} = require('./ssr-queue');
+const {pushToQueue, shiftQueue, getQueue} = require('./ssr-queue');
 
 let ssrPollInterval = null;
 
@@ -199,22 +199,37 @@ async function addSongToSSRQueue(videoId, title, requester) {
 
     // 3. push to SSR queue
     pushToQueue({videoId, title, requester});
-    const ssrLength = getQueueLength();
-    const arrayPosition = ssrLength - 1;
+    const ssrQueue = getQueue();
 
-    // 4. fetch queue to get current index
+    // 4. fetch queue to find where the existing SSR songs actually sit
     const queueData = await apiGet('/queue');
     const queueItems = queueData?.items || [];
     const currentIndex = queueItems.findIndex(item => item.playlistPanelVideoRenderer?.selected);
 
     // song always lands at currentIndex + 1 after INSERT_AFTER_CURRENT_VIDEO
     const songIndex = currentIndex + 1;
-    const targetIndex = currentIndex + arrayPosition + 1;
 
-    Logger.log(`[SSR DEBUG] currentIndex: ${currentIndex}, songIndex: ${songIndex}, targetIndex: ${targetIndex}, arrayPosition: ${arrayPosition}`);
+    // 5. anchor the target on the last previously queued SSR song that is
+    // still present in the real queue. ssr_queue.json can drift from Pear's
+    // actual queue (manual clears, skips, queue resets), so length-based math
+    // lands songs at wrong positions. The just inserted song is the last
+    // entry in ssrQueue, so exclude it while scanning. Under move semantics
+    // (remove from songIndex, insert at toIndex) the destination index is the
+    // post-landing index of that last surviving SSR song. If none survive,
+    // keep the song at songIndex (right after current).
+    const pendingIds = new Set(ssrQueue.slice(0, -1).map(e => e.videoId));
+    let lastSsrIndex = songIndex;
+    queueItems.forEach((item, i) => {
+        if (i <= currentIndex) return;
+        const id = item.playlistPanelVideoRenderer?.videoId;
+        if (id && pendingIds.has(id)) lastSsrIndex = i;
+    });
+    const targetIndex = lastSsrIndex;
 
-    // 5. only patch if it needs to move (i.e. more than one SSR song queued)
-    if (songIndex !== targetIndex) {
+    Logger.log(`[SSR DEBUG] currentIndex: ${currentIndex}, songIndex: ${songIndex}, targetIndex: ${targetIndex}, queuedAhead: ${pendingIds.size}`);
+
+    // 6. only patch if it needs to move and the target is inside the queue
+    if (songIndex !== targetIndex && targetIndex < queueItems.length) {
         await apiPatch(`/queue/${songIndex}`, {toIndex: targetIndex});
     }
 
