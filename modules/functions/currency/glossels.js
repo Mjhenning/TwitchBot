@@ -273,39 +273,40 @@ function giveGlossels(fromId, toId, amount) {
 // ---------------- NETWORK CACHE ----------------
 const CACHE_PATH = path.join(__dirname, '../../../data/network_cache.json');
 
+// Read the shared network cache as a number. The Discord bot historically
+// wrote its own uppercase "Balance" key to the same file, so sum both keys
+// to migrate any split value into the single lowercase key going forward.
 function readCache() {
     try {
-        return JSON.parse(fs.readFileSync(CACHE_PATH, 'utf8'));
+        const data = JSON.parse(fs.readFileSync(CACHE_PATH, 'utf8'));
+        return (Number(data.balance) || 0) + (Number(data.Balance) || 0);
     } catch {
-        return {balance: 0};
+        return 0;
     }
 }
 
-function writeCache(data) {
+function writeCache(balance) {
     try {
-        fs.writeFileSync(CACHE_PATH, JSON.stringify(data, null, 2), 'utf8');
+        fs.writeFileSync(CACHE_PATH, JSON.stringify({balance}, null, 2), 'utf8');
     } catch (err) {
         Logger.error(`[Glossels] Failed to save network_cache.json: ${err.message}`);
     }
 }
 
 function addToCache(amount) {
-    const cache = readCache();
-    cache.balance += amount;
-    writeCache(cache);
-    return cache.balance;
+    const balance = readCache() + amount;
+    writeCache(balance);
+    return balance;
 }
 
 function drainCache() {
-    const cache = readCache();
-    const balance = cache.balance;
-    cache.balance = 0;
-    writeCache(cache);
+    const balance = readCache();
+    writeCache(0);
     return balance;
 }
 
 function getCacheBalance() {
-    return readCache().balance;
+    return readCache();
 }
 
 // ---------------- LEADERBOARD ----------------
