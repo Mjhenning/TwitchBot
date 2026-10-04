@@ -44,6 +44,7 @@ const {
 } = require('../ARG/modules/arg_main')
 
 const {shoutout} = require('../modules/functions/shoutout');
+const {sendAnnouncement} = require('../modules/functions/announcement');
 
 const {handleCounter} = require("../modules/helpers/counters");
 
@@ -101,18 +102,26 @@ function devCommand(client) {
     );
 }
 
-function discordCommand(client) {
-    client.say(
-        config.CHANNEL_NAME,
-        `🟢 Status: Online, Fox's Proxy is quiet… but he's waiting for new connections. You've already found him… why not say hello? ${config.DISCORD_LINK} 💬`
-    );
+function discordCommand(client, announcement) {
+    if (!announcement) {
+        client.say(
+            config.CHANNEL_NAME,
+            `🟢 Status: Online, Fox's Proxy is quiet… but he's waiting for new connections. You've already found him… why not say hello? ${config.DISCORD_LINK} 💬`
+        );
+    } else {
+        sendAnnouncement(config, `🟢 Status: Online, Fox's Proxy is quiet… but he's waiting for new connections. You've already found him… why not say hello? ${config.DISCORD_LINK} 💬`);
+    }
 }
 
-function socialCommand(client) {
-    client.say(
-        config.CHANNEL_NAME,
-        `🌏 The Proxy has branches all across the Glosso-Sphere! 🫧 If you'd like to support us beyond Twitch, you can find us here: 📺 YouTube: ${config.YT_LINK} 📸 Instagram: ${config.INSTA_LINK}`
-    );
+function socialCommand(client, announcement) {
+    if (!announcement) {
+        client.say(
+            config.CHANNEL_NAME,
+            `🌏 The Proxy has branches all across the Glosso-Sphere! 🫧 If you'd like to support us beyond Twitch, you can find us here: 📺 YouTube: ${config.YT_LINK} 📸 Instagram: ${config.INSTA_LINK}`
+        );
+    } else {
+        sendAnnouncement(config, `🌏 The Proxy has branches all across the Glosso-Sphere! 🫧 If you'd like to support us beyond Twitch, you can find us here: 📺 YouTube: ${config.YT_LINK} 📸 Instagram: ${config.INSTA_LINK}`);
+    }
 }
 
 function raidCommand(client) {
@@ -519,7 +528,7 @@ function watchtimeCommand(client, channel, userId, senderName, tags) {
     const seconds = getWatchtime(userId);
     const message = WATCHTIME_MESSAGES[
         Math.floor(Math.random() * WATCHTIME_MESSAGES.length)
-    ](senderName, getWatchtimeFormatted(seconds));
+        ](senderName, getWatchtimeFormatted(seconds));
     client.say(channel, message);
 }
 

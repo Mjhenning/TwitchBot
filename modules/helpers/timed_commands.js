@@ -1,14 +1,17 @@
 // modules/helpers/timed_commands.js
 // Drives data/timed_commands.json: periodic chat messages and function calls with
-// randomized offsets, intervals, and optional conditions. Auto-pauses offline,
-// auto-resumes online. Add new scheduled entries in the JSON config; register new
-// condition/function names in conditionMap/functionMap below.
+// randomized offsets, intervals, and optional conditions. Entries flagged
+// "announcement": true go out as an official Twitch /announcement instead of
+// plain chat. Auto-pauses offline, auto-resumes online. Add new scheduled
+// entries in the JSON config; register new condition/function names in
+// conditionMap/functionMap below.
 const fs = require('fs');
 const path = require('path');
 const {config} = require('../../config');
 const {Logger} = require('../../services');
 const {getIsOnline, onOnline, onOffline} = require('./stream-state');
 const {discordCommand, socialCommand, getSsrEnabled, getMrEnabled} = require('../../commands/registry');
+const {sendAnnouncement} = require('../functions/announcement');
 
 const conditionMap = {
     ssrEnabled: getSsrEnabled,
@@ -75,11 +78,17 @@ function scheduleCommand(entry, client, channel) {
                         Logger.error(`[TimedCommands] Unknown function: ${entry.function}`);
                     } else {
                         Logger.log(`[TimedCommands] Firing function "${entry.function}"`);
-                        await fn(client, channel);
+                        await fn(client, entry.announcement);
                     }
                 } else if (entry.type === 'message') {
                     Logger.log(`[TimedCommands] Firing message "${entry.id}"`);
-                    client.say(channel, interpolateMessage(entry.message));
+                    const text = interpolateMessage(entry.message);
+                    // announcement flag sends an official /announcement instead of plain chat
+                    if (entry.announcement) {
+                        await sendAnnouncement(config, text);
+                    } else {
+                        client.say(channel, text);
+                    }
                 }
             } catch (err) {
                 Logger.error(`[TimedCommands] Error firing "${entry.id}": ${err.message}`);

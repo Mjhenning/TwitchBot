@@ -35,7 +35,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 - **Moderation**: Automatic link filtering with domain allowlists. Links are deleted and the user warned unless they have a trusted badge or the link matches an allowed domain. Song-request and media-request domains are conditionally permitted.
 - **Counters**: Configurable chat counters (e.g. death, yawn, 404) with increment, set, stats, and last-counted subcommands.
 - **Favourite Shoutouts**: The bot greets favourited streamers with a text shoutout (no official `/shoutout` API call) the first time they talk during a stream. The favourites list is shared with the Discord bot and read from its `Data/favourites.json` (see `FAVOURITES_FILE`), so the same list that drives go-live embeds also greets friends in chat. Tracking resets each stream.
-- **Timed Commands**: Periodic chat messages or function calls driven by a JSON config, with randomized offset and interval. Auto-pause on stream offline, auto-resume on online.
+- **Timed Commands**: Periodic chat messages or function calls driven by a JSON config, with randomized offset and interval. Auto-pause on stream offline, auto-resume on online. Entries flagged `"announcement": true` are sent as an official Twitch `/announcement` (colored notice) instead of plain chat, used for the periodic 16+ age reminder.
 - **Daemon Personality**: Bot responds to greetings, lore character names (Ace, Joel, Mara, Dex), project names (AETHER-LINK, Glosso-Sphere, bit-rot), threats, compliments, and gratitude with characterful in-character responses.
 - **Testing Commands**: Mods can simulate follow, raid, and ad break events via `!testfollow`, `!testraid`, `!testads` without needing real events.
 
@@ -258,7 +258,7 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 - Responds to greetings + daemon name mentions, threat words, lore character/place names, gratitude, and compliments. Rate-limited per module to prevent spam.
 
 ### Timed Commands (`modules/helpers/timed_commands.js`)
-- Periodic chat messages/functions defined in `data/timed_commands.json`. Each entry has a randomized offset, interval, optional condition, and type (`message` or `function`). Message entries support interpolating `{MR_MAX_DURATION}` from `config.MR_MAX_DURATION_SECONDS` (used by the `mr_reminder` entry). Currently scheduled: functions `discord` and `socials`, and messages `ssr_reminder`, `mr_reminder`, `checkin`. Add new entries in the JSON config; register new `condition` (e.g. `ssrEnabled`, `mrEnabled`) and `function` names in `conditionMap`/`functionMap` in this module. Auto-pauses on stream offline and resumes on online.
+- Periodic chat messages/functions defined in `data/timed_commands.json`. Each entry has a randomized offset, interval, optional condition, and type (`message` or `function`). Message entries support interpolating `{MR_MAX_DURATION}` from `config.MR_MAX_DURATION_SECONDS` (used by the `mr_reminder` entry). Adding `"announcement": true` to an entry sends it through the official Twitch announcements API (`modules/functions/announcement.js`) as a colored notice instead of plain chat; the `ageReminder` entry uses this. Currently scheduled: functions `discord` and `socials`, and messages `ssr_reminder`, `mr_reminder`, `checkin`, `ageReminder`. Add new entries in the JSON config; register new `condition` (e.g. `ssrEnabled`, `mrEnabled`) and `function` names in `conditionMap`/`functionMap` in this module. Auto-pauses on stream offline and resumes on online.
 
 ---
 
@@ -283,6 +283,7 @@ TwitchBot/
 │   ├── bot_specific/
 │   │   └── bot_response_modules.js # Daemon personality: greetings, lore, threats, gratitude
 │   ├── functions/
+│   │   ├── announcement.js          # Official Twitch /announcement (colored chat notice)
 │   │   ├── clipping.js             # Twitch clip creation
 │   │   ├── followage.js            # Follow age lookup
 │   │   ├── currency/
