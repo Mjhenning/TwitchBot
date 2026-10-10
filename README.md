@@ -136,7 +136,7 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 
 | Command | Description |
 |---|---|
-| `!sr <name or YouTube URL>` | Request a song (must be ≤10 min). Searches YouTube Music or accepts direct URLs. |
+| `!sr <name or YouTube URL>` | Request a song (must be ≤10 min). Searches YouTube Music, accepts direct YouTube URLs, or resolves a Spotify track link to a YouTube match. |
 | `!song` / `!currentsong` | Show the currently playing song |
 | `!queue` / `!q` | Show the queue (current + up to 5 upcoming) |
 | `!skip` | Skip current song (mod only) |
@@ -252,6 +252,7 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 
 ### Song Requests (`modules/song_requests/`)
 - **`pear-desktop-music.js`**: YouTube search via Data API, Pear Desktop Music API integration, SSR queue polling (checks every 5s if a queued song started playing).
+- **`spotify_resolver.js`**: Parses Spotify track links and resolves title/artist via Spotify's public oEmbed endpoint; the result feeds the YouTube search. Album/playlist links are rejected.
 - **`ssr-queue.js`**: In-memory queue persisted to `data/ssr_queue.json`.
 
 ### Personality (`modules/bot_specific/bot_response_modules.js`)

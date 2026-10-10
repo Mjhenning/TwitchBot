@@ -20,6 +20,7 @@ const {
     addSongToSSRQueue,
     skipSong
 } = require('../modules/song_requests/pear-desktop-music');
+const {parseSpotify, getTrackInfo} = require('../modules/song_requests/spotify_resolver');
 
 const {
     retrieveGlossels,
@@ -360,15 +361,34 @@ async function ssrCommand(client, channel, senderName, msg, isBroadcaster) {
     const query = msg.slice('!sr'.length).trim();
 
     if (!query) {
-        client.say(channel, `${senderName}... provide a song name or YouTube link ✧`);
+        client.say(channel, `${senderName}... provide a song name, YouTube link, or Spotify link ✧`);
         return;
     }
 
     const urlMatch = query.match(/(?:youtube\.com\/watch\?v=|music\.youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const spotify = parseSpotify(query);
 
-    const result = urlMatch
-        ? await getSongByVideoId(urlMatch[1])
-        : await searchSong(query);
+    if (spotify?.type === 'other') {
+        client.say(channel, `⚠️ ${senderName}, only Spotify track links are supported (no albums or playlists yet) ✧`);
+        return;
+    }
+
+    let result;
+    let viaSpotify = false;
+
+    if (spotify?.type === 'track') {
+        const track = await getTrackInfo(spotify.id);
+        if (!track) {
+            client.say(channel, `⚠️ Couldn't look up that Spotify track... try a name search ✧`);
+            return;
+        }
+        result = await searchSong(track.query);
+        viaSpotify = true;
+    } else {
+        result = urlMatch
+            ? await getSongByVideoId(urlMatch[1])
+            : await searchSong(query);
+    }
 
     if (!result) {
         client.say(channel, `⚠️ Couldn't find "${query}"... try a different search ✧`);
@@ -382,7 +402,8 @@ async function ssrCommand(client, channel, senderName, msg, isBroadcaster) {
 
     await addSongToSSRQueue(result.videoId, result.title, senderName);
 
-    client.say(channel, `✅ ${senderName}, queued: ${result.title} -> https://music.youtube.com/watch?v=${result.videoId} 💾`);
+    const source = viaSpotify ? ' (matched from Spotify)' : '';
+    client.say(channel, `✅ ${senderName}, queued: ${result.title} -> https://music.youtube.com/watch?v=${result.videoId} 💾${source}`);
 }
 
 async function skipCommand(client, channel) {
