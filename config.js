@@ -65,8 +65,7 @@ const config = {
     VLC_PASSWORD: process.env.VLC_PASSWORD,
 
     // ---------- Overlay ----------
-    TOP10_OVERLAY_PORT: process.env.TOP10_OVERLAY_PORT || 8420,
-    PROFILE_OVERLAY_PORT: process.env.PROFILE_OVERLAY_PORT || 8430,
+    OVERLAY_WS_PORT: process.env.OVERLAY_WS_PORT || 8420, // single hub port, all overlays
 
     // ---------- Data ----------
     COUNTER_PATH,

@@ -25,8 +25,9 @@ const {startSessionGates, restoreGates} = require('./modules/helpers/session_gat
 const {startEventSub, stopEventSub} = require('./modules/helpers/eventsub/core');
 require('./modules/helpers/eventsub/handlers');
 
-const {startTop10OverlayServer} = require('./modules/helpers/top10_overlay_server');
-const {startProfileOverlayServer} = require('./modules/helpers/profile_overlay_server');
+const {startOverlayHub, stopOverlayHub} = require('./modules/overlays/overlay_hub');
+const {configureTop10Overlay} = require('./modules/overlays/top10_overlay');
+const {configureProfileOverlay} = require('./modules/overlays/profile_overlay');
 const {initWatchtime, stopWatchtime} = require('./modules/functions/watchtime');
 
 let tmiClient = null;
@@ -135,11 +136,12 @@ async function startBot() {
         setupChatCommands(tmiClient, cfg);
         startARGElements(tmiClient, cfg);
         initWatchtime();
-        startTop10OverlayServer({
+        startOverlayHub(); // one WS server, all overlays pick a channel via ?overlay=<name>
+        configureTop10Overlay({
             getAccessToken: () => cfg.APP_TOKEN, // fetched by initTokens
             clientId: cfg.CLIENT_ID,
         });
-        startProfileOverlayServer({
+        configureProfileOverlay({
             getAccessToken: () => cfg.APP_TOKEN,
             clientId: cfg.CLIENT_ID,
         });
@@ -238,6 +240,11 @@ async function stopBot() {
         stopWatchtime();
     } catch (e) {
         Logger.error(`[Bot] stopWatchtime error: ${e}`);
+    }
+    try {
+        stopOverlayHub();
+    } catch (e) {
+        Logger.error(`[Bot] stopOverlayHub error: ${e}`);
     }
     try {
         resetCommandState();

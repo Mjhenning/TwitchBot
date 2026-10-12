@@ -54,8 +54,8 @@ const {openReward, closeReward, isRewardOpen, resetRewardStates} = require('../m
 const {handleCooldown} = require('../modules/helpers/cooldown');
 const {setGate, onRestoreGate} = require('../modules/helpers/session_gates');
 
-const {triggerTop10Overlay} = require('../modules/helpers/top10_overlay_server');
-const {triggerProfileOverlay} = require('../modules/helpers/profile_overlay_server');
+const {triggerTop10Overlay} = require('../modules/overlays/top10_overlay');
+const {triggerProfileOverlay} = require('../modules/overlays/profile_overlay');
 const {getWatchtime, getWatchtimeFormatted} = require('../modules/functions/watchtime');
 
 

@@ -1,70 +1,32 @@
-// modules/helpers/profile_overlay_server.js
-// Drives the OBS "user profile" browser-source overlay. Runs a small WebSocket
-// server that broadcasts a viewer's name, pfp, Glossels balance, rank,
-// watchtime and badge set when a command like !watchtime or !sys rank fires.
-// Uses the same busy/ACK pattern as the Top 10 overlay so the animation is not
-// replayed on top of itself.
-const WebSocket = require('ws');
+// modules/overlays/profile_overlay.js
+// Drives the OBS "user profile" browser-source overlay. Broadcasts a viewer's
+// name, pfp, Glossels balance, rank, watchtime and badge set over the shared
+// overlay hub ("profile" channel) when a command like !watchtime or !system
+// rank fires. Uses the hub's busy/ACK lock (same as the Top 10 overlay) so the
+// animation is not replayed on top of itself.
 const axios = require('axios');
 const {config} = require('../../config');
 const {Logger} = require('../../services');
-const {withTokenRetry, refreshAppToken} = require('../../auth');
+const hub = require('./overlay_hub');
 const {retrieveGlossels, getUserRank} = require('../functions/currency/glossels');
 const {getWatchtime} = require('../functions/watchtime');
 const {getFollowage} = require('../functions/followage');
 const {resolveBadges} = require('../functions/badges');
-const PROFILE_WS_PORT = config.PROFILE_OVERLAY_PORT || 8430;
 
-const awaitingAck = new Set();
-let busy = false;
-let wss = null;
+const CHANNEL = 'profile';
 
-// Wired by startProfileOverlayServer() from bot.js (app token + client id).
+// Wired by configureProfileOverlay() from bot.js (app token + client id).
 let getAccessToken = async () => {
     throw new Error(
         '[ProfileOverlay] getAccessToken is not wired up, pass one via ' +
-        'startProfileOverlayServer({ getAccessToken, clientId })'
+        'configureProfileOverlay({ getAccessToken, clientId })'
     );
 };
 let clientId = process.env.CLIENT_ID;
 
-function startProfileOverlayServer(options = {}) {
+function configureProfileOverlay(options = {}) {
     if (options.getAccessToken) getAccessToken = options.getAccessToken;
     if (options.clientId) clientId = options.clientId;
-
-    if (wss) return;
-
-    wss = new WebSocket.Server({port: PROFILE_WS_PORT});
-
-    wss.on('connection', (socket) => {
-        Logger.log(`[ProfileOverlay] Browser source connected (${wss.clients.size} total)`);
-        socket.on('message', (data) => {
-            try {
-                const msg = JSON.parse(data.toString());
-                if (msg.type === 'done') clearAck(socket);
-            } catch {
-                // ignore malformed frames
-            }
-        });
-        socket.on('close', () => {
-            Logger.log(`[ProfileOverlay] Browser source disconnected (${wss.clients.size} total)`);
-            clearAck(socket);
-        });
-        socket.on('error', (err) => {
-            Logger.error(`[ProfileOverlay] Client socket error: ${err.message}`);
-        });
-    });
-
-    wss.on('error', (err) => {
-        Logger.error(`[ProfileOverlay] WebSocket server error: ${err.message}`);
-    });
-
-    Logger.log(`[ProfileOverlay] Listening on ws://localhost:${PROFILE_WS_PORT}`);
-}
-
-function clearAck(socket) {
-    awaitingAck.delete(socket);
-    if (awaitingAck.size === 0) busy = false;
 }
 
 // Fetch display name + pfp + chat color fresh from Helix on every trigger.
@@ -134,11 +96,11 @@ async function buildProfile(userId, userName, tags) {
 
 // Entry point used by the chat commands.
 async function triggerProfileOverlay({userId, userName, tags}) {
-    if (!wss) {
-        Logger.warn('[ProfileOverlay] triggerProfileOverlay() called before startProfileOverlayServer()');
+    if (!hub.isStarted()) {
+        Logger.warn('[ProfileOverlay] triggerProfileOverlay() called before startOverlayHub()');
         return null;
     }
-    if (busy) {
+    if (hub.isBusy(CHANNEL)) {
         Logger.log(`[ProfileOverlay] busy (animation showing), dropping profile for ${userName}`);
         return null;
     }
@@ -151,27 +113,18 @@ async function triggerProfileOverlay({userId, userName, tags}) {
         return null;
     }
 
-    if (wss.clients.size === 0) {
+    if (hub.clientCount(CHANNEL) === 0) {
         Logger.log(`[ProfileOverlay] No browser source connected, skipping profile for ${userName}`);
         return profile;
     }
 
-    const payload = JSON.stringify({type: 'show-profile', profile});
-    let sent = false;
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(payload);
-            awaitingAck.add(client);
-            sent = true;
-        }
-    });
+    const {sent, count} = hub.broadcast(CHANNEL, {type: 'show-profile', profile}, {awaitAck: true});
 
     if (sent) {
-        busy = true;
-        Logger.log(`[ProfileOverlay] Triggered for ${userName} (${wss.clients.size} client(s))`);
+        Logger.log(`[ProfileOverlay] Triggered for ${userName} (${count} client(s))`);
     }
 
     return profile;
 }
 
-module.exports = {startProfileOverlayServer, triggerProfileOverlay};
+module.exports = {configureProfileOverlay, triggerProfileOverlay};
