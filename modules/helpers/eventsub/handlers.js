@@ -13,7 +13,7 @@ const {Logger} = require('../../../services');
 const {eventShoutout} = require('../../functions/shoutout')
 const {getIsOnline} = require('../stream-state');
 const {handleRedeemAdd, handleRedeemUpdate} = require('../twitchRedemption');
-const {addGiftSubs} = require('../../overlays/timer_overlay');
+const {addGiftSubs, isActive} = require('../../overlays/timer_overlay');
 
 let adEndTimer = null;
 
@@ -97,6 +97,7 @@ registerSubscription(
 // Every gift sub (single or community) extends the Glosso-thon timer. event.total
 // is the number of subs in *this* gift, cumulative_total is the gifter's running
 // count, so total is what we add. Requires the channel:read:subscriptions scope.
+// Ignored entirely while the timer system is inactive.
 registerSubscription(
     'channel.subscription.gift',
     '1',
@@ -105,7 +106,7 @@ registerSubscription(
     }),
     (event, client, config) => {
         const count = event.total || 0;
-        if (count <= 0) return;
+        if (count <= 0 || !isActive()) return;
 
         const giftMin = config.TIMER_GIFT_MINUTES || 6;
         const who = event.is_anonymous ? 'An anonymous gifter' : event.user_name;

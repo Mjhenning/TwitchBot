@@ -39,9 +39,7 @@ const {
     openMrCommand,
     closeMrCommand,
     watchtimeCommand,
-    timerCommand,
-    setTimerCommand,
-    resetTimerCommand
+    timerCommand
 } = require('./registry');
 
 const {argSystemCommand, argSystemAdminCommand} = require('./registry')
@@ -319,18 +317,6 @@ function setupChatCommands(client, config) {
             const isAutomatic = (parts[2] ?? 'auto') !== 'manual';
             const requester = parts[3] ?? null;
             adBreakTestCommand(client, duration, isAutomatic, requester);
-            return;
-        }
-
-        if (lower.startsWith('!settimer')) {
-            if (!requireMod(tags, client, channel)) return;
-            setTimerCommand(client, channel, senderName, msg);
-            return;
-        }
-
-        if (lower.startsWith('!resettimer')) {
-            if (!requireMod(tags, client, channel)) return;
-            resetTimerCommand(client, channel);
             return;
         }
 

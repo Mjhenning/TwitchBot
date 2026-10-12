@@ -35,7 +35,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 - **Alternate Reality Game (ARG)**: An in-chat terminal simulation ("AETHER-OS") with a virtual filesystem, coherence system, bit-rot decay, port probing, lore files, file access gated by coherence level and discovered events, and a network gamble/transfer system for Glossels.
 - **Moderation**: Automatic link filtering with domain allowlists. Links are deleted and the user warned unless they have a trusted badge or the link matches an allowed domain. Song-request and media-request domains are conditionally permitted.
 - **Counters**: Configurable chat counters (e.g. death, yawn, 404) with increment, set, stats, and last-counted subcommands.
-- **Glosso-thon Timer**: Drives the hub's `timer` channel to an OBS browser-source countdown for Glosso-thon events. The bot is authoritative (it owns the clock and persists it to `data/glossothon_timer.json`, so a browser reload, OBS blip or bot restart never loses time). Each gifted sub adds time automatically via EventSub `channel.subscription.gift` (default 6 min per sub, configurable via `TIMER_GIFT_MINUTES`). Mods control it from chat with `!timer pause|resume|toggle|add|set|reset`, `!settimer <min>` and `!resettimer`.
+- **Glosso-thon Timer**: Drives the hub's `timer` channel to an OBS browser-source countdown for Glosso-thon events. The bot is authoritative and persists the countdown, gifted-sub count and an `active` master switch to `data/glossothon.json`, so a browser reload, OBS blip or bot restart never loses progress; on restart it comes back paused at the last saved remainder, so a new stream resumes exactly where the last one left off via `!timer toggle`. The whole system is gated on `active`: when off the overlay is hidden and the bot ignores timer commands and gifted subs, so the timer only runs during the event. Each gifted sub adds time automatically via EventSub `channel.subscription.gift` (default 6 min per sub, configurable via `TIMER_GIFT_MINUTES`). Mods control it from chat with `!timer toggle|add|set|on|off`.
 - **Favourite Shoutouts**: The bot greets favourited streamers with a text shoutout (no official `/shoutout` API call) the first time they talk during a stream. The favourites list is shared with the Discord bot and read from its `Data/favourites.json` (see `FAVOURITES_FILE`), so the same list that drives go-live embeds also greets friends in chat. Tracking resets each stream.
 - **Timed Commands**: Periodic chat messages or function calls driven by a JSON config, with randomized offset and interval. Auto-pause on stream offline, auto-resume on online. Entries flagged `"announcement": true` are sent as an official Twitch `/announcement` (colored notice) instead of plain chat, used for the periodic 16+ age reminder.
 - **Daemon Personality**: Bot responds to greetings, lore character names (Ace, Joel, Mara, Dex), project names (AETHER-LINK, Glosso-Sphere, bit-rot), threats, compliments, and gratitude with characterful in-character responses.
@@ -202,15 +202,13 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 | Command | Description |
 |---|---|
 | `!timer` | Show the current countdown, status, and gifted-sub time added |
-| `!timer pause` / `!timer resume` | Pause or resume the countdown |
-| `!timer toggle` | Pause if running, resume if paused |
+| `!timer toggle` | Pause if running, resume if paused (the timer comes back paused after a restart, so this resumes exactly where the last stream left off) |
 | `!timer add <min>` | Add minutes to the countdown |
 | `!timer set <min>` | Set the remaining time in minutes |
-| `!timer reset` | Reset to the base length (default 60 min) and clear gifted subs |
-| `!settimer <min>` | Alias for `!timer set <min>` |
-| `!resettimer` | Alias for `!timer reset` |
+| `!timer on` | Master switch: activate the timer system (overlay shows, commands and gift subs respond). Works even while inactive |
+| `!timer off` | Master switch: deactivate the timer system (overlay hides, the clock is parked, commands and gift subs are ignored) |
 
-Gifted subs extend the timer automatically (see the EventSub section); these commands are for manual control.
+The `active` flag in `data/glossothon.json` is the master switch for the whole timer system. While it is `false` the overlay is hidden and the bot stops responding to the other `!timer` actions and to gifted subs; only `!timer on` still works so the system can be switched back on. Gifted subs extend the timer automatically (see the EventSub section); these commands are for manual control. The countdown, gifted-sub count and active flag persist across streams and bot restarts in `data/glossothon.json`.
 
 ### Lurk
 
@@ -266,10 +264,12 @@ Gifted subs extend the timer automatically (see the EventSub section); these com
 - Triggered by `!watchtime`, `!followage`, `!system rank` and `!system ball`.
 
 ### Glosso-thon Timer (`modules/overlays/timer_overlay.js`)
-- Drives the hub's `timer` channel; the browser source runs `html/Glosso-thon Timer.html` (`ws://<bot-ip>:8420/?overlay=timer`). In overlay mode only the countdown hero is shown (the stats/controls are browser-only).
-- The bot is authoritative: it holds `{running, endAt, remMs, subs}` and pushes `{"type":"timer", remainingMs, running, subs, done, giftMinutes}` on every change and on each source connect, so the source only renders and can never drift or lose the clock on reload.
-- State persists to `data/glossothon_timer.json` and is reloaded at require-time, so an OBS blip or bot restart resumes mid-countdown (an already-expired running timer comes back finished). The `timer` channel is registered at require-time, so no wiring is needed in `bot.js`.
-- Gifted subs extend the timer via the EventSub `channel.subscription.gift` handler (`event.total` subs × `TIMER_GIFT_MINUTES`, default 6); time is added to the running remainder or, when paused, to the paused remainder. Mods control it with the timer chat commands.
+- Drives the hub's `timer` channel; the browser source runs `html/Glosso-thon-timer.html` (`ws://<bot-ip>:8420/?overlay=timer`). The page is the overlay by default (no page query required, so it works as an OBS local file); it shows the countdown plus a stats row (subs, time added, status). Open it with `?control` for a small browser preview.
+- The overlay window stretches to fill the entire browser source (`100vw x 100vh`), so there is no dead space around it; size the browser source to whatever you want the window to be on stream (about `460x290` matches the design proportions). The content uses fixed pixel sizes, so it never shrinks or scales with the source. The 7.css title bar is scaled with `zoom` to match.
+- The bot is authoritative: it holds `{active, running, endAt, remMs, subs}` and pushes `{"type":"timer", active, remainingMs, running, subs, done, giftMinutes}` on every change and on each source connect, so the source only renders and can never drift or lose the clock on reload.
+- State persists to `data/glossothon.json` (active flag + last remainder + gifted-sub count) and is reloaded at require-time. It always comes back paused, so a bot restart or new stream waits for a `!timer toggle` and time never drains while the bot is down. While running, a 15s heartbeat save keeps the persisted remainder close to live for crash resilience. The `timer` channel is registered at require-time, so no wiring is needed in `bot.js`.
+- The `active` flag is the master switch for the whole system. While `false` the overlay adds an `inactive` body class that hides the window, the clock is parked (paused) so it cannot drain, and the bot ignores the other `!timer` actions and gifted subs; `!timer on` is the only command that still responds, so the system can be switched back on. Toggled from chat with `!timer on|off`.
+- Gifted subs extend the timer via the EventSub `channel.subscription.gift` handler (`event.total` subs × `TIMER_GIFT_MINUTES`, default 6); time is added to the running remainder or, when paused, to the paused remainder. The handler returns early while the timer system is inactive. Mods control it with the timer chat commands.
 
 ### Media Requests Pipeline (`modules/media_requests/`)
  1. **`videoRedeemHandler.js`**: Self-registers the video reward with the redemption dispatcher. Feature logic only: validate URL → fetch metadata → download → delegate approval/playback to the dispatcher. New redemption rewards add a `registerReward()` call in their own module, no EventSub or pending-store code needed.
@@ -382,13 +382,13 @@ TwitchBot/
 │   ├── state.json
 │   ├── stream_gates.json
 │   ├── timed_commands.json
-│   ├── glossothon_timer.json
+│   ├── glossothon.json
 │   └── watchtime.json
 ├── html/                           # OBS browser-source overlays (connect to the overlay hub)
 │   ├── top10-overlay-win7.html     # Top 10 leaderboard (hub channel "top10")
 │   ├── user-profile-overlay-win7.html # User profile card (hub channel "profile")
 │   ├── Glosso-thon.html            # Glosso-thon event page
-│   └── Glosso-thon Timer.html      # Glosso-thon countdown/timer overlay
+│   └── Glosso-thon-timer.html      # Glosso-thon countdown/timer overlay (fills its source, about 460x290 recommended)
 ├── logs/                           # Daily log files (auto-created by Logger)
 ├── package.json
 └── package-lock.json
@@ -412,7 +412,7 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 | `data/pendingRedemptions.json` | In-flight media request redemptions (atomic writes, survives crashes) |
 | `data/timed_commands.json` | Scheduled message/function definitions |
 | `data/watchtime.json` | Per-viewer accumulated watchtime (seconds), flushed periodically + on shutdown |
-| `data/glossothon_timer.json` | Glosso-thon countdown state: running flag, running end timestamp, paused remainder, gifted-sub count. Reloaded on require so the timer survives OBS blips and bot restarts |
+| `data/glossothon.json` | Shared Glosso-thon state: the `active` master switch, countdown remainder, gifted-sub count, and update timestamp. Written by the timer overlay and readable by other Glosso-thon overlays. Reloaded on require (always as paused) so the timer survives OBS blips and bot restarts and resumes where it left off |
 | `data/state.json` | General state |
 | `data/stream_gates.json` | Per-stream "gates" persisted across mid-stream restarts: song-request open/closed, media-request open/closed, ARG terminal session (activation, Aether key holder, cwd, connected users, full coherence), already-greeted favourites, and active lurkers. Cleared on stream offline or when the restored title lacks the `Aetherkey` marker |
 | `ARG/data/state.json` | ARG coherence level and bit-rot state |
@@ -431,5 +431,5 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 - **Redemption dispatcher**: All channel point redemptions flow through a generic EventSub `add`/`update` pair in `handlers.js` into `twitchRedemption.js`, which routes to the module registered for each reward id. Rewards define an `onRedeem` plus optional `onResolve`/`onReject`/`onExpire`; if no `onResolve` is given the reward is fulfilled instantly (a reward using Twitch's skip-approval queue sets `autoFulfill: false` so the dispatcher skips the redundant Helix status update). The dispatcher owns the pending store, startup reconciliation, the 5-minute expiry sweep for mod-approval rewards, and each reward's open/closed state (a reward's `startClosed` flag decides whether it begins paused on bot start, e.g. media requests).
 - **Atomic persistence**: `pendingStore.js` writes to a `.tmp` file then renames, preventing corruption on crash. All other JSON files are read on demand and written after every mutation.
 - **Cooldown system**: Per-user, per-command cooldowns (default 5s). Mods and broadcaster are exempt. `!system handshake` has a 30s cooldown.
-- **Command matching**: Most commands use regex word-boundary matching (`hasCommand()`). Commands with arguments (`!sr`, `!followage`, `!so`, `!system`, `!sysAdmin`, `!hug`, `!settimer`, `!resettimer`) use `startsWith` instead. `!sysAdmin` is checked before `!sys` to prevent prefix collision.
+- **Command matching**: Most commands use regex word-boundary matching (`hasCommand()`). Commands with arguments (`!sr`, `!followage`, `!so`, `!system`, `!sysAdmin`, `!hug`) use `startsWith` instead. `!sysAdmin` is checked before `!sys` to prevent prefix collision.
 - **No build step**: Plain CommonJS Node.js. Run directly with `node bot.js`.

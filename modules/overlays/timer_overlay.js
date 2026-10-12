@@ -3,51 +3,66 @@
 // overlay hub: the bot owns the state (so a browser refresh, OBS blip, or bot
 // restart never loses the clock) and pushes it to the source, which only renders.
 // Gift subs extend the timer automatically via the EventSub handler; mods control
-// it from chat with !timer / !settimer / !resettimer.
+// it from chat with !timer (on | off | toggle | add | set). The "active" flag is
+// the master switch for the whole system: when off the overlay hides and the bot
+// ignores timer commands and gift subs.
 const fs = require('fs');
 const {config} = require('../../config');
 const {Logger} = require('../../services');
 const {registerOverlay, broadcast} = require('./overlay_hub');
 
 //---------------------TUNING---------------------
-const START_MS = (config.TIMER_START_MINUTES || 60) * 60 * 1000; // base length, reset target
+const START_MS = (config.TIMER_START_MINUTES || 60) * 60 * 1000; // base length when no saved state
 const PER_MS = (config.TIMER_GIFT_MINUTES || 6) * 60 * 1000; // added per gifted sub
-const TIMER_FILE = config.TIMER_FILE;
+const GLOSSOTHON_FILE = config.GLOSSOTHON_FILE;
 
 //---------------------STATE---------------------
 let running = false;
 let endAt = 0; // epoch ms the run ends, only meaningful while running
 let remMs = START_MS; // remaining while paused
 let subs = 0; // gifted subs counted this run
+let active = false; // master switch: the whole timer system is off until switched on
 
 //--------------------PERSIST--------------------
+// The countdown and its banked gift-sub count persist so a new stream picks up
+// where the last one left off. The clock always comes back paused: it only ticks
+// while the bot is up and a mod has toggled it on, so time never drains between
+// streams or while the bot is offline.
 function load() {
     try {
-        const data = JSON.parse(fs.readFileSync(TIMER_FILE, 'utf8'));
+        const data = JSON.parse(fs.readFileSync(GLOSSOTHON_FILE, 'utf8'));
+        active = !!data.active;
         subs = Number(data.subs) || 0;
-        if (data.running && data.endAt) {
-            remMs = Math.max(0, data.endAt - Date.now());
-            running = remMs > 0;
-            endAt = data.endAt;
-        } else {
-            running = false;
-            remMs = Number.isFinite(data.remMs) ? Math.max(0, data.remMs) : START_MS;
-        }
+        remMs = Number.isFinite(data.remMs) ? Math.max(0, data.remMs) : START_MS;
+        running = false;
+        endAt = 0;
+        Logger.log(`[Timer] Restored ${Math.ceil(remMs / 60000)} min, ${subs} gift sub(s) (${active ? 'active' : 'inactive'})`);
     } catch {
-        Logger.warn('[Timer] Creating new timer state file');
+        Logger.warn('[Timer] No saved timer state, starting fresh');
     }
 }
 
 function save() {
     try {
         fs.writeFileSync(
-            TIMER_FILE,
-            JSON.stringify({running, endAt, remMs, subs, updatedAt: Date.now()}, null, 2),
+            GLOSSOTHON_FILE,
+            JSON.stringify({active, remMs: remainingMs(), subs, updatedAt: Date.now()}, null, 2),
             'utf8'
         );
     } catch (err) {
         Logger.error(`[Timer] Failed to save state: ${err.message}`);
     }
+}
+
+// While running the remainder only lives as endAt, so a periodic save keeps the
+// persisted value close to the truth between mutations (crash resilience).
+let heartbeat = null;
+function startHeartbeat() {
+    if (heartbeat) return;
+    heartbeat = setInterval(() => {
+        if (running) save();
+    }, 15000);
+    if (heartbeat.unref) heartbeat.unref();
 }
 
 //---------------------STATE MATH---------------------
@@ -59,6 +74,7 @@ function snapshot() {
     const rem = remainingMs();
     return {
         type: 'timer',
+        active,
         remainingMs: rem,
         running,
         subs,
@@ -118,18 +134,30 @@ function setTimerMinutes(min) {
     return snapshot();
 }
 
-function resetTimer() {
-    running = false;
-    endAt = 0;
-    remMs = START_MS;
-    subs = 0;
+//---------------------MASTER SWITCH---------------------
+// active controls the whole timer system: the overlay hides and the bot stops
+// answering timer commands and gift subs while it is off.
+function isActive() {
+    return active;
+}
+
+// Turning the system off parks the clock (paused) so it cannot drain while
+// inactive; turning it on leaves it parked for a mod to resume.
+function setActive(on) {
+    active = !!on;
+    if (!active && running) {
+        remMs = remainingMs();
+        running = false;
+        endAt = 0;
+    }
     emit();
     return snapshot();
 }
 
-// Called by the gift-sub EventSub handler. Extends the clock and banks the sub.
+// Called by the gift-sub EventSub handler. Extends the clock and banks the sub,
+// but only while the timer system is active.
 function addGiftSubs(count) {
-    if (count > 0) {
+    if (active && count > 0) {
         subs += count;
         addMs(count * PER_MS);
         emit();
@@ -154,14 +182,14 @@ registerOverlay('timer', {
 });
 
 load();
+startHeartbeat();
 
 module.exports = {
     getTimerState,
-    pauseTimer,
-    resumeTimer,
     toggleTimer,
     addTimerMinutes,
     setTimerMinutes,
-    resetTimer,
-    addGiftSubs
+    addGiftSubs,
+    isActive,
+    setActive
 };

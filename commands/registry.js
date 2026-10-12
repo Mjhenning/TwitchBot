@@ -58,12 +58,11 @@ const {triggerTop10Overlay} = require('../modules/overlays/top10_overlay');
 const {triggerProfileOverlay} = require('../modules/overlays/profile_overlay');
 const {
     getTimerState,
-    pauseTimer,
-    resumeTimer,
     toggleTimer,
     addTimerMinutes,
     setTimerMinutes,
-    resetTimer
+    isActive,
+    setActive
 } = require('../modules/overlays/timer_overlay');
 const {getWatchtime, getWatchtimeFormatted} = require('../modules/functions/watchtime');
 
@@ -580,11 +579,25 @@ function timerSummary(note) {
         `${st.subs} gifted sub${st.subs === 1 ? '' : 's'} (+${st.subs * giftMin} min)`;
 }
 
-// !timer [pause|resume|toggle|add n|set n|reset]
+// !timer [toggle|add n|set n|on|off]
+// "on"/"off" are the master switch and always work; every other action is
+// silently ignored while the timer system is inactive.
 function timerCommand(client, channel, senderName, msg) {
     const parts = msg.trim().split(/\s+/);
     const action = (parts[1] || '').toLowerCase();
     const arg = parts[2];
+
+    if (action === 'on' || action === 'activate' || action === 'off' || action === 'deactivate') {
+        const on = action === 'on' || action === 'activate';
+        setActive(on);
+        client.say(channel, on
+            ? `⏱️ Glosso-thon timer system activated 🫧`
+            : `⏱️ Glosso-thon timer system deactivated, the overlay is hidden and the clock is parked`);
+        return;
+    }
+
+    // inactive: stay quiet, per the master switch
+    if (!isActive()) return;
 
     if (!action) {
         client.say(channel, timerSummary());
@@ -592,18 +605,7 @@ function timerCommand(client, channel, senderName, msg) {
     }
 
     switch (action) {
-        case 'pause':
-            pauseTimer();
-            client.say(channel, timerSummary('paused'));
-            break;
-        case 'resume':
-        case 'unpause':
-        case 'start':
-            resumeTimer();
-            client.say(channel, timerSummary('resumed'));
-            break;
         case 'toggle':
-        case 'flip':
             client.say(channel, timerSummary(toggleTimer().running ? 'resumed' : 'paused'));
             break;
         case 'add': {
@@ -626,30 +628,9 @@ function timerCommand(client, channel, senderName, msg) {
             client.say(channel, timerSummary(`set to ${n} min`));
             break;
         }
-        case 'reset':
-            resetTimer();
-            client.say(channel, timerSummary(`reset to ${config.TIMER_START_MINUTES || 60} min`));
-            break;
         default:
-            client.say(channel, `Timer usage, !timer | pause | resume | toggle | add [min] | set [min] | reset`);
+            client.say(channel, `Timer usage, !timer | toggle | add [min] | set [min] | on | off`);
     }
-}
-
-// !settimer [minutes] alias for !timer set
-function setTimerCommand(client, channel, senderName, msg) {
-    const n = parseInt(msg.trim().split(/\s+/)[1], 10);
-    if (!Number.isFinite(n) || n < 0) {
-        client.say(channel, `Usage, !settimer [minutes]`);
-        return;
-    }
-    setTimerMinutes(n);
-    client.say(channel, timerSummary(`set to ${n} min`));
-}
-
-// !resettimer, back to the base length with no gifted subs
-function resetTimerCommand(client, channel) {
-    resetTimer();
-    client.say(channel, timerSummary(`reset to ${config.TIMER_START_MINUTES || 60} min`));
 }
 
 //--------------------------------- ARG ------------------------------------
@@ -921,8 +902,6 @@ module.exports = {
     watchtimeCommand,
 
     timerCommand,
-    setTimerCommand,
-    resetTimerCommand,
 
     argSystemCommand,
     argSystemAdminCommand,
