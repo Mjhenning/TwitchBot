@@ -56,6 +56,15 @@ const {setGate, onRestoreGate} = require('../modules/helpers/session_gates');
 
 const {triggerTop10Overlay} = require('../modules/overlays/top10_overlay');
 const {triggerProfileOverlay} = require('../modules/overlays/profile_overlay');
+const {
+    getTimerState,
+    pauseTimer,
+    resumeTimer,
+    toggleTimer,
+    addTimerMinutes,
+    setTimerMinutes,
+    resetTimer
+} = require('../modules/overlays/timer_overlay');
 const {getWatchtime, getWatchtimeFormatted} = require('../modules/functions/watchtime');
 
 
@@ -553,6 +562,96 @@ function watchtimeCommand(client, channel, userId, senderName, tags) {
     client.say(channel, message);
 }
 
+//--------------------------------- GLOSSO-THON TIMER ------------------------------------
+
+function fmtTimer(ms) {
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    const p = (n) => String(n).padStart(2, '0');
+    return `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`;
+}
+
+// One-line summary of the timer for chat, with an optional note on what just changed.
+function timerSummary(note) {
+    const st = getTimerState();
+    const giftMin = config.TIMER_GIFT_MINUTES || 6;
+    const status = st.done ? "time's up" : st.running ? 'running' : 'paused';
+    const lead = note ? `${note}: ` : '';
+    return `⏱️ Glosso-thon timer ${lead}${fmtTimer(st.remainingMs)} remaining (${status}) | ` +
+        `${st.subs} gifted sub${st.subs === 1 ? '' : 's'} (+${st.subs * giftMin} min)`;
+}
+
+// !timer [pause|resume|toggle|add n|set n|reset]
+function timerCommand(client, channel, senderName, msg) {
+    const parts = msg.trim().split(/\s+/);
+    const action = (parts[1] || '').toLowerCase();
+    const arg = parts[2];
+
+    if (!action) {
+        client.say(channel, timerSummary());
+        return;
+    }
+
+    switch (action) {
+        case 'pause':
+            pauseTimer();
+            client.say(channel, timerSummary('paused'));
+            break;
+        case 'resume':
+        case 'unpause':
+        case 'start':
+            resumeTimer();
+            client.say(channel, timerSummary('resumed'));
+            break;
+        case 'toggle':
+        case 'flip':
+            client.say(channel, timerSummary(toggleTimer().running ? 'resumed' : 'paused'));
+            break;
+        case 'add': {
+            const n = parseInt(arg, 10);
+            if (!Number.isFinite(n) || n <= 0) {
+                client.say(channel, `Usage, !timer add [minutes]`);
+                return;
+            }
+            addTimerMinutes(n);
+            client.say(channel, timerSummary(`added ${n} min`));
+            break;
+        }
+        case 'set': {
+            const n = parseInt(arg, 10);
+            if (!Number.isFinite(n) || n < 0) {
+                client.say(channel, `Usage, !timer set [minutes]`);
+                return;
+            }
+            setTimerMinutes(n);
+            client.say(channel, timerSummary(`set to ${n} min`));
+            break;
+        }
+        case 'reset':
+            resetTimer();
+            client.say(channel, timerSummary(`reset to ${config.TIMER_START_MINUTES || 60} min`));
+            break;
+        default:
+            client.say(channel, `Timer usage, !timer | pause | resume | toggle | add [min] | set [min] | reset`);
+    }
+}
+
+// !settimer [minutes] alias for !timer set
+function setTimerCommand(client, channel, senderName, msg) {
+    const n = parseInt(msg.trim().split(/\s+/)[1], 10);
+    if (!Number.isFinite(n) || n < 0) {
+        client.say(channel, `Usage, !settimer [minutes]`);
+        return;
+    }
+    setTimerMinutes(n);
+    client.say(channel, timerSummary(`set to ${n} min`));
+}
+
+// !resettimer, back to the base length with no gifted subs
+function resetTimerCommand(client, channel) {
+    resetTimer();
+    client.say(channel, timerSummary(`reset to ${config.TIMER_START_MINUTES || 60} min`));
+}
+
 //--------------------------------- ARG ------------------------------------
 
 function argSystemCommand(client, channel, userId, senderName, tags, msg) {
@@ -820,6 +919,10 @@ module.exports = {
     getTop5Command,
     profileCommand,
     watchtimeCommand,
+
+    timerCommand,
+    setTimerCommand,
+    resetTimerCommand,
 
     argSystemCommand,
     argSystemAdminCommand,

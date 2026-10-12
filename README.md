@@ -26,7 +26,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 - **Song Requests (SSR)**: Viewers request songs via `!sr`. Integrates with Pear Desktop Music and YouTube Data API for search, queuing, and playback. Queue open/close controlled by mods.
 - **Media Requests (MR)**: Channel-point redemption triggers video download via `yt-dlp`, OBS source display, and VLC playback. Moderators approve or reject before playback. Videos must be within the redeemable length cap (default 1 min, configurable via `MR_MAX_DURATION_SECONDS`). Includes expiry sweep, atomic pending store, and startup reconciliation.
 - **Shield System**: Automatically enables Twitch Shield Mode when the stream goes offline and disables it when live, via EventSub `stream.online` / `stream.offline`.
-- **EventSub Integration**: Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), and ad break notifications with countdown warnings.
+- **EventSub Integration**: Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), gifted subs (extend the Glosso-thon timer), and ad break notifications with countdown warnings.
 - **Ad Schedule Poller**: Adaptive polling of the Twitch ad schedule API. Warns chat ~45 seconds before a scheduled ad. Pauses when stream is offline, resumes on online.
 - **Virtual Currency (Glossels)**: Viewers earn Glossels through `!system connect` daily check-ins and participating in ARG events, or instantly convert 1000 channel points into 50 Glossels via the Points to Glossels channel points redeem (Twitch enforces the per-user per-stream limit and approval-skip). Gamble Glossels by sending them into unknown network nodes (`!system handshake <amount>`), or transfer them to other viewers. Every gamble reveals a MOTHER SEQUENCE roll (0 to 999) before the verdict, and outcomes are weighted so nothing happening is common, doubling and tripling are rare, and draining the cache is super rare. Lost Glossels accumulate in the Network Cache, and a rare `drained` outcome lets a player retrieve everything. Leaderboard and rank tracking via `!system balance`, `!system rank`, `!system top`. Balances persist to `data/user_data.json`, which is shared with the separate Discord bot; this bot folds in external changes via a file watcher and writes atomically so the two never clobber each other.
 - **Overlay Hub**: A single WebSocket server (`overlay_hub.js`) on port 8420 that all OBS browser-source overlays share. Each source picks a named channel with `?overlay=<name>` on its connect URL; channels are isolated and a new overlay is added by registering another channel. Started with the bot and stopped on teardown.
@@ -35,6 +35,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 - **Alternate Reality Game (ARG)**: An in-chat terminal simulation ("AETHER-OS") with a virtual filesystem, coherence system, bit-rot decay, port probing, lore files, file access gated by coherence level and discovered events, and a network gamble/transfer system for Glossels.
 - **Moderation**: Automatic link filtering with domain allowlists. Links are deleted and the user warned unless they have a trusted badge or the link matches an allowed domain. Song-request and media-request domains are conditionally permitted.
 - **Counters**: Configurable chat counters (e.g. death, yawn, 404) with increment, set, stats, and last-counted subcommands.
+- **Glosso-thon Timer**: Drives the hub's `timer` channel to an OBS browser-source countdown for Glosso-thon events. The bot is authoritative (it owns the clock and persists it to `data/glossothon_timer.json`, so a browser reload, OBS blip or bot restart never loses time). Each gifted sub adds time automatically via EventSub `channel.subscription.gift` (default 6 min per sub, configurable via `TIMER_GIFT_MINUTES`). Mods control it from chat with `!timer pause|resume|toggle|add|set|reset`, `!settimer <min>` and `!resettimer`.
 - **Favourite Shoutouts**: The bot greets favourited streamers with a text shoutout (no official `/shoutout` API call) the first time they talk during a stream. The favourites list is shared with the Discord bot and read from its `Data/favourites.json` (see `FAVOURITES_FILE`), so the same list that drives go-live embeds also greets friends in chat. Tracking resets each stream.
 - **Timed Commands**: Periodic chat messages or function calls driven by a JSON config, with randomized offset and interval. Auto-pause on stream offline, auto-resume on online. Entries flagged `"announcement": true` are sent as an official Twitch `/announcement` (colored notice) instead of plain chat, used for the periodic 16+ age reminder.
 - **Daemon Personality**: Bot responds to greetings, lore character names (Ace, Joel, Mara, Dex), project names (AETHER-LINK, Glosso-Sphere, bit-rot), threats, compliments, and gratitude with characterful in-character responses.
@@ -81,12 +82,15 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
    - Pear Desktop Music host, port, and auth ID
    - Media queue directory path (`MEDIA_QUEUE_DIR`)
    - Social links (Discord, YouTube, Instagram, itch.io)
+   - Optional tuning: `OVERLAY_WS_PORT` (default 8420), `TIMER_START_MINUTES` (default 60), `TIMER_GIFT_MINUTES` (default 6)
 
 4. **Obtain OAuth refresh tokens** for both bot and broadcaster accounts and place them in:
    - `data/bot_refresh_token.json`
    - `data/broadcaster_refresh_token.json`
    
    These are automatically refreshed at runtime. Use the [Twitch Token Generator](https://twitchapps.com/tmi/) or the Twitch Developer Console to obtain initial tokens.
+   
+   The broadcaster token must include the scopes used by the main EventSub hub, notably `channel:read:subscriptions` (gifted sub events for the Glosso-thon timer) and the scopes for ads, raids, and channel points. Scopes are fixed when the refresh token is granted; token refresh preserves them.
 
 5. **Ensure OBS Studio** is running with WebSocket server enabled before starting the bot.
 
@@ -104,7 +108,7 @@ The bot will:
 3. Authenticate with Pear Desktop Music (gracefully degrades if unavailable).
 4. Connect to Twitch chat via `tmi.js`.
 5. Start the Shield System (EventSub for stream online/offline).
-6. Start the main EventSub hub (follows, raids, ad breaks, media request redemptions).
+6. Start the main EventSub hub (follows, raids, gifted subs, ad breaks, media request redemptions).
 7. Reconcile any pending media redemptions from a previous crash/restart.
 8. Apply each registered reward's declared startup state (rewards with `startClosed: true`, e.g. media requests, start paused and must be opened with `!openmr`).
 9. Restore persisted stream gates (`data/stream_gates.json`): song-request open/closed, media-request open/closed, ARG terminal activation with its Aether-OS session key holder, plus the ARG session (cwd, connected users, full coherence), already-greeted favourites, and active lurkers. So a mid-stream OBS reconnect or bot crash keeps the features and session state the stream already had, including in-flight lurk times. A title containing the `Aetherkey` marker left over from the previous session is used to validate that the gates belong to the current stream; otherwise the persisted gates are discarded. Gates persist across restarts and are only cleared once the Twitch stream actually goes offline.
@@ -193,6 +197,21 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 | `!testraid <name> [viewers]` | Simulate a raid event |
 | `!testads [duration] [auto\|manual] [name]` | Simulate an ad break |
 
+### Glosso-thon Timer (Mod Only)
+
+| Command | Description |
+|---|---|
+| `!timer` | Show the current countdown, status, and gifted-sub time added |
+| `!timer pause` / `!timer resume` | Pause or resume the countdown |
+| `!timer toggle` | Pause if running, resume if paused |
+| `!timer add <min>` | Add minutes to the countdown |
+| `!timer set <min>` | Set the remaining time in minutes |
+| `!timer reset` | Reset to the base length (default 60 min) and clear gifted subs |
+| `!settimer <min>` | Alias for `!timer set <min>` |
+| `!resettimer` | Alias for `!timer reset` |
+
+Gifted subs extend the timer automatically (see the EventSub section); these commands are for manual control.
+
 ### Lurk
 
 | Command | Description |
@@ -222,7 +241,7 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 
 ### EventSub (`modules/helpers/eventsub/`)
 - **`core.js`**: WebSocket hub. Manages the EventSub session, subscription registry, and reconnection.
-- **`handlers.js`**: Registers the EventSub handlers: `channel.follow`, `channel.raid`, `channel.ad_break.begin`, plus the generic channel point redemption `add`/`update` pair. Importing this file is sufficient to register all subscriptions.
+- **`handlers.js`**: Registers the EventSub handlers: `channel.follow`, `channel.raid`, `channel.subscription.gift` (extends the Glosso-thon timer), `channel.ad_break.begin`, plus the generic channel point redemption `add`/`update` pair. Importing this file is sufficient to register all subscriptions. `channel.subscription.gift` requires the broadcaster token to carry the `channel:read:subscriptions` scope.
 
 ### Shield System (`modules/helpers/shield_system.js`)
 - Separate EventSub WebSocket connection for `stream.online` / `stream.offline`.
@@ -245,6 +264,12 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 - **`modules/overlays/profile_overlay.js`**: Drives the hub's `profile` channel. `triggerProfileOverlay({userId, userName, tags})` gathers the viewer's pfp/name, Glossels balance, leaderboard rank, followage, watchtime and badges, then broadcasts `{"type":"show-profile", profile}` to the OBS browser source. Uses the hub's busy/ACK lock (same as the Top 10 overlay) so the popup isn't replayed over itself. Name, pfp and chat colour are fetched fresh from Helix on every trigger.
 - The browser source runs `html/user-profile-overlay-win7.html` (`ws://<bot-ip>:8420/?overlay=profile`): a Windows 7 aeroglass card with the pfp in a glass frame (tinted to the viewer's Twitch chat colour), name, Glossels + rank + watchtime + followage, and a wrapped badge grid in the left column. It stays visible 8 seconds, then ACKs back `{"type":"done"}`.
 - Triggered by `!watchtime`, `!followage`, `!system rank` and `!system ball`.
+
+### Glosso-thon Timer (`modules/overlays/timer_overlay.js`)
+- Drives the hub's `timer` channel; the browser source runs `html/Glosso-thon Timer.html` (`ws://<bot-ip>:8420/?overlay=timer`). In overlay mode only the countdown hero is shown (the stats/controls are browser-only).
+- The bot is authoritative: it holds `{running, endAt, remMs, subs}` and pushes `{"type":"timer", remainingMs, running, subs, done, giftMinutes}` on every change and on each source connect, so the source only renders and can never drift or lose the clock on reload.
+- State persists to `data/glossothon_timer.json` and is reloaded at require-time, so an OBS blip or bot restart resumes mid-countdown (an already-expired running timer comes back finished). The `timer` channel is registered at require-time, so no wiring is needed in `bot.js`.
+- Gifted subs extend the timer via the EventSub `channel.subscription.gift` handler (`event.total` subs × `TIMER_GIFT_MINUTES`, default 6); time is added to the running remainder or, when paused, to the paused remainder. Mods control it with the timer chat commands.
 
 ### Media Requests Pipeline (`modules/media_requests/`)
  1. **`videoRedeemHandler.js`**: Self-registers the video reward with the redemption dispatcher. Feature logic only: validate URL → fetch metadata → download → delegate approval/playback to the dispatcher. New redemption rewards add a `registerReward()` call in their own module, no EventSub or pending-store code needed.
@@ -307,7 +332,7 @@ TwitchBot/
 │   │   ├── counters.js             # Configurable chat counters
 │   │   ├── eventsub/
 │   │   │   ├── core.js             # EventSub WebSocket hub + subscription registry
-│   │   │   └── handlers.js         # Follow, raid, ad break + generic redemption subscriptions
+│   │   │   └── handlers.js         # Follow, raid, gift sub, ad break + generic redemption subscriptions
 │   │   ├── favourite_shoutout.js   # Text shoutout for favourited streamers on first chat
 │   │   ├── session_gates.js        # Persists/restores per-stream gates across mid-stream restarts
 │   │   ├── shield_system.js        # Shield Mode auto-toggle on stream online/offline
@@ -327,7 +352,8 @@ TwitchBot/
 │   ├── overlays/
 │   │   ├── overlay_hub.js          # Shared channel-based WS hub for all OBS overlay sources
 │   │   ├── top10_overlay.js        # OBS Top 10 leaderboard overlay (hub channel "top10")
-│   │   └── profile_overlay.js      # OBS user-profile overlay (hub channel "profile")
+│   │   ├── profile_overlay.js      # OBS user-profile overlay (hub channel "profile")
+│   │   └── timer_overlay.js        # OBS Glosso-thon countdown overlay (hub channel "timer")
 │   └── song_requests/
 │       ├── pear-desktop-music.js   # Pear Desktop Music API + YouTube search + SSR polling
 │       └── ssr-queue.js            # SSR queue persistence (JSON file)
@@ -356,6 +382,7 @@ TwitchBot/
 │   ├── state.json
 │   ├── stream_gates.json
 │   ├── timed_commands.json
+│   ├── glossothon_timer.json
 │   └── watchtime.json
 ├── html/                           # OBS browser-source overlays (connect to the overlay hub)
 │   ├── top10-overlay-win7.html     # Top 10 leaderboard (hub channel "top10")
@@ -385,6 +412,7 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 | `data/pendingRedemptions.json` | In-flight media request redemptions (atomic writes, survives crashes) |
 | `data/timed_commands.json` | Scheduled message/function definitions |
 | `data/watchtime.json` | Per-viewer accumulated watchtime (seconds), flushed periodically + on shutdown |
+| `data/glossothon_timer.json` | Glosso-thon countdown state: running flag, running end timestamp, paused remainder, gifted-sub count. Reloaded on require so the timer survives OBS blips and bot restarts |
 | `data/state.json` | General state |
 | `data/stream_gates.json` | Per-stream "gates" persisted across mid-stream restarts: song-request open/closed, media-request open/closed, ARG terminal session (activation, Aether key holder, cwd, connected users, full coherence), already-greeted favourites, and active lurkers. Cleared on stream offline or when the restored title lacks the `Aetherkey` marker |
 | `ARG/data/state.json` | ARG coherence level and bit-rot state |
@@ -396,12 +424,12 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 ## Architecture Notes
 
 - **OBS-gated startup**: The bot connects to OBS first and only starts all other modules once OBS is online. If OBS disconnects, everything tears down and the bot waits for OBS to reconnect (polls every 20s). `stopBot()` stores its teardown promise and disconnects the tmi client first, and `startBot()` awaits any pending shutdown before starting, so a fast reconnect can't leave two live chat clients (which would double every message).
-- **Dual EventSub connections**: The Shield System uses its own dedicated WebSocket for `stream.online`/`stream.offline`. The main EventSub hub (`core.js`) handles follow, raid, ad, and media request events. Both auto-reconnect.
+- **Dual EventSub connections**: The Shield System uses its own dedicated WebSocket for `stream.online`/`stream.offline`. The main EventSub hub (`core.js`) handles follow, raid, gift sub, ad, and media request events. Both auto-reconnect.
 - **Stream-state pub/sub**: A simple observer pattern (`onOnline`/`onOffline` in `stream-state.js`) decouples stream lifecycle from individual modules. The ad poller, timed commands, ARG, and shield system all subscribe to it.
-- **Browser-source overlays**: All OBS browser-source overlays (currently the Top 10 leaderboard and the user profile) share one WebSocket server, `overlay_hub.js` (unlike `obsController.js`, which drives OBS via the OBS WebSocket). Each source connects to the same port and selects an isolated named channel with `?overlay=<name>`, so sources stay independent and a new overlay only needs a `registerOverlay()` call. Overlays that animate are spam-safe via a per-channel busy/ACK lock: triggers are dropped until the browser source ACKs back with `{"type":"done"}` after finishing its animation. Meanwhile the media playback source is toggled on the currently active scene only (via `obsController.js` with the scene name passed to `SetSceneItemEnabled`), so it never forces the source visible on other scenes.
+- **Browser-source overlays**: All OBS browser-source overlays (currently the Top 10 leaderboard, the user profile, and the Glosso-thon timer) share one WebSocket server, `overlay_hub.js` (unlike `obsController.js`, which drives OBS via the OBS WebSocket). Each source connects to the same port and selects an isolated named channel with `?overlay=<name>`, so sources stay independent and a new overlay only needs a `registerOverlay()` call. Overlays that animate are spam-safe via a per-channel busy/ACK lock: triggers are dropped until the browser source ACKs back with `{"type":"done"}` after finishing its animation. The timer instead pushes state (no ACK lock) so it can render continuously. Meanwhile the media playback source is toggled on the currently active scene only (via `obsController.js` with the scene name passed to `SetSceneItemEnabled`), so it never forces the source visible on other scenes.
 - **Self-registering handlers**: EventSub handler modules (e.g. `videoRedeemHandler.js`) register at require-time. Redemption reward modules call `registerReward()` on the dispatcher in `twitchRedemption.js`; other subscription types are registered in `handlers.js`. Importing the file is enough to register, no explicit wiring needed.
 - **Redemption dispatcher**: All channel point redemptions flow through a generic EventSub `add`/`update` pair in `handlers.js` into `twitchRedemption.js`, which routes to the module registered for each reward id. Rewards define an `onRedeem` plus optional `onResolve`/`onReject`/`onExpire`; if no `onResolve` is given the reward is fulfilled instantly (a reward using Twitch's skip-approval queue sets `autoFulfill: false` so the dispatcher skips the redundant Helix status update). The dispatcher owns the pending store, startup reconciliation, the 5-minute expiry sweep for mod-approval rewards, and each reward's open/closed state (a reward's `startClosed` flag decides whether it begins paused on bot start, e.g. media requests).
 - **Atomic persistence**: `pendingStore.js` writes to a `.tmp` file then renames, preventing corruption on crash. All other JSON files are read on demand and written after every mutation.
 - **Cooldown system**: Per-user, per-command cooldowns (default 5s). Mods and broadcaster are exempt. `!system handshake` has a 30s cooldown.
-- **Command matching**: Most commands use regex word-boundary matching (`hasCommand()`). Commands with arguments (`!sr`, `!followage`, `!so`, `!system`, `!sysAdmin`, `!hug`) use `startsWith` instead. `!sysAdmin` is checked before `!sys` to prevent prefix collision.
+- **Command matching**: Most commands use regex word-boundary matching (`hasCommand()`). Commands with arguments (`!sr`, `!followage`, `!so`, `!system`, `!sysAdmin`, `!hug`, `!settimer`, `!resettimer`) use `startsWith` instead. `!sysAdmin` is checked before `!sys` to prevent prefix collision.
 - **No build step**: Plain CommonJS Node.js. Run directly with `node bot.js`.

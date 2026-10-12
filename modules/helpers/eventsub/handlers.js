@@ -13,6 +13,7 @@ const {Logger} = require('../../../services');
 const {eventShoutout} = require('../../functions/shoutout')
 const {getIsOnline} = require('../stream-state');
 const {handleRedeemAdd, handleRedeemUpdate} = require('../twitchRedemption');
+const {addGiftSubs} = require('../../overlays/timer_overlay');
 
 let adEndTimer = null;
 
@@ -89,6 +90,33 @@ registerSubscription(
             ).catch(err => Logger.error(`EventHandlers: Welcome back message failed: ${err}`));
 
         }, (duration + 1) * 1000); // 1 second buffer
+    }
+);
+
+//---------------------channel.subscription.gift---------------------
+// Every gift sub (single or community) extends the Glosso-thon timer. event.total
+// is the number of subs in *this* gift, cumulative_total is the gifter's running
+// count, so total is what we add. Requires the channel:read:subscriptions scope.
+registerSubscription(
+    'channel.subscription.gift',
+    '1',
+    (config) => ({
+        broadcaster_user_id: config.BROADCASTER_ID
+    }),
+    (event, client, config) => {
+        const count = event.total || 0;
+        if (count <= 0) return;
+
+        const giftMin = config.TIMER_GIFT_MINUTES || 6;
+        const who = event.is_anonymous ? 'An anonymous gifter' : event.user_name;
+
+        addGiftSubs(count);
+        Logger.log(`EventHandlers: ${who} gifted ${count} sub(s) (+${count * giftMin} min)`);
+
+        client.say(
+            `#${config.CHANNEL_NAME}`,
+            `🎁 ${who} gifted ${count} sub${count === 1 ? '' : 's'}! +${count * giftMin} min added to the Glosso-thon timer 🫧`
+        ).catch(err => Logger.error(`EventHandlers: Gift sub message failed: ${err}`));
     }
 );
 

@@ -59,6 +59,8 @@ function startOverlayHub() {
 
     wss = new WebSocket.Server({port: OVERLAY_WS_PORT});
 
+    const server = wss; // captured so socket close handlers survive stopOverlayHub()
+
     wss.on('connection', (socket, req) => {
         const name = parseOverlayName(req);
         if (!name) {
@@ -69,7 +71,7 @@ function startOverlayHub() {
 
         const ch = getChannel(name);
         ch.sockets.add(socket);
-        Logger.log(`[OverlayHub] "${name}" connected (${ch.sockets.size} on channel, ${wss.clients.size} total)`);
+        Logger.log(`[OverlayHub] "${name}" connected (${ch.sockets.size} on channel, ${server.clients.size} total)`);
         if (ch.onConnect) ch.onConnect(socket);
 
         socket.on('message', (data) => {
@@ -88,7 +90,7 @@ function startOverlayHub() {
             ch.sockets.delete(socket);
             clearAck(name, socket); // gone, so it can't be holding the lock
             if (ch.onDisconnect) ch.onDisconnect(socket);
-            Logger.log(`[OverlayHub] "${name}" disconnected (${ch.sockets.size} on channel, ${wss.clients.size} total)`);
+            Logger.log(`[OverlayHub] "${name}" disconnected (${ch.sockets.size} on channel, ${server.clients.size} total)`);
         });
 
         socket.on('error', (err) => {

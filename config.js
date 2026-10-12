@@ -8,6 +8,7 @@ const MOD_CONFIG_PATH = path.join(__dirname, 'data', 'moderation.json');
 const PENDING_REDEMPTIONS_PATH = path.join(__dirname, 'data', 'pendingRedemptions.json');
 const CURRENCY_FILE = path.join(__dirname, 'data', 'user_data.json');
 const TIMED_COMMANDS_FILE = path.join(__dirname, 'data', 'timed_commands.json');
+const TIMER_FILE = path.join(__dirname, 'data', 'glossothon_timer.json');
 // shared with the Discord bot; its Data/ folder holds the curated favourite list
 const FAVOURITES_FILE = process.env.FAVOURITES_FILE || path.join(__dirname, '..', 'DiscordBot', 'Data', 'favourites.json');
 
@@ -67,12 +68,17 @@ const config = {
     // ---------- Overlay ----------
     OVERLAY_WS_PORT: process.env.OVERLAY_WS_PORT || 8420, // single hub port, all overlays
 
+    // ---------- Glosso-thon Timer ----------
+    TIMER_START_MINUTES: parseInt(process.env.TIMER_START_MINUTES, 10) || 60, // base countdown length in minutes
+    TIMER_GIFT_MINUTES: parseInt(process.env.TIMER_GIFT_MINUTES, 10) || 6, // minutes added per gifted sub
+
     // ---------- Data ----------
     COUNTER_PATH,
     MOD_CONFIG_PATH,
     PENDING_REDEMPTIONS_PATH,
     CURRENCY_FILE,
     TIMED_COMMANDS_FILE,
+    TIMER_FILE,
     FAVOURITES_FILE,
 
     DEBUG: process.env.DEBUG === 'true'
