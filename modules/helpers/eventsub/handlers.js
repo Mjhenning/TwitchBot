@@ -97,7 +97,9 @@ registerSubscription(
 // Every gift sub (single or community) extends the Glosso-thon timer. event.total
 // is the number of subs in *this* gift, cumulative_total is the gifter's running
 // count, so total is what we add. Requires the channel:read:subscriptions scope.
-// Ignored entirely while the timer system is inactive.
+// The gifted count is always banked and logged (the goals overlay tracks it and
+// this doubles as a gift-sub test before an event); time is only added, and the
+// announcement only posted, while the timer system is active.
 registerSubscription(
     'channel.subscription.gift',
     '1',
@@ -106,13 +108,18 @@ registerSubscription(
     }),
     (event, client, config) => {
         const count = event.total || 0;
-        if (count <= 0 || !isActive()) return;
+        if (count <= 0) return;
 
         const giftMin = config.TIMER_GIFT_MINUTES || 6;
         const who = event.is_anonymous ? 'An anonymous gifter' : event.user_name;
+        const st = addGiftSubs(count);
 
-        addGiftSubs(count);
-        Logger.log(`EventHandlers: ${who} gifted ${count} sub(s) (+${count * giftMin} min)`);
+        if (!isActive()) {
+            Logger.log(`EventHandlers: ${who} gifted ${count} sub(s) (timer inactive, banked count only, total ${st.subs})`);
+            return;
+        }
+
+        Logger.log(`EventHandlers: ${who} gifted ${count} sub(s) (+${count * giftMin} min, total ${st.subs})`);
 
         client.say(
             `#${config.CHANNEL_NAME}`,

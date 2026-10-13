@@ -28,6 +28,7 @@ require('./modules/helpers/eventsub/handlers');
 const {startOverlayHub, stopOverlayHub} = require('./modules/overlays/overlay_hub');
 const {configureTop10Overlay} = require('./modules/overlays/top10_overlay');
 const {configureProfileOverlay} = require('./modules/overlays/profile_overlay');
+require('./modules/overlays/goals_overlay'); // self-registers the "goals" channel from the shared timer state
 const {initWatchtime, stopWatchtime} = require('./modules/functions/watchtime');
 
 let tmiClient = null;

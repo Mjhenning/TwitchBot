@@ -84,9 +84,26 @@ function snapshot() {
 }
 
 //---------------------EMIT---------------------
+// Other modules (e.g. the goals overlay) subscribe here so they re-render from
+// the same Glosso-thon state without importing each other directly.
+const stateListeners = new Set();
+
+function onStateChange(fn) {
+    stateListeners.add(fn);
+    return () => stateListeners.delete(fn);
+}
+
 function emit() {
     save();
-    broadcast('timer', snapshot());
+    const snap = snapshot();
+    broadcast('timer', snap);
+    for (const fn of stateListeners) {
+        try {
+            fn(snap);
+        } catch (err) {
+            Logger.error(`[Timer] State listener failed: ${err.message}`);
+        }
+    }
 }
 
 function addMs(ms) {
@@ -154,12 +171,13 @@ function setActive(on) {
     return snapshot();
 }
 
-// Called by the gift-sub EventSub handler. Extends the clock and banks the sub,
-// but only while the timer system is active.
+// Called by the gift-sub EventSub handler. Always banks the gifted count so the
+// goals overlay can track subs even while the timer is off, but only extends the
+// clock while the system is active.
 function addGiftSubs(count) {
-    if (active && count > 0) {
+    if (count > 0) {
         subs += count;
-        addMs(count * PER_MS);
+        if (active) addMs(count * PER_MS);
         emit();
     }
     return snapshot();
@@ -191,5 +209,6 @@ module.exports = {
     setTimerMinutes,
     addGiftSubs,
     isActive,
-    setActive
+    setActive,
+    onStateChange
 };
