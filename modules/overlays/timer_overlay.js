@@ -171,13 +171,12 @@ function setActive(on) {
     return snapshot();
 }
 
-// Called by the gift-sub EventSub handler. Always banks the gifted count so the
-// goals overlay can track subs even while the timer is off, but only extends the
-// clock while the system is active.
+// Called by the gift-sub EventSub handler. Gifted subs are logged regardless of
+// active state, but only banked (counted) and extended in time while active.
 function addGiftSubs(count) {
-    if (count > 0) {
+    if (count > 0 && active) {
         subs += count;
-        if (active) addMs(count * PER_MS);
+        addMs(count * PER_MS);
         emit();
     }
     return snapshot();

@@ -115,7 +115,7 @@ registerSubscription(
         const st = addGiftSubs(count);
 
         if (!isActive()) {
-            Logger.log(`EventHandlers: ${who} gifted ${count} sub(s) (timer inactive, banked count only, total ${st.subs})`);
+            Logger.log(`EventHandlers: ${who} gifted ${count} sub(s) (timer inactive, not banked, subs unchanged)`);
             return;
         }
 

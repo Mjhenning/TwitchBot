@@ -19,15 +19,14 @@ function snapshot() {
     };
 }
 
-// Manually show the goals overlay (similar to the Top 10 overlay trigger).
-// Forces active=true with the current gifted-sub count so the browser source
-// becomes visible regardless of the timer's master switch. State changes from
-// the timer will continue to update/hide it afterwards.
+// Manually show the goals overlay. Only shows if the Glosso-thon system is active.
+// Otherwise follows the timer's master switch behavior.
 function triggerGoalsOverlay() {
+    if (!getTimerState().active) return;
     const st = getTimerState();
     broadcast(CHANNEL, {
         type: 'goals',
-        active: true,
+        active: st.active,
         current: st.subs
     });
 }
