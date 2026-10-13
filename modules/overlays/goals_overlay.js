@@ -7,7 +7,7 @@ const {registerOverlay, broadcast, isBusy, clientCount, isStarted} = require('./
 const {getTimerState, onStateChange} = require('./timer_overlay');
 
 const CHANNEL = 'goals';
-const Logger = require('../../services/Logger').Logger;
+const Logger = require('../../services/Logger');
 
 //---------------------STATE---------------------
 // Push the shared gifted-sub count. The goals list itself lives in the HTML.
