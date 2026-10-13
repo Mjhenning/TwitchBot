@@ -55,6 +55,7 @@ const {handleCooldown} = require('../modules/helpers/cooldown');
 const {setGate, onRestoreGate} = require('../modules/helpers/session_gates');
 
 const {triggerTop10Overlay} = require('../modules/overlays/top10_overlay');
+const {triggerGoalsOverlay} = require('../modules/overlays/goals_overlay');
 const {triggerProfileOverlay} = require('../modules/overlays/profile_overlay');
 const {
     getTimerState,
@@ -688,6 +689,12 @@ function argSystemCommand(client, channel, userId, senderName, tags, msg) {
             break;
         case 'top':
             getTop5Command(client, channel);
+            break;
+        case 'goals':
+        case 'thon':
+        case 'glosso':
+        case 'glossothon':
+            triggerGoalsOverlay();
             break;
         case 'handshake':
             if (handleCooldown(userId, senderName, 'handshake', tags, client, channel, 30)) return;
