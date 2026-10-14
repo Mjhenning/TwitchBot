@@ -112,6 +112,7 @@ registerSubscription(
 
         const giftMin = config.TIMER_GIFT_MINUTES || 6;
         const who = event.is_anonymous ? 'An anonymous gifter' : event.user_name;
+        Logger.log(`EventHandlers: Gift sub event received from ${who} (total=${count})`);
         const st = addGiftSubs(count);
 
         if (!isActive()) {

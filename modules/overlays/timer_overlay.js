@@ -7,6 +7,7 @@
 // the master switch for the whole system: when off the overlay hides and the bot
 // ignores timer commands and gift subs.
 const fs = require('fs');
+const path = require('path');
 const {config} = require('../../config');
 const {Logger} = require('../../services');
 const {registerOverlay, broadcast} = require('./overlay_hub');
@@ -44,11 +45,10 @@ function load() {
 
 function save() {
     try {
-        fs.writeFileSync(
-            GLOSSOTHON_FILE,
-            JSON.stringify({active, remMs: remainingMs(), subs, updatedAt: Date.now()}, null, 2),
-            'utf8'
-        );
+        fs.mkdirSync(path.dirname(GLOSSOTHON_FILE), {recursive: true});
+        const tmp = GLOSSOTHON_FILE + '.tmp';
+        fs.writeFileSync(tmp, JSON.stringify({active, remMs: remainingMs(), subs, updatedAt: Date.now()}, null, 2), 'utf8');
+        fs.renameSync(tmp, GLOSSOTHON_FILE);
     } catch (err) {
         Logger.error(`[Timer] Failed to save state: ${err.message}`);
     }
