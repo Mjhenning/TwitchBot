@@ -350,8 +350,7 @@ function handleSysHelp(client, channel) {
         '!system rank',
         '!system top',
         '!system handshake <amount>',
-        '!system handshake <amount> <user>',
-        '!system goals'
+        '!system handshake <amount> <user>'
     ];
     client.say(channel, `SYSTEM HELP, Available: ${commands.join(' | ')}`);
 }
