@@ -46,6 +46,21 @@ function simulateRaid(client, config, raiderName = 'TestRaider', viewers = 42) {
     }), `channel.raid from ${raiderName} with ${viewers} viewers`);
 }
 
+//---------------------CHANNEL.SUBSCRIPTION.GIFT---------------------
+
+function simulateGiftSub(client, config, count = 1, gifterName = 'TestGifter') {
+    const n = Math.max(1, Math.floor(count) || 1);
+    return dispatch(client, config, notification('channel.subscription.gift', {
+        user_id: '123456789',
+        user_login: gifterName.toLowerCase(),
+        user_name: gifterName,
+        is_anonymous: false,
+        total: n,
+        cumulative_total: n,
+        tier: '1000'
+    }), `channel.subscription.gift x${n} from ${gifterName}`);
+}
+
 //---------------------CHANNEL.AD_BREAK.BEGIN---------------------
 
 function simulateAdBreak(client, config, durationSeconds = 30, isAutomatic = true, requester = null) {
@@ -85,6 +100,7 @@ async function simulateAll(client, config, delayMs = 1500) {
 module.exports = {
     simulateFollow,
     simulateRaid,
+    simulateGiftSub,
     simulateAdBreak,
     simulateAll
 };

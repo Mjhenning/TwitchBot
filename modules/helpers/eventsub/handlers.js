@@ -13,7 +13,18 @@ const {Logger} = require('../../../services');
 const {eventShoutout} = require('../../functions/shoutout')
 const {getIsOnline} = require('../stream-state');
 const {handleRedeemAdd, handleRedeemUpdate} = require('../twitchRedemption');
-const {addGiftSubs, isActive} = require('../../overlays/timer_overlay');
+const {addGiftSubs, isActive, getTimerState} = require('../../overlays/timer_overlay');
+
+// Announce the goal(s) a gift just unlocked. One message even when a single gift
+// crosses several goals, so a big drop does not spam chat. Trimmed to Twitch's 500
+// character limit just in case a very long label set overshoots it.
+function goalAnnouncement(reached) {
+    const parts = reached.map((g) => `${g.at} subs: ${g.label}`);
+    const head = reached.length === 1 ? '🏆 Goal reached!' : `🏆 ${reached.length} goals reached!`;
+    let msg = `${head} ${parts.join(' | ')} 🫧`;
+    if (msg.length > 500) msg = msg.slice(0, 497) + '...';
+    return msg;
+}
 
 let adEndTimer = null;
 
@@ -110,10 +121,11 @@ registerSubscription(
         const count = event.total || 0;
         if (count <= 0) return;
 
-        const giftMin = config.TIMER_GIFT_MINUTES || 6;
         const who = event.is_anonymous ? 'An anonymous gifter' : event.user_name;
         Logger.log(`EventHandlers: Gift sub event received from ${who} (total=${count})`);
+        const before = getTimerState().subs; // subs before this gift, to spot crossings
         const st = addGiftSubs(count);
+        const giftMin = st.giftMinutes || 6; // live value from data/glossothon.json
 
         if (!isActive()) {
             Logger.log(`EventHandlers: ${who} gifted ${count} sub(s) (timer inactive, not banked, subs unchanged)`);
@@ -126,6 +138,15 @@ registerSubscription(
             `#${config.CHANNEL_NAME}`,
             `🎁 ${who} gifted ${count} sub${count === 1 ? '' : 's'}! +${count * giftMin} min added to the Glosso-thon timer 🫧`
         ).catch(err => Logger.error(`EventHandlers: Gift sub message failed: ${err}`));
+
+        const reached = (st.goals || []).filter((g) => g.at > before && g.at <= st.subs);
+        if (reached.length) {
+            Logger.log(`EventHandlers: Goal(s) reached: ${reached.map((g) => g.at).join(', ')}`);
+            client.say(
+                `#${config.CHANNEL_NAME}`,
+                goalAnnouncement(reached)
+            ).catch(err => Logger.error(`EventHandlers: Goal announcement failed: ${err}`));
+        }
     }
 );
 

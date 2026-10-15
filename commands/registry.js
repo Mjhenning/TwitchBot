@@ -9,7 +9,7 @@ const {Logger} = require('../services');
 const {createClip} = require('../modules/functions/clipping');
 const {getFollowage} = require('../modules/functions/followage');
 const {startLurk, isLurking} = require('../modules/functions/lurk_tracker');
-const {simulateFollow, simulateRaid, simulateAdBreak} = require("../modules/functions/testing_events");
+const {simulateFollow, simulateRaid, simulateGiftSub, simulateAdBreak} = require("../modules/functions/testing_events");
 
 const {clearQueue} = require('../modules/song_requests/ssr-queue');
 const {
@@ -59,11 +59,13 @@ const {triggerGoalsOverlay} = require('../modules/overlays/goals_overlay');
 const {triggerProfileOverlay} = require('../modules/overlays/profile_overlay');
 const {
     getTimerState,
+    getGoals,
+    isActive,
+    toggleActive,
     toggleTimer,
     addTimerMinutes,
     setTimerMinutes,
-    isActive,
-    setActive
+    togglePinned
 } = require('../modules/overlays/timer_overlay');
 const {getWatchtime, getWatchtimeFormatted} = require('../modules/functions/watchtime');
 
@@ -351,6 +353,10 @@ function raidTestCommand(client, senderName, viewers = 42) {
     simulateRaid(client, config, senderName, viewers);
 }
 
+function giftSubTestCommand(client, count = 1) {
+    simulateGiftSub(client, config, count);
+}
+
 function adBreakTestCommand(client, durationSeconds = 30, isAutomatic = true, requester = null) {
     simulateAdBreak(client, config, durationSeconds, isAutomatic, requester);
 }
@@ -573,42 +579,49 @@ function fmtTimer(ms) {
 // One-line summary of the timer for chat, with an optional note on what just changed.
 function timerSummary(note) {
     const st = getTimerState();
-    const giftMin = config.TIMER_GIFT_MINUTES || 6;
+    const giftMin = st.giftMinutes || 6;
     const status = st.done ? "time's up" : st.running ? 'running' : 'paused';
     const lead = note ? `${note}: ` : '';
     return `⏱️ Glosso-thon timer ${lead}${fmtTimer(st.remainingMs)} remaining (${status}) | ` +
         `${st.subs} gifted sub${st.subs === 1 ? '' : 's'} (+${st.subs * giftMin} min)`;
 }
 
-// !timer [toggle|add n|set n|on|off]
-// "on"/"off" are the master switch and always work; every other action is
-// silently ignored while the timer system is inactive.
+//--------------------------------- GLOSSO-THON ------------------------------------
+
+// !thon, the master switch for the whole thon system.
+function thonCommand(client, channel, senderName, msg) {
+    const st = toggleActive();
+    client.say(channel, st.active
+        ? `🫧 Glosso-thon activated`
+        : `🫧 Glosso-thon deactivated, overlays hidden and the clock parked`);
+}
+
+// !timer (run/unrun) | pin | add n | set n
+// The master switch lives on !thon; a bare !timer toggles run/unrun.
 function timerCommand(client, channel, senderName, msg) {
+    // silent no-op while the master switch is off: !thon is the only way back in
+    if (!isActive()) return;
+
     const parts = msg.trim().split(/\s+/);
     const action = (parts[1] || '').toLowerCase();
     const arg = parts[2];
 
-    if (action === 'on' || action === 'activate' || action === 'off' || action === 'deactivate') {
-        const on = action === 'on' || action === 'activate';
-        setActive(on);
-        client.say(channel, on
-            ? `⏱️ Glosso-thon timer system activated 🫧`
-            : `⏱️ Glosso-thon timer system deactivated, the overlay is hidden and the clock is parked`);
-        return;
-    }
-
-    // inactive: stay quiet, per the master switch
-    if (!isActive()) return;
-
-    if (!action) {
-        client.say(channel, timerSummary());
+    if (action === 'pin') {
+        const st = togglePinned('timer');
+        client.say(channel, st.pins.timer ? `Timer overlay pinned` : `Timer overlay unpinned`);
         return;
     }
 
     switch (action) {
+        case '':
         case 'toggle':
-            client.say(channel, timerSummary(toggleTimer().running ? 'resumed' : 'paused'));
+        case 'pause':
+        case 'resume': {
+            const wantRunning = action === 'resume' ? true : action === 'pause' ? false : !getTimerState().running;
+            if (getTimerState().running !== wantRunning) toggleTimer();
+            client.say(channel, timerSummary(wantRunning ? 'resumed' : 'paused'));
             break;
+        }
         case 'add': {
             const n = parseInt(arg, 10);
             if (!Number.isFinite(n) || n <= 0) {
@@ -630,8 +643,40 @@ function timerCommand(client, channel, senderName, msg) {
             break;
         }
         default:
-            client.say(channel, `Timer usage, !timer | toggle | add [min] | set [min] | on | off`);
+            client.say(channel, `Timer usage, !timer (toggle) | pin | add [min] | set [min]`);
     }
+}
+
+// Current gifted-sub count and the next unlock, so the chat always knows the target.
+function goalsSummary() {
+    const st = getTimerState();
+    const current = st.subs || 0;
+    const next = getGoals().find((g) => g.at > current);
+    if (!next) return `🎯 Glosso-thon: ${current} subs | All goals reached!`;
+    return `🎯 Glosso-thon: ${current} subs | Next goal: ${next.at} subs (${next.at - current} to go), ${next.label}`;
+}
+
+// !goals (transient show + summary) | pin
+function goalsCommand(client, channel, senderName, msg) {
+    // silent no-op while the master switch is off: !thon is the only way back in
+    if (!isActive()) return;
+
+    const parts = msg.trim().split(/\s+/);
+    const action = (parts[1] || '').toLowerCase();
+
+    if (action === 'pin') {
+        const st = togglePinned('goals');
+        client.say(channel, st.pins.goals ? `Goals overlay pinned` : `Goals overlay unpinned`);
+        return;
+    }
+    if (action) {
+        client.say(channel, `Goals usage, !goals | pin`);
+        return;
+    }
+
+    // bare !goals: show transiently (ignored while pinned) and summarise
+    triggerGoalsOverlay();
+    client.say(channel, goalsSummary());
 }
 
 //--------------------------------- ARG ------------------------------------
@@ -689,12 +734,6 @@ function argSystemCommand(client, channel, userId, senderName, tags, msg) {
             break;
         case 'top':
             getTop5Command(client, channel);
-            break;
-        case 'goals':
-        case 'thon':
-        case 'glosso':
-        case 'glossothon':
-            triggerGoalsOverlay();
             break;
         case 'handshake':
             if (handleCooldown(userId, senderName, 'handshake', tags, client, channel, 30)) return;
@@ -886,6 +925,7 @@ module.exports = {
 
     followTestCommand,
     raidTestCommand,
+    giftSubTestCommand,
     adBreakTestCommand,
 
     ssrCommand,
@@ -908,7 +948,9 @@ module.exports = {
     profileCommand,
     watchtimeCommand,
 
+    thonCommand,
     timerCommand,
+    goalsCommand,
 
     argSystemCommand,
     argSystemAdminCommand,

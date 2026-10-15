@@ -23,6 +23,7 @@ const {
     shoutoutCommand,
     followTestCommand,
     raidTestCommand,
+    giftSubTestCommand,
     adBreakTestCommand,
     clearQCommand,
     closeQCommand,
@@ -39,7 +40,9 @@ const {
     openMrCommand,
     closeMrCommand,
     watchtimeCommand,
-    timerCommand
+    thonCommand,
+    timerCommand,
+    goalsCommand
 } = require('./registry');
 
 const {argSystemCommand, argSystemAdminCommand} = require('./registry')
@@ -295,6 +298,18 @@ function setupChatCommands(client, config) {
             return;
         }
 
+        if (hasCommand(lower, '!testgift')) {
+            if (!requireMod(tags, client, channel)) return;
+            if (handleCooldown('testgift')) return;
+            // usage: !testgift [amount]
+            // e.g.   !testgift      (one gift sub)
+            //        !testgift 5    (five gift subs)
+            const parts = msg.trim().split(/\s+/);
+            const count = parseInt(parts[1]) || 1;
+            giftSubTestCommand(client, count);
+            return;
+        }
+
         if (hasCommand(lower, '!testraid')) {
             if (!requireMod(tags, client, channel)) return;
             if (handleCooldown('testraid')) return;
@@ -320,9 +335,21 @@ function setupChatCommands(client, config) {
             return;
         }
 
+        if (hasCommand(lower, '!thon')) {
+            if (!requireMod(tags, client, channel)) return;
+            thonCommand(client, channel, senderName, msg);
+            return;
+        }
+
         if (hasCommand(lower, '!timer')) {
             if (!requireMod(tags, client, channel)) return;
             timerCommand(client, channel, senderName, msg);
+            return;
+        }
+
+        if (hasCommand(lower, '!goals')) {
+            if (!requireMod(tags, client, channel)) return;
+            goalsCommand(client, channel, senderName, msg);
             return;
         }
 

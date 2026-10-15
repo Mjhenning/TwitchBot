@@ -26,7 +26,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 - **Song Requests (SSR)**: Viewers request songs via `!sr`. Integrates with Pear Desktop Music and YouTube Data API for search, queuing, and playback. Queue open/close controlled by mods.
 - **Media Requests (MR)**: Channel-point redemption triggers video download via `yt-dlp`, OBS source display, and VLC playback. Moderators approve or reject before playback. Videos must be within the redeemable length cap (default 1 min, configurable via `MR_MAX_DURATION_SECONDS`). Includes expiry sweep, atomic pending store, and startup reconciliation.
 - **Shield System**: Automatically enables Twitch Shield Mode when the stream goes offline and disables it when live, via EventSub `stream.online` / `stream.offline`.
-- **EventSub Integration**: Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), gifted subs (extend the Glosso-thon timer), and ad break notifications with countdown warnings.
+- **EventSub Integration**: Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), gifted subs (extend the Glosso-thon timer and announce reached goals), and ad break notifications with countdown warnings.
 - **Ad Schedule Poller**: Adaptive polling of the Twitch ad schedule API. Warns chat ~45 seconds before a scheduled ad. Pauses when stream is offline, resumes on online.
 - **Virtual Currency (Glossels)**: Viewers earn Glossels through `!system connect` daily check-ins and participating in ARG events, or instantly convert 1000 channel points into 50 Glossels via the Points to Glossels channel points redeem (Twitch enforces the per-user per-stream limit and approval-skip). Gamble Glossels by sending them into unknown network nodes (`!system handshake <amount>`), or transfer them to other viewers. Every gamble reveals a MOTHER SEQUENCE roll (0 to 999) before the verdict, and outcomes are weighted so nothing happening is common, doubling and tripling are rare, and draining the cache is super rare. Lost Glossels accumulate in the Network Cache, and a rare `drained` outcome lets a player retrieve everything. Leaderboard and rank tracking via `!system balance`, `!system rank`, `!system top`. Balances persist to `data/user_data.json`, which is shared with the separate Discord bot; this bot folds in external changes via a file watcher and writes atomically so the two never clobber each other.
 - **Overlay Hub**: A single WebSocket server (`overlay_hub.js`) on port 8420 that all OBS browser-source overlays share. Each source picks a named channel with `?overlay=<name>` on its connect URL; channels are isolated and a new overlay is added by registering another channel. Started with the bot and stopped on teardown.
@@ -35,12 +35,13 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 - **Alternate Reality Game (ARG)**: An in-chat terminal simulation ("AETHER-OS") with a virtual filesystem, coherence system, bit-rot decay, port probing, lore files, file access gated by coherence level and discovered events, and a network gamble/transfer system for Glossels.
 - **Moderation**: Automatic link filtering with domain allowlists. Links are deleted and the user warned unless they have a trusted badge or the link matches an allowed domain. Song-request and media-request domains are conditionally permitted.
 - **Counters**: Configurable chat counters (e.g. death, yawn, 404) with increment, set, stats, and last-counted subcommands.
-- **Glosso-thon Timer**: Drives the hub's `timer` channel to an OBS browser-source countdown for Glosso-thon events. The bot is authoritative and persists the countdown, gifted-sub count and an `active` master switch to `data/glossothon.json`, so a browser reload, OBS blip or bot restart never loses progress; on restart it comes back paused at the last saved remainder, so a new stream resumes exactly where the last one left off via `!timer toggle`. The whole system is gated on `active`: when off the overlay is hidden and the bot ignores timer commands, so the timer only runs during the event. Gifted subs are always counted and logged (see the goals overlay), but only add time while active, via EventSub `channel.subscription.gift` (default 6 min per sub, configurable via `TIMER_GIFT_MINUTES`). Mods control it from chat with `!timer toggle|add|set|on|off`.
-- **Glosso-thon Goals**: An OBS browser-source goal list (`html/Glosso-thon-goals.html`, hub channel `goals`) that fills as gifted subs come in. It reads the same gifted-sub count from `data/glossothon.json` that the timer banks, so gift subs advance the goals even while the timer is switched off. Shares the timer's `active` flag, so it is hidden alongside the timer when the Glosso-thon system is off. Mods can also show it on demand with `!system goals` (or `!sys goals`); that forces the overlay visible with the current count.
+- **Glosso-thon**: A whole-event system driven from one state file, `data/glossothon.json`, shared by both overlays. A single master switch (`!thon`) arms or disarms everything: while it is off the overlays hide, the clock parks, and the bot ignores the other thon commands and gifted subs. The bot is authoritative, so a browser reload, OBS blip or bot restart never loses progress. Mods control it entirely from chat:
+  - **Timer**: the hub's `timer` channel drives an OBS browser-source countdown (`html/thon-timer.html`). `!timer` runs or un-runs (pause/unpause) it, `!timer pin` toggles whether the overlay is on screen, and `!timer add|set` adjust the remaining time manually. It persists the countdown and gifted-sub count; on restart it comes back paused at the last saved remainder, so a new stream resumes exactly where the last one left off. Gifted subs extend it via EventSub `channel.subscription.gift` (default 6 min per sub, set by `giftMinutes` in `data/glossothon.json`) while the thon is armed.
+  - **Goals**: the hub's `goals` channel drives `html/thon-goals.html`, a Windows 7 aeroglass window with a goal list that fills as gifted subs come in. `!goals pin` toggles whether it stays on screen permanently; while unpinned, `!goals` shows it briefly and posts a chat progress summary. The reward list live in `data/glossothon.json` under `goals`, so the unlocks can be swapped for a different event without touching code. When a gift pushes the banked count past one or more unlock targets the bot posts a single chat announcement covering every goal it just reached, each with the sub count and reward, so a big drop that crosses several goals shares one message.
 - **Favourite Shoutouts**: The bot greets favourited streamers with a text shoutout (no official `/shoutout` API call) the first time they talk during a stream. The favourites list is shared with the Discord bot and read from its `Data/favourites.json` (see `FAVOURITES_FILE`), so the same list that drives go-live embeds also greets friends in chat. Tracking resets each stream.
 - **Timed Commands**: Periodic chat messages or function calls driven by a JSON config, with randomized offset and interval. Auto-pause on stream offline, auto-resume on online. Entries flagged `"announcement": true` are sent as an official Twitch `/announcement` (colored notice) instead of plain chat, used for the periodic 16+ age reminder.
 - **Daemon Personality**: Bot responds to greetings, lore character names (Ace, Joel, Mara, Dex), project names (AETHER-LINK, Glosso-Sphere, bit-rot), threats, compliments, and gratitude with characterful in-character responses.
-- **Testing Commands**: Mods can simulate follow, raid, and ad break events via `!testfollow`, `!testraid`, `!testads` without needing real events.
+- **Testing Commands**: Mods can simulate follow, raid, gift-sub, and ad break events via `!testfollow`, `!testraid`, `!testgift`, `!testads` without needing real events.
 
 ---
 
@@ -83,7 +84,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
    - Pear Desktop Music host, port, and auth ID
    - Media queue directory path (`MEDIA_QUEUE_DIR`)
    - Social links (Discord, YouTube, Instagram, itch.io)
-   - Optional tuning: `OVERLAY_WS_PORT` (default 8420), `TIMER_START_MINUTES` (default 60), `TIMER_GIFT_MINUTES` (default 6)
+   - Optional tuning: `OVERLAY_WS_PORT` (default 8420), `TIMER_START_MINUTES` (default 60), `TIMER_GIFT_MINUTES` (default 6, seeds `giftMinutes` in `data/glossothon.json` when absent)
 
 4. **Obtain OAuth refresh tokens** for both bot and broadcaster accounts and place them in:
    - `data/bot_refresh_token.json`
@@ -196,20 +197,24 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 |---|---|
 | `!testfollow` | Simulate a follow event |
 | `!testraid <name> [viewers]` | Simulate a raid event |
+| `!testgift [amount]` | Simulate a gift-sub event (default 1), driving the timer and goals overlays |
 | `!testads [duration] [auto\|manual] [name]` | Simulate an ad break |
 
-### Glosso-thon Timer (Mod Only)
+### Glosso-thon (Mod Only)
 
 | Command | Description |
 |---|---|
-| `!timer` | Show the current countdown, status, and gifted-sub time added |
-| `!timer toggle` | Pause if running, resume if paused (the timer comes back paused after a restart, so this resumes exactly where the last stream left off) |
+| `!thon` | Master switch: arm or disarm the whole thon system (`active`) |
+| `!timer` (or `!timer toggle`/`pause`/`resume`) | Run / un-run the countdown. Silent no-op while the thon is off |
+| `!timer pin` | Pin or unpin the timer overlay. Pinned keeps it on screen whenever the thon is armed. Silent no-op while the thon is off |
 | `!timer add <min>` | Add minutes to the countdown |
 | `!timer set <min>` | Set the remaining time in minutes |
-| `!timer on` | Master switch: activate the timer system (overlay shows, commands and gift subs respond). Works even while inactive |
-| `!timer off` | Master switch: deactivate the timer system (overlay hides, the clock is parked, commands and gift subs are ignored) |
+| `!goals pin` | Pin or unpin the goals overlay. Silent no-op while the thon is off |
+| `!goals` | While unpinned, show the goals overlay briefly and post a chat progress summary (current subs, next goal, subs to go). While pinned, still posts the summary. Silent no-op while the thon is off |
 
-The `active` flag in `data/glossothon.json` is the master switch for the whole timer system. While it is `false` the overlay is hidden and the bot stops responding to the other `!timer` actions and to gifted subs; only `!timer on` still works so the system can be switched back on. Gifted subs extend the timer automatically (see the EventSub section); these commands are for manual control. The countdown, gifted-sub count and active flag persist across streams and bot restarts in `data/glossothon.json`.
+The `active` flag in `data/glossothon.json` is the master switch for the whole system, flipped with `!thon`. While it is `false` the overlays are hidden, the clock is parked, and every other thon command (`!timer` and `!goals`, including their `pin` forms) is a silent no-op with no chat reply, and gifted subs are ignored. `!timer pin` and `!goals pin` set persistent per-overlay visibility flags but never override the master switch: an overlay is only on screen while `active` is on and its own pin is set (or, for goals, while a transient `!goals` show is running). The countdown, gifted-sub count, pins and goals list persist across streams and bot restarts in `data/glossothon.json`.
+
+The timer comes back paused on restart, so a new stream resumes exactly where the last one left off with `!timer`. Gifted subs extend the timer automatically via EventSub `channel.subscription.gift` (see the EventSub section) while armed. On a gift both overlays react at the same moment: the timer's gifted-sub and time-added numbers snap to the new total in one update, while the goals overlay flows its bar continuously from the old total to the new one at a steady rate (one gifted sub per two seconds, so a bigger drop simply takes longer) instead of hopping gift by gift, with rows lighting up as the bar passes each target. After the bar settles it holds a beat and fades out; a manual `!goals` with nothing to climb simply holds a little longer. Reaching one or more goals also posts a single chat announcement naming each goal's sub count and reward, so a gift that crosses several shares the one message. While the goals overlay is unpinned this is a transient window that fades in when the gift lands and stretches while gift subs keep arriving mid-show. Pinning while a transient window is open ends it immediately and keeps the window up permanently; unpinning fades it back out.
 
 ### Lurk
 
@@ -240,7 +245,7 @@ The `active` flag in `data/glossothon.json` is the master switch for the whole t
 
 ### EventSub (`modules/helpers/eventsub/`)
 - **`core.js`**: WebSocket hub. Manages the EventSub session, subscription registry, and reconnection.
-- **`handlers.js`**: Registers the EventSub handlers: `channel.follow`, `channel.raid`, `channel.subscription.gift` (extends the Glosso-thon timer), `channel.ad_break.begin`, plus the generic channel point redemption `add`/`update` pair. Importing this file is sufficient to register all subscriptions. `channel.subscription.gift` requires the broadcaster token to carry the `channel:read:subscriptions` scope.
+- **`handlers.js`**: Registers the EventSub handlers: `channel.follow`, `channel.raid`, `channel.subscription.gift` (extends the Glosso-thon timer and announces any goals it reaches), `channel.ad_break.begin`, plus the generic channel point redemption `add`/`update` pair. Importing this file is sufficient to register all subscriptions. `channel.subscription.gift` requires the broadcaster token to carry the `channel:read:subscriptions` scope.
 
 ### Shield System (`modules/helpers/shield_system.js`)
 - Separate EventSub WebSocket connection for `stream.online` / `stream.offline`.
@@ -264,18 +269,21 @@ The `active` flag in `data/glossothon.json` is the master switch for the whole t
 - The browser source runs `html/user-profile-overlay-win7.html` (`ws://<bot-ip>:8420/?overlay=profile`): a Windows 7 aeroglass card with the pfp in a glass frame (tinted to the viewer's Twitch chat colour), name, Glossels + rank + watchtime + followage, and a wrapped badge grid in the left column. It stays visible 8 seconds, then ACKs back `{"type":"done"}`.
 - Triggered by `!watchtime`, `!followage`, `!system rank` and `!system ball`.
 
-### Glosso-thon Timer (`modules/overlays/timer_overlay.js`)
-- Drives the hub's `timer` channel; the browser source runs `html/Glosso-thon-timer.html` (`ws://<bot-ip>:8420/?overlay=timer`). The page is the overlay by default (no page query required, so it works as an OBS local file); it shows the countdown plus a stats row (subs, time added, status). Open it with `?control` for a small browser preview.
-- The overlay window stretches to fill the entire browser source (`100vw x 100vh`), so there is no dead space around it; size the browser source to whatever you want the window to be on stream (about `460x290` matches the design proportions). The content uses fixed pixel sizes, so it never shrinks or scales with the source. The 7.css title bar is scaled with `zoom` to match.
-- The bot is authoritative: it holds `{active, running, endAt, remMs, subs}` and pushes `{"type":"timer", active, remainingMs, running, subs, done, giftMinutes}` on every change and on each source connect, so the source only renders and can never drift or lose the clock on reload.
-- State persists to `data/glossothon.json` (active flag + last remainder + gifted-sub count) and is reloaded at require-time. It always comes back paused, so a bot restart or new stream waits for a `!timer toggle` and time never drains while the bot is down. While running, a 15s heartbeat save keeps the persisted remainder close to live for crash resilience. The `timer` channel is registered at require-time, so no wiring is needed in `bot.js`.
-- The `active` flag is the master switch for the whole system. While `false` the overlay adds an `inactive` body class that hides the window, the clock is parked (paused) so it cannot drain, and the bot ignores the other `!timer` actions; `!timer on` is the only command that still responds, so the system can be switched back on. Toggled from chat with `!timer on|off`.
-- Gifted subs are recorded via the EventSub `channel.subscription.gift` handler (`event.total`). The gifted count is always banked and logged (feeding the goals overlay and doubling as a gift-sub test before an event), while time is only added, and the announcement only posted, when the timer system is active. Time goes to the running remainder or, when paused, to the paused remainder. Mods control it with the timer chat commands.
+### Glosso-thon System (`modules/overlays/timer_overlay.js` + `goals_overlay.js`)
+- Shared state lives in `data/glossothon.json`: `{active, pins: {timer, goals}, giftMinutes, remMs, subs, goals, updatedAt}`. `timer_overlay.js` owns all of it and is the single source of truth; `goals_overlay.js` is a read-only view that subscribes to its state changes. `giftMinutes` (minutes added per gifted sub, default 6) is editable here for a different event; `config.TIMER_GIFT_MINUTES` only seeds the value when the key is absent.
 
-### Glosso-thon Goals (`modules/overlays/goals_overlay.js`)
-- Drives the hub's `goals` channel; the browser source runs `html/Glosso-thon-goals.html` (`ws://<bot-ip>:8420/?overlay=goals`), a Windows 7 aeroglass window with a nine-goal list, each goal a 7.css progress bar that fills towards its target. Size the browser source about `440x560`; like the timer, the window fills the whole source.
-- It is a read-only view of the timer's shared state: `goals_overlay.js` subscribes to `timer_overlay.js` state changes and pushes `{"type":"goals", active, current}` where `current` is the banked gifted-sub count. The goal list itself lives in the HTML. No extra wiring in `bot.js` beyond the require that registers the channel.
-- Because it shares the `active` flag, it hides with the timer, but gift subs still advance `current` while the system is off.
+**Timer** (`timer_overlay.js`, hub channel `timer`, `html/thon-timer.html`):
+- The browser source is the overlay by default (no page query required, so it works as an OBS local file); it shows the countdown plus a stats row (subs, time added, status). Open it with `?control` for a small browser preview.
+- The overlay window stretches to fill the entire browser source (`100vw x 100vh`), so there is no dead space around it; size the browser source to whatever you want the window to be on stream (about `460x290` matches the design proportions). The content uses fixed pixel sizes, so it never shrinks or scales with the source. The 7.css title bar is scaled with `zoom` to match.
+- The bot is authoritative: it pushes `{"type":"timer", active, pins, running, remainingMs, subs, goals, done, giftMinutes}` on every change and on each source connect, so the source only renders and can never drift or lose the clock on reload.
+- State is reloaded at require-time and always comes back paused, so a bot restart or new stream waits for `!timer` and time never drains while the bot is down. While running, a 15s heartbeat save keeps the persisted remainder close to live for crash resilience. The `timer` channel is registered at require-time, so no wiring is needed in `bot.js`.
+- Visibility is `active && pins.timer`: the overlay adds an `inactive` body class that hides the window unless the thon is armed and the timer is pinned. While `active` is `false` the clock is parked (paused) so it cannot drain, and the bot silently ignores every other thon command (`!timer`, `!goals` and their `pin` forms) and gifted subs. The gifted-sub and time-added numbers count up over the same sub-linear flow the goals bar uses (same constants), so both overlays move together; a reset to a lower total snaps.
+- Gifted subs are recorded via the EventSub `channel.subscription.gift` handler (`event.total`). While the thon is armed the count is banked, time is added to the running or paused remainder, and an announcement is posted; while disarmed they are only logged.
+
+**Goals** (`goals_overlay.js`, hub channel `goals`, `html/thon-goals.html`):
+- A Windows 7 aeroglass window with a goal list, each goal a 7.css progress bar that fills towards its target. Size the browser source about `440x560`; like the timer, the window fills the whole source.
+- The goal list lives in `data/glossothon.json` under `goals` (`[{at, label}, ...]`) and is pushed to the source, so swapping the unlocks for a different event is a config edit only. `goals_overlay.js` pushes `{"type":"goals", active, pins, current, goals}` where `current` is the banked gifted-sub count.
+- Visibility is `active && (pins.goals || transient)`. While pinned it stays visible and flows its bar as gift subs arrive. While unpinned, `!goals` (or a gift while unpinned) broadcasts a transient `{"type":"show-goals", ...}`. The bar flows continuously from the old total to the new one, and the number and goal rows ride along with it (they count up as the bar passes each target). The climb duration grows sub-linearly with the drop size (`FLOW_BASE_MS` + `FLOW_PER_SQRT_MS * sqrt(subs)`, clamped to `FLOW_MIN_MS`..`FLOW_MAX_MS`, currently ~1.2s + 1.1s/sqrt up to 10s), so a single gift and a big bundle feel similar and a bigger bundle just gets a little more time. When it settles the window holds `POST_HOLD_MS` (2.5s) then fades out; a manual `!goals` with nothing to climb holds `MANUAL_HOLD_MS` (6s). A gift landing mid-show just moves the target and extends the window. (`TEXT_FOLLOWS_BAR = false` switches the numbers back to a single snap.) Pinned (or disarmed) wins: the bot skips the transient broadcast, and the source ignores any that races through.
 
 ### Media Requests Pipeline (`modules/media_requests/`)
  1. **`videoRedeemHandler.js`**: Self-registers the video reward with the redemption dispatcher. Feature logic only: validate URL → fetch metadata → download → delegate approval/playback to the dispatcher. New redemption rewards add a `registerReward()` call in their own module, no EventSub or pending-store code needed.
@@ -392,11 +400,11 @@ TwitchBot/
 │   ├── glossothon.json
 │   └── watchtime.json
 ├── html/                           # OBS browser-source overlays (connect to the overlay hub)
-│   ├── top10-overlay-win7.html     # Top 10 leaderboard (hub channel "top10")
-│   ├── user-profile-overlay-win7.html # User profile card (hub channel "profile")
-│   ├── Glosso-thon.html            # Glosso-thon event page
-│   ├── Glosso-thon-timer.html      # Glosso-thon countdown/timer overlay (fills its source, about 460x290 recommended)
-│   └── Glosso-thon-goals.html      # Glosso-thon gifted-sub goals overlay (fills its source, about 440x560 recommended)
+│   ├── top-10.html                 # Top 10 leaderboard (hub channel "top10")
+│   ├── user_profile.html           # User profile card (hub channel "profile")
+│   ├── Glosso-thon-advert.html     # Glosso-thon event/advert page
+│   ├── thon-timer.html             # Glosso-thon countdown/timer overlay (fills its source, about 460x290 recommended)
+│   └── thon-goals.html             # Glosso-thon gifted-sub goals overlay (fills its source, about 440x560 recommended)
 ├── logs/                           # Daily log files (auto-created by Logger)
 ├── package.json
 └── package-lock.json
@@ -420,7 +428,7 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 | `data/pendingRedemptions.json` | In-flight media request redemptions (atomic writes, survives crashes) |
 | `data/timed_commands.json` | Scheduled message/function definitions |
 | `data/watchtime.json` | Per-viewer accumulated watchtime (seconds), flushed periodically + on shutdown |
-| `data/glossothon.json` | Shared Glosso-thon state: the `active` master switch, countdown remainder, gifted-sub count, and update timestamp. Written by the timer overlay and readable by other Glosso-thon overlays. Reloaded on require (always as paused) so the timer survives OBS blips and bot restarts and resumes where it left off |
+| `data/glossothon.json` | Shared Glosso-thon state: the `active` master switch, the `pins` map (per-overlay visibility for `timer` and `goals`), `giftMinutes` (minutes added per gifted sub), countdown remainder, gifted-sub count, the `goals` unlock list (`[{at, label}, ...]`), and update timestamp. Owned by the timer overlay and read by the goals overlay. Reloaded on require (always as paused) so the timer survives OBS blips and bot restarts and resumes where it left off |
 | `data/state.json` | General state |
 | `data/stream_gates.json` | Per-stream "gates" persisted across mid-stream restarts: song-request open/closed, media-request open/closed, ARG terminal session (activation, Aether key holder, cwd, connected users, full coherence), already-greeted favourites, and active lurkers. Cleared on stream offline or when the restored title lacks the `Aetherkey` marker |
 | `ARG/data/state.json` | ARG coherence level and bit-rot state |
