@@ -348,8 +348,7 @@ function setupChatCommands(client, config) {
         }
 
         if (hasCommand(lower, '!goals')) {
-            if (!requireMod(tags, client, channel)) return;
-            goalsCommand(client, channel, senderName, msg);
+            goalsCommand(client, channel, senderName, msg, tags);
             return;
         }
 

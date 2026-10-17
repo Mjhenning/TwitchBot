@@ -656,8 +656,8 @@ function goalsSummary() {
     return `🎯 Glosso-thon: ${current} subs | Next goal: ${next.at} subs (${next.at - current} to go), ${next.label}`;
 }
 
-// !goals (transient show + summary) | pin
-function goalsCommand(client, channel, senderName, msg) {
+// !goals (global) | !goals pin (mod/streamer)
+function goalsCommand(client, channel, senderName, msg, tags = {}) {
     // silent no-op while the master switch is off: !thon is the only way back in
     if (!isActive()) return;
 
@@ -665,17 +665,27 @@ function goalsCommand(client, channel, senderName, msg) {
     const action = (parts[1] || '').toLowerCase();
 
     if (action === 'pin') {
+        if (!isBroadcasterOrMod(tags)) {
+            return;
+        }
         const st = togglePinned('goals');
         client.say(channel, st.pins.goals ? `Goals overlay pinned` : `Goals overlay unpinned`);
         return;
     }
     if (action) {
+        if (!isBroadcasterOrMod(tags)) {
+            return;
+        }
         client.say(channel, `Goals usage, !goals | pin`);
         return;
     }
 
-    // bare !goals: show transiently (ignored while pinned) and summarise
-    triggerGoalsOverlay();
+    // bare !goals: globally accessible
+    // If pinned, do not pop the overlay, just post the summary
+    const st = getTimerState();
+    if (!st.pins.goals) {
+        triggerGoalsOverlay();
+    }
     client.say(channel, goalsSummary());
 }
 
