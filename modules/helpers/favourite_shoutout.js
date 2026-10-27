@@ -22,7 +22,24 @@ function loadFavourites() {
 
     try {
         const raw = JSON.parse(fs.readFileSync(config.FAVOURITES_FILE, 'utf8'));
-        favourites = new Set(Object.keys(raw).map(name => name.toLowerCase()));
+        favourites = new Set();
+
+        for (const [name, val] of Object.entries(raw)) {
+            if (typeof val === 'string') {
+                // old format: treat as both
+                favourites.add(name.toLowerCase());
+                continue;
+            }
+
+            if (val && typeof val === 'object') {
+                const type = typeof val.type === 'number' ? val.type : 0;
+                // discord only -> skip twitch shoutout
+                if (type === 1) continue;
+                // 0 or 2 -> allow twitch shoutout
+                favourites.add(name.toLowerCase());
+                continue;
+            }
+        }
     } catch (err) {
         Logger.warn(`[FavShoutout] Could not load favourites list (${err.message}), will retry`);
         favourites = favourites || new Set();
