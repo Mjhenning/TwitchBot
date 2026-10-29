@@ -7,6 +7,7 @@ const {config} = require('../../config');
 const {Logger} = require('../../services');
 const {chatShoutout} = require('../functions/shoutout');
 const {setGate, onRestoreGate} = require('./session_gates');
+const {isBroadcaster} = require('./permissions');
 
 //-------------------STATE-------------------
 const CACHE_TTL_MS = 30 * 1000; // reload the shared file at most every 30s
@@ -51,7 +52,7 @@ function loadFavourites() {
 //------------------CHECK ON MESSAGE------------------
 async function checkFavouriteShoutout(client, channel, tags, senderName) {
     try {
-        if (tags.badges?.broadcaster === '1') return; // never shoutout the host
+        if (isBroadcaster(tags)) return; // never shoutout the host
 
         const userId = tags['user-id'];
         if (!userId || greeted.has(userId)) return;

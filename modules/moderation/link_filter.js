@@ -4,6 +4,7 @@ const axios = require("axios");
 const {config} = require("../../config");
 const {withTokenRetry, refreshBotToken} = require("../../auth");
 const {Logger} = require('../../services');
+const {isModerator, isBroadcaster, hasBadge} = require('../helpers/permissions');
 
 function loadConfig() {
     return JSON.parse(fs.readFileSync(config.MOD_CONFIG_PATH, "utf8"));
@@ -54,16 +55,15 @@ function isAllowedSongRequest(message, ssrEnabled) {
 }
 
 function isTrustedUser(tags) {
-    const badges = tags.badges || {};
     return moderationConfig.trustedBadges.some(badge => {
         switch (badge.toLowerCase()) {
             case "moderator":
             case "mod":
-                return tags.mod;
+                return isModerator(tags);
             case "broadcaster":
-                return badges.broadcaster === "1";
+                return isBroadcaster(tags);
             default:
-                return badges[badge] != null;
+                return hasBadge(tags, badge);
         }
     });
 }

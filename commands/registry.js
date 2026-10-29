@@ -52,6 +52,7 @@ const {handleCounter} = require("../modules/helpers/counters");
 const {handleLinkBlocker} = require("../modules/moderation/link_filter");
 const {openReward, closeReward, isRewardOpen, resetRewardStates} = require('../modules/helpers/twitchRedemption');
 const {handleCooldown} = require('../modules/helpers/cooldown');
+const {requireMod} = require('../modules/helpers/permissions');
 const {setGate, onRestoreGate} = require('../modules/helpers/session_gates');
 
 const {triggerTop10Overlay} = require('../modules/overlays/top10_overlay');
@@ -665,7 +666,7 @@ function goalsCommand(client, channel, senderName, msg, tags = {}) {
     const action = (parts[1] || '').toLowerCase();
 
     if (action === 'pin') {
-        if (!isBroadcasterOrMod(tags)) {
+        if (!requireMod(tags, client, channel)) {
             return;
         }
         const st = togglePinned('goals');
@@ -673,7 +674,7 @@ function goalsCommand(client, channel, senderName, msg, tags = {}) {
         return;
     }
     if (action) {
-        if (!isBroadcasterOrMod(tags)) {
+        if (!requireMod(tags, client, channel)) {
             return;
         }
         client.say(channel, `Goals usage, !goals | pin`);
