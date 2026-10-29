@@ -1,4 +1,6 @@
 // modules/cooldown.js
+const {isModOrBroadcaster} = require('./permissions');
+
 const cooldowns = new Map(); // key is userId:command, maps to timestamp
 const COMMAND_COOLDOWN = 5; // default 5s
 
@@ -21,10 +23,6 @@ function formatTime(ms) {
     const sec = totalSec % 60;
     if (min > 0) return `${min}m ${sec}s`;
     return `${sec}s`;
-}
-
-function isModOrBroadcaster(tags) {
-    return tags.mod || tags.badges?.broadcaster === '1';
 }
 
 function handleCooldown(userId, senderName, command, tags, client, channel, customCooldown = null) {

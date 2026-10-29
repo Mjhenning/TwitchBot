@@ -9,6 +9,7 @@ const {markActive} = require('../modules/functions/watchtime');
 const {clearQueue} = require('../modules/song_requests/ssr-queue');
 const {startSSRPolling} = require('../modules/song_requests/pear-desktop-music');
 const {handleCooldown: _handleCooldown} = require('../modules/helpers/cooldown');
+const {requireMod, isBroadcaster, isModOrBroadcaster} = require('../modules/helpers/permissions');
 const {checkFavouriteShoutout} = require('../modules/helpers/favourite_shoutout');
 
 const {
@@ -48,21 +49,6 @@ const {
 const {argSystemCommand, argSystemAdminCommand} = require('./registry')
 
 //--------------------------------- HELPERS ------------------------------------
-let lastDenied = 0;
-
-function requireMod(tags, client, channel) {
-    const isMod = tags.mod || tags.badges?.broadcaster === '1';
-    if (!isMod) {
-        const now = Date.now();
-        if (now - lastDenied > 5000) {
-            client.say(channel, `Permission denied... this command is restricted ✧`);
-            lastDenied = now;
-        }
-        return false;
-    }
-    return true;
-}
-
 function hasCommand(msg, command) {
     const regex = new RegExp(`(^|\\s)${command}(?=\\s|$|[^\\w])`, 'i');
     return regex.test(msg);
@@ -86,7 +72,7 @@ function setupChatCommands(client, config) {
         const lower = msg.toLowerCase();
         const senderName = tags['display-name'] || tags['username'];
         const userId = tags['user-id'];
-        const isBroadcaster = tags.badges?.broadcaster === '1';
+        const broadcaster = isBroadcaster(tags);
 
         // bank watchtime for this viewer while they're active in chat
         markActive(userId, senderName);
@@ -163,7 +149,7 @@ function setupChatCommands(client, config) {
 
         if (lower.startsWith('!sr')) {
             if (handleCooldown('sr', 30)) return;
-            await ssrCommand(client, channel, senderName, msg, isBroadcaster);
+            await ssrCommand(client, channel, senderName, msg, broadcaster);
             return;
         }
 
@@ -230,7 +216,7 @@ function setupChatCommands(client, config) {
         }
 
         if (lower.startsWith('!sysadmin')) {
-            if (tags.badges?.broadcaster !== '1') {
+            if (!isBroadcaster(tags)) {
                 client.say(channel, `${senderName}, nice try. Admin protocols are broadcaster locked. 🫧`);
                 return;
             }
@@ -358,7 +344,7 @@ function setupChatCommands(client, config) {
             const command = parts[0];
             const action = parts[1] ?? null;
 
-            const isMod = tags.mod || tags.badges?.broadcaster === "1";
+            const isMod = isModOrBroadcaster(tags);
 
             if (await counterCommand(client, channel, command, action, isMod))
                 return;
