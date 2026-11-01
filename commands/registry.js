@@ -200,6 +200,61 @@ function tailCommand(client) {
         client.say(config.CHANNEL_NAME, tailResponses[Math.floor(Math.random() * tailResponses.length)]);
 }
 
+function patHeadCommand(client, channel, senderName, target) {
+    if (!target || target === '@') {
+        const noTarget = [
+            `${senderName} tries a gentle pulse... but no recipient specified 💾`,
+            `${senderName} sends a soft packet into the line... nobody is there ✧`
+        ];
+        client.say(channel, noTarget[Math.floor(Math.random() * noTarget.length)]);
+        return;
+    }
+    const messages = [
+        `${senderName} sends a gentle pulse to ${target}... connection holds steady ✧`,
+        `A soft packet reaches ${target} from ${senderName}... coherence stable 🫧`,
+        `${senderName} pats ${target}... signal stays clear, no static 💾`,
+        `Headpat confirmed... ${senderName} reaches ${target} through the line ✧`,
+        `Connection between ${senderName} and ${target} holds... perimeter stays quiet 🫧`
+    ];
+    client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
+}
+
+function pokeCommand(client, channel, senderName, target) {
+    if (!target || target === '@') {
+        const noTarget = [
+            `${senderName} tries a brief spike... nobody is at the endpoint 💾`,
+            `Interference detected, but no recipient specified ✧`
+        ];
+        client.say(channel, noTarget[Math.floor(Math.random() * noTarget.length)]);
+        return;
+    }
+    const messages = [
+        `${senderName} pokes ${target}... a brief spike, static cleared ✧`,
+        `Signal ripple at ${target}'s endpoint... ${senderName} reports the disturbance 💾`,
+        `${senderName} triggers a light interference at ${target}... coherence restored 🫧`,
+        `Endpoint ${target} detected the poke... connection holds ✧`
+    ];
+    client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
+}
+
+function nomCommand(client, channel, senderName, target) {
+    if (!target || target === '@') {
+        const noTarget = [
+            `${senderName} tries to process a packet... nothing to absorb 💾`,
+            `No recipient specified... signal remains unchanged ✧`
+        ];
+        client.say(channel, noTarget[Math.floor(Math.random() * noTarget.length)]);
+        return;
+    }
+    const messages = [
+        `${senderName} sends a small packet to ${target}... data absorbed ✧`,
+        `Connection to ${target} processes the input... coherence unchanged 💾`,
+        `${senderName} nommed ${target}... signal near the endpoint stable 🫧`,
+        `Packet delivered to ${target} from ${senderName}... no leaks detected ✧`
+    ];
+    client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
+}
+
 function hugCommand(client, channel, senderName, msg) {
     const parts = msg.trim().split(/\s+/);
     const targetRaw = parts.slice(1).join(' ');
@@ -909,6 +964,9 @@ module.exports = {
     backseatCommand,
     lurkCommand,
     tailCommand,
+    patHeadCommand,
+    pokeCommand,
+    nomCommand,
     hugCommand,
 
 

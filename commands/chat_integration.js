@@ -35,6 +35,9 @@ const {
     currentSongCommand,
     tailCommand,
     hugCommand,
+    patHeadCommand,
+    pokeCommand,
+    nomCommand,
     counterCommand,
     handleModeration,
     openMrCommand,
@@ -231,6 +234,27 @@ function setupChatCommands(client, config) {
         if (lower.startsWith('!hug')) {
             if (handleCooldown('hug')) return;
             hugCommand(client, channel, senderName, msg);
+            return;
+        }
+
+        if (lower.startsWith('!pat') || lower.startsWith('!headpat')) {
+            if (handleCooldown('pat')) return;
+            const target = msg.split(' ').slice(1).join(' ');
+            patHeadCommand(client, channel, senderName, target);
+            return;
+        }
+
+        if (lower.startsWith('!poke')) {
+            if (handleCooldown('poke')) return;
+            const target = msg.split(' ').slice(1).join(' ');
+            pokeCommand(client, channel, senderName, target);
+            return;
+        }
+
+        if (lower.startsWith('!nom')) {
+            if (handleCooldown('nom')) return;
+            const target = msg.split(' ').slice(1).join(' ');
+            nomCommand(client, channel, senderName, target);
             return;
         }
 
