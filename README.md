@@ -23,7 +23,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 ## Features
 
 - **Chat Commands**: 20+ chat commands including greetings, lore responses, socials, clipping, follow age, shoutouts, counters, lurk tracking, and hug interactions.
-- **Song Requests (SSR)**: Viewers request songs via `!sr`. Integrates with Pear Desktop Music and YouTube Data API for search, queuing, and playback. Queue open/close controlled by mods.
+- **Song Requests (SSR)**: Viewers request songs via `!sr`. Integrates with Pear Desktop Music and YouTube Data API for search, queuing, and playback. Requests play in the order they were made; queue open/close controlled by mods.
 - **Media Requests (MR)**: Channel-point redemption triggers video download via `yt-dlp`, OBS source display, and VLC playback. Moderators approve or reject before playback. Videos must be within the redeemable length cap (default 1 min, configurable via `MR_MAX_DURATION_SECONDS`). Includes expiry sweep, atomic pending store, and startup reconciliation.
 - **Shield System**: Automatically enables Twitch Shield Mode when the stream goes offline and disables it when live, via EventSub `stream.online` / `stream.offline`.
 - **EventSub Integration**: Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), gifted subs (extend the Glosso-thon timer and announce reached goals), and ad break notifications with countdown warnings.
@@ -299,9 +299,9 @@ The timer comes back paused on restart, so a new stream resumes exactly where th
 8. **`twitchRedemption.js`**: Central redemption dispatcher + Twitch API helpers. Routes redemption events to the registered reward module, manages the generic pending/approval lifecycle (reconciliation + expiry sweep), and can auto-fulfill instant rewards (skipped when a reward sets `autoFulfill: false` for Twitch's skip-approval queue). Tracks each reward's open/closed state (paused/unpaused on Twitch) with `openReward`/`closeReward`/`isRewardOpen`, applied on startup from each reward's `startClosed` flag. Also provides redemption status update and reward pause/unpause API helpers.
 
 ### Song Requests (`modules/song_requests/`)
-- **`pear-desktop-music.js`**: YouTube search via Data API, Pear Desktop Music API integration, SSR queue polling (checks every 5s if a queued song started playing).
+- **`pear-desktop-music.js`**: YouTube search via Data API, Pear Desktop Music API integration, in-order request placement, and SSR polling that reconciles the local request list against Pear's real queue every 5s.
 - **`spotify_resolver.js`**: Parses Spotify track links and resolves title/artist via Spotify's public oEmbed endpoint; the result feeds the YouTube search. Album/playlist links are rejected.
-- **`ssr-queue.js`**: In-memory queue persisted to `data/ssr_queue.json`.
+- **`ssr-queue.js`**: Request list persisted to `data/ssr_queue.json` with atomic writes.
 
 ### Personality (`modules/bot_specific/bot_response_modules.js`)
 - Responds to greetings + daemon name mentions, threat words, lore character/place names, gratitude, and compliments. Rate-limited per module to prevent spam.

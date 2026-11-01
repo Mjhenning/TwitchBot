@@ -1,4 +1,4 @@
-// modules/ssr-queue.js
+// modules/song_requests/ssr-queue.js
 const fs = require('fs');
 const path = require('path');
 
@@ -21,7 +21,10 @@ function loadQueue() {
 
 function saveQueue(queue) {
     ensureFile();
-    fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue, null, 2));
+    // tmp plus rename keeps the file readable if the process exits mid-write
+    const tmp = `${QUEUE_FILE}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(queue, null, 2));
+    fs.renameSync(tmp, QUEUE_FILE);
 }
 
 function pushToQueue(entry) {
@@ -50,4 +53,4 @@ function getQueueLength() {
     return loadQueue().length;
 }
 
-module.exports = {pushToQueue, shiftQueue, getQueue, clearQueue, getQueueLength};
+module.exports = {pushToQueue, shiftQueue, getQueue, saveQueue, clearQueue, getQueueLength};

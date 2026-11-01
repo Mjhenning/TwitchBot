@@ -1,15 +1,46 @@
-// modules/pear-desktop-music.js
+// modules/song_requests/pear-desktop-music.js
 const {config} = require('../../config');
 const {initPearToken} = require('../../auth');
 const axios = require('axios');
 const {Logger} = require('../../services');
-const {pushToQueue, shiftQueue, getQueue} = require('./ssr-queue');
+const {pushToQueue, shiftQueue, getQueue, saveQueue} = require('./ssr-queue');
 
 let ssrPollInterval = null;
 
 // ---------- Helper ----------
 function getBaseUrl() {
     return config.getPearBaseUrl();
+}
+
+// Queue items are either a direct video renderer or a wrapper around one or more
+// alternate versions, so every queue read has to unwrap before looking at fields.
+function getQueueRenderer(item) {
+    return item?.playlistPanelVideoRenderer ||
+        item?.playlistPanelVideoWrapperRenderer?.primaryRenderer?.playlistPanelVideoRenderer ||
+        null;
+}
+
+function getQueueVideoId(item) {
+    return getQueueRenderer(item)?.videoId || null;
+}
+
+function getQueueVideoIds(items) {
+    return items.map(item => getQueueVideoId(item));
+}
+
+function findCurrentIndex(items) {
+    return items.findIndex(item => getQueueRenderer(item)?.selected === true);
+}
+
+// All reads and writes of ssr_queue.json go through one chain. Two viewers can
+// request at the same instant, and the 5s poll can run during an insert; without
+// this both would work from the same snapshot and place songs out of order.
+let ssrQueueLock = Promise.resolve();
+
+function withSsrQueueLock(task) {
+    const run = ssrQueueLock.then(task);
+    ssrQueueLock = run.catch(() => {});
+    return run;
 }
 
 async function apiGet(endpoint) {
@@ -187,53 +218,116 @@ async function waitIfSongEnding() {
     }
 }
 
-async function addSongToSSRQueue(videoId, title, requester) {
-    // 0. wait if current song is about to end
-    await waitIfSongEnding();
+// Pear's insert lands directly after the current song when it can find the
+// playing item, but falls back to the end of the queue. Diffing the queue
+// snapshots finds the real landing index instead of assuming current + 1.
+function findInsertedIndex(beforeIds, afterItems, videoId) {
+    const afterIds = getQueueVideoIds(afterItems);
+    const beforeCount = beforeIds.filter(id => id === videoId).length;
+    const afterCount = afterIds.filter(id => id === videoId).length;
+    if (afterCount <= beforeCount) return -1;
 
-    // 1. insert right after current, always lands at currentIndex + 1
-    await apiPost('/queue', {videoId, insertPosition: 'INSERT_AFTER_CURRENT_VIDEO'});
+    if (afterIds.length === beforeIds.length + 1) {
+        let prefix = 0;
+        while (prefix < beforeIds.length && beforeIds[prefix] === afterIds[prefix]) prefix++;
 
-    // 2. wait briefly for Pear to register
-    await new Promise(resolve => setTimeout(resolve, 1000));
+        let suffix = 0;
+        while (
+            suffix < beforeIds.length - prefix &&
+            beforeIds[beforeIds.length - 1 - suffix] === afterIds[afterIds.length - 1 - suffix]
+        ) suffix++;
 
-    // 3. push to SSR queue
-    pushToQueue({videoId, title, requester});
-    const ssrQueue = getQueue();
-
-    // 4. fetch queue to find where the existing SSR songs actually sit
-    const queueData = await apiGet('/queue');
-    const queueItems = queueData?.items || [];
-    const currentIndex = queueItems.findIndex(item => item.playlistPanelVideoRenderer?.selected);
-
-    // song always lands at currentIndex + 1 after INSERT_AFTER_CURRENT_VIDEO
-    const songIndex = currentIndex + 1;
-
-    // 5. anchor the target on the last previously queued SSR song that is
-    // still present in the real queue. ssr_queue.json can drift from Pear's
-    // actual queue (manual clears, skips, queue resets), so length-based math
-    // lands songs at wrong positions. The just inserted song is the last
-    // entry in ssrQueue, so exclude it while scanning. Under move semantics
-    // (remove from songIndex, insert at toIndex) the destination index is the
-    // post-landing index of that last surviving SSR song. If none survive,
-    // keep the song at songIndex (right after current).
-    const pendingIds = new Set(ssrQueue.slice(0, -1).map(e => e.videoId));
-    let lastSsrIndex = songIndex;
-    queueItems.forEach((item, i) => {
-        if (i <= currentIndex) return;
-        const id = item.playlistPanelVideoRenderer?.videoId;
-        if (id && pendingIds.has(id)) lastSsrIndex = i;
-    });
-    const targetIndex = lastSsrIndex;
-
-    Logger.log(`[SSR DEBUG] currentIndex: ${currentIndex}, songIndex: ${songIndex}, targetIndex: ${targetIndex}, queuedAhead: ${pendingIds.size}`);
-
-    // 6. only patch if it needs to move and the target is inside the queue
-    if (songIndex !== targetIndex && targetIndex < queueItems.length) {
-        await apiPatch(`/queue/${songIndex}`, {toIndex: targetIndex});
+        if (prefix + suffix >= beforeIds.length) return prefix;
     }
 
-    Logger.log(`[SSR] ${requester} queued "${title}" at position ${targetIndex}`);
+    // The queue window moved between the two reads, so the rows no longer line
+    // up. Find the extra occurrence, checking from the end because Pear appends
+    // when it cannot locate the currently playing item.
+    const positions = [];
+    afterIds.forEach((id, i) => {
+        if (id === videoId) positions.push(i);
+    });
+    for (let k = positions.length - 1; k >= 0; k--) {
+        if (beforeIds[positions[k]] !== videoId) return positions[k];
+    }
+    return positions[positions.length - 1];
+}
+
+async function insertSongIntoQueue(videoId, title, requester) {
+    // 0. wait if the current song is about to end, so the snapshots are stable
+    await waitIfSongEnding();
+
+    // 1. snapshot the queue and the request list before inserting
+    const beforeItems = (await apiGet('/queue'))?.items || [];
+    const beforeIds = getQueueVideoIds(beforeItems);
+    const pendingEntries = getQueue();
+
+    // 2. insert near the current song; the exact position gets corrected below
+    const posted = await apiPost('/queue', {videoId, insertPosition: 'INSERT_AFTER_CURRENT_VIDEO'});
+    if (posted === null) {
+        Logger.error(`[SSR] Failed to add "${title}" to the Pear queue`);
+        return;
+    }
+
+    // 3. Pear queues the add asynchronously, so poll briefly until the row
+    // shows up instead of assuming a fixed delay is long enough
+    let afterItems = [];
+    let currentIndex = -1;
+    let newIndex = -1;
+    for (let attempt = 0; attempt < 6; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        afterItems = (await apiGet('/queue'))?.items || [];
+        currentIndex = findCurrentIndex(afterItems);
+        newIndex = findInsertedIndex(beforeIds, afterItems, videoId);
+        if (newIndex >= 0) break;
+    }
+
+    if (currentIndex < 0 || newIndex < 0) {
+        // Placement cannot be verified, but the song is in Pear's queue, so keep
+        // it tracked and let the poll announce it whenever it comes up.
+        Logger.warn(`[SSR] Could not verify placement for "${title}", leaving it where Pear put it`);
+        pushToQueue({videoId, title, requester});
+        return;
+    }
+
+    // 4. find the last earlier request that is still ahead of the current song.
+    // Played, skipped and cleared entries simply do not match. The new song's
+    // own row is skipped so a repeated request cannot anchor to itself.
+    const pendingIds = new Set(pendingEntries.map(entry => entry.videoId));
+    let anchorIndex = -1;
+    afterItems.forEach((item, i) => {
+        if (i <= currentIndex || i === newIndex) return;
+        const id = getQueueVideoId(item);
+        if (id && pendingIds.has(id)) anchorIndex = i;
+    });
+
+    // 5. move the new song directly behind that anchor, or directly behind the
+    // current song when no earlier request is still pending. MOVE_ITEM removes
+    // fromIndex first, so when the song sits after the anchor the slot after it
+    // is where the anchor lands, and when the song sits before the anchor the
+    // anchor slot itself is correct.
+    const anchor = anchorIndex >= 0 ? anchorIndex : currentIndex;
+    const moveTo = newIndex > anchor ? anchor + 1 : anchor;
+    let finalIndex = moveTo;
+
+    if (moveTo !== newIndex) {
+        const patched = await apiPatch(`/queue/${newIndex}`, {toIndex: moveTo});
+        if (patched === null) {
+            Logger.error(`[SSR] Failed to move "${title}" into request order`);
+            finalIndex = newIndex;
+        }
+    }
+
+    // 6. track the request only after it is placed, so a failed insert does not
+    // leave a phantom entry that later placements anchor against
+    pushToQueue({videoId, title, requester});
+
+    Logger.log(`[SSR DEBUG] currentIndex: ${currentIndex}, newIndex: ${newIndex}, anchorIndex: ${anchorIndex}, moveTo: ${moveTo}, pending: ${pendingEntries.length}`);
+    Logger.log(`[SSR] ${requester} queued "${title}" at queue index ${finalIndex}`);
+}
+
+function addSongToSSRQueue(videoId, title, requester) {
+    return withSsrQueueLock(() => insertSongIntoQueue(videoId, title, requester));
 }
 
 async function getQueueWithCurrent(limit = 5) {
@@ -241,7 +335,9 @@ async function getQueueWithCurrent(limit = 5) {
     const queueItems = queueData?.items || [];
     const ssrQueue = getQueue();
 
-    const currentIndex = queueItems.findIndex(item => item.playlistPanelVideoRenderer?.selected);
+    // use the queue snapshot's current row as the source of truth, with the
+    // direct /song endpoint only as a fallback when the queue has no selection
+    const currentIndex = findCurrentIndex(queueItems);
     const currentSongItem = currentIndex >= 0 ? queueItems[currentIndex] : null;
     const upcomingQueue = currentIndex >= 0
         ? queueItems.slice(currentIndex + 1, currentIndex + 1 + limit)
@@ -250,7 +346,7 @@ async function getQueueWithCurrent(limit = 5) {
     const lines = [];
 
     if (currentSongItem) {
-        const renderer = currentSongItem.playlistPanelVideoRenderer;
+        const renderer = getQueueRenderer(currentSongItem);
         const title = renderer?.title?.runs?.[0]?.text || 'Unknown';
         const artist = renderer?.shortBylineText?.runs?.[0]?.text || 'Unknown';
         const length = renderer?.lengthText?.runs?.[0]?.text || '?';
@@ -260,11 +356,11 @@ async function getQueueWithCurrent(limit = 5) {
         lines.push(`🎶 CURRENT: ${title} - ${artist} [${length}]${suffix} 🎶`);
     } else {
         const current = await getCurrentSong();
-        if (current) lines.push(`🎶 CURRENT: ${current.artist} - ${current.title} [${current.length || '?'}] 🎶`);
+        if (current) lines.push(`🎶 CURRENT: ${current.artist} - ${current.title} [?] 🎶`);
     }
 
     upcomingQueue.forEach((item, i) => {
-        const renderer = item.playlistPanelVideoRenderer;
+        const renderer = getQueueRenderer(item);
         const title = renderer?.title?.runs?.[0]?.text || 'Unknown';
         const artist = renderer?.shortBylineText?.runs?.[0]?.text || 'Unknown';
         const length = renderer?.lengthText?.runs?.[0]?.text || '?';
@@ -285,34 +381,58 @@ async function skipSong() {
 // ---------- SSR Polling ----------
 let lastPolledVideoId = null;
 
+// Pear's queue is authoritative. Requests can be skipped, cleared or reordered
+// outside the bot, so each poll drops entries that are no longer ahead of the
+// current song and detects the playing request anywhere in the list, not just
+// at the head.
+async function reconcileSsrQueue(client, channel) {
+    const ssrQueue = getQueue();
+    if (ssrQueue.length === 0) return;
+
+    const queueData = await apiGet('/queue');
+    const queueItems = queueData?.items || [];
+    if (queueItems.length === 0) return;
+
+    const currentIndex = findCurrentIndex(queueItems);
+    if (currentIndex < 0) return;
+
+    const currentVideoId = getQueueVideoId(queueItems[currentIndex]);
+    if (!currentVideoId || currentVideoId === lastPolledVideoId) return;
+    lastPolledVideoId = currentVideoId;
+
+    const aheadIds = new Set();
+    for (let i = currentIndex + 1; i < queueItems.length; i++) {
+        const id = getQueueVideoId(queueItems[i]);
+        if (id) aheadIds.add(id);
+    }
+
+    const playedIndex = ssrQueue.findIndex(entry => entry.videoId === currentVideoId);
+    const played = playedIndex >= 0 ? ssrQueue[playedIndex] : null;
+
+    // Everything before the playing request is done, and anything not still
+    // ahead of it was skipped or cleared in Pear. Filter both cases the same way
+    // so stale entries cannot linger behind the current song.
+    const candidates = playedIndex >= 0 ? ssrQueue.slice(playedIndex + 1) : ssrQueue;
+    const remaining = candidates.filter(entry => aheadIds.has(entry.videoId));
+
+    if (remaining.length !== ssrQueue.length) saveQueue(remaining);
+
+    if (!played) return;
+
+    Logger.log(`[SSR] "${played.title}" by ${played.requester} is now playing, removed from SSR queue`);
+    const next = remaining[0];
+    if (next) {
+        client.say(channel, `🎶 Now playing SR request from ${played.requester}: ${played.title} ✧ Up next: ${next.title} (requested by ${next.requester})`);
+    } else {
+        client.say(channel, `🎶 Now playing SR request from ${played.requester}: ${played.title} ✧`);
+    }
+}
+
 function startSSRPolling(client, channel) {
     const formattedChannel = channel.startsWith('#') ? channel : `#${channel}`;
     ssrPollInterval = setInterval(async () => {
         try {
-            const ssrQueue = getQueue();
-            if (ssrQueue.length === 0) return;
-
-            const data = await apiGet('/song');
-            if (!data?.videoId) return;
-
-            const currentVideoId = data.videoId;
-
-            // song changed since last poll
-            if (currentVideoId === lastPolledVideoId) return;
-            lastPolledVideoId = currentVideoId;
-
-            // check if the now-playing song is the head of our SSR queue
-            if (currentVideoId === ssrQueue[0].videoId) {
-                const played = shiftQueue();
-                Logger.log(`[SSR] "${played.title}" by ${played.requester} is now playing, removed from SSR queue`);
-
-                const next = getQueue();
-                if (next.length > 0) {
-                    client.say(channel, `🎶 Now playing SR request from ${played.requester}: ${played.title} ✧ Up next: ${next[0].title} (requested by ${next[0].requester})`);
-                } else {
-                    client.say(channel, `🎶 Now playing SR request from ${played.requester}: ${played.title} ✧`);
-                }
-            }
+            await withSsrQueueLock(() => reconcileSsrQueue(client, formattedChannel));
         } catch (err) {
             Logger.error(`[ERROR] SSR polling failed: ${err.message}`);
         }
