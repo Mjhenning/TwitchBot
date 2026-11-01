@@ -200,23 +200,6 @@ function tailCommand(client) {
         client.say(config.CHANNEL_NAME, tailResponses[Math.floor(Math.random() * tailResponses.length)]);
 }
 
-function fishCommand(client, channel) {
-    const pool = [
-        `fih`,
-        `F I H`,
-        `f i h`,
-        `fih.`,
-        `...fih`,
-        `fih 🐟`,
-        `F I H 🐟`,
-        `fih fih fih`,
-        `the fih has been acknowledged.`,
-        `[fih detected]`,
-        'ENTITY DETECTED: fih'
-    ];
-    client.say(channel, pool[Math.floor(Math.random() * pool.length)]);
-}
-
 function hugCommand(client, channel, senderName, msg) {
     const parts = msg.trim().split(/\s+/);
     const targetRaw = parts.slice(1).join(' ');
@@ -926,7 +909,6 @@ module.exports = {
     backseatCommand,
     lurkCommand,
     tailCommand,
-    fishCommand,
     hugCommand,
 
 

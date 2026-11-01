@@ -34,7 +34,6 @@ const {
     qCommand,
     currentSongCommand,
     tailCommand,
-    fishCommand,
     hugCommand,
     counterCommand,
     handleModeration,
@@ -226,11 +225,6 @@ function setupChatCommands(client, config) {
 
         if (lower.startsWith('!system') || lower.startsWith('!sys')) {
             argSystemCommand(client, channel, userId, senderName, tags, msg);
-            return
-        }
-
-        if (hasCommand(lower, 'fish') || hasCommand(lower, 'feesh') || hasCommand(lower, 'fih')) {
-            fishCommand(client, channel);
             return
         }
 
