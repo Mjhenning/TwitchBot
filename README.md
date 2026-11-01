@@ -77,14 +77,15 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
    cp .env.example .env
    ```
    Then edit `.env` and fill in your values:
-   - Twitch `CLIENT_ID` and `CLIENT_SECRET`
+   - Twitch `CLIENT_ID` and `CLIENT_SECRET`, plus `BOT_NAME` and `CHANNEL_NAME`
    - YouTube Data API key (`YOUTUBE_ACCESS_KEY`)
    - OBS WebSocket URL and password
    - VLC host and password
    - Pear Desktop Music host, port, and auth ID
    - Media queue directory path (`MEDIA_QUEUE_DIR`)
+   - Channel point reward IDs (`MR_REDEEM_ID`, `GLOSSELS_REDEEM_ID`) and the mod review channel (`REWARD_REVIEW_CHANNEL`)
    - Social links (Discord, YouTube, Instagram, itch.io)
-   - Optional tuning: `OVERLAY_WS_PORT` (default 8420), `TIMER_START_MINUTES` (default 60), `TIMER_GIFT_MINUTES` (default 6, seeds `giftMinutes` in `data/glossothon.json` when absent)
+   - Optional: `FAVOURITES_FILE` (defaults to the sibling Discord bot's `Data/favourites.json`) and tuning: `OVERLAY_WS_PORT` (default 8420), `TIMER_START_MINUTES` (default 60), `TIMER_GIFT_MINUTES` (default 6, seeds `giftMinutes` in `data/glossothon.json` when absent)
 
 4. **Obtain OAuth refresh tokens** for both bot and broadcaster accounts and place them in:
    - `data/bot_refresh_token.json`
@@ -200,7 +201,9 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 | `!testgift [amount]` | Simulate a gift-sub event (default 1), driving the timer and goals overlays |
 | `!testads [duration] [auto\|manual] [name]` | Simulate an ad break |
 
-### Glosso-thon (Mod Only)
+### Glosso-thon
+
+Commands are mod only unless noted.
 
 | Command | Description |
 |---|---|
@@ -210,7 +213,7 @@ Any counter defined in `data/counters.json` can be invoked by its command name. 
 | `!timer add <min>` | Add minutes to the countdown |
 | `!timer set <min>` | Set the remaining time in minutes |
 | `!goals pin` | Pin or unpin the goals overlay. Silent no-op while the thon is off |
-| `!goals` | While unpinned, show the goals overlay briefly and post a chat progress summary (current subs, next goal, subs to go). While pinned, still posts the summary. Silent no-op while the thon is off |
+| `!goals` | Everyone: while unpinned, show the goals overlay briefly and post a chat progress summary (current subs, next goal, subs to go). While pinned, still posts the summary. Silent no-op while the thon is off |
 
 The `active` flag in `data/glossothon.json` is the master switch for the whole system, flipped with `!thon`. While it is `false` the overlays are hidden, the clock is parked, and every other thon command (`!timer` and `!goals`, including their `pin` forms) is a silent no-op with no chat reply, and gifted subs are ignored. `!timer pin` and `!goals pin` set persistent per-overlay visibility flags but never override the master switch: an overlay is only on screen while `active` is on and its own pin is set (or, for goals, while a transient `!goals` show is running). The countdown, gifted-sub count, pins and goals list persist across streams and bot restarts in `data/glossothon.json`.
 
@@ -259,14 +262,14 @@ The timer comes back paused on restart, so a new stream resumes exactly where th
 - Listens on `OVERLAY_WS_PORT` (default 8420); only needs to be reachable from the OBS machine.
 
 ### Top 10 Overlay (`modules/overlays/top10_overlay.js`)
-- Drives the hub's `top10` channel; the browser source runs `html/top10-overlay-win7.html` (`ws://<bot-ip>:8420/?overlay=top10`).
+- Drives the hub's `top10` channel; the browser source runs `html/top-10.html` (`ws://<bot-ip>:8420/?overlay=top10`).
 - `!system top` triggers a broadcast of the top 10 Glossels holders (from the glossels leaderboard) with each user's Twitch chat color (batched Helix call, cached 24h, deterministic palette fallback). Triggers are debounced (~800ms) and, once a sequence is broadcast, the hub's busy lock drops re-triggers until the browser source ACKs back with `{"type":"done"}` after finishing its full animation. This prevents spam from restarting the overlay's animation mid-play.
 
 ### Profile Overlay & Watchtime
 - **`modules/functions/watchtime.js`**: Tracks per-viewer watchtime. A viewer is "active" from the moment they type in chat; `markActive()` banks elapsed time on each message, and a minute interval plus bot shutdown flush accrued time to `data/watchtime.json`. `!watchtime` reads the persisted total.
 - **`modules/functions/badges.js`**: Fetches Twitch's global (`/chat/badges/global`) and channel (`/chat/badges?broadcaster_id=`) chat badge definitions once (cached 24h) and resolves a viewer's `tags.badges` (from their own chat message; the full set Twitch has currently displayed) into a sorted list of badge image URLs for the overlay. Sorting respects a display priority (broadcaster, moderator, staff, vip, subscriber, etc.), and tmi underscore spellings (e.g. `hype_train`, `bits_leader`) are remapped to the API's hyphenated set ids. Note Twitch exposes no API for every badge a user has ever earned, so the overlay can only show the badges present in that user's chat tags.
 - **`modules/overlays/profile_overlay.js`**: Drives the hub's `profile` channel. `triggerProfileOverlay({userId, userName, tags})` gathers the viewer's pfp/name, Glossels balance, leaderboard rank, followage, watchtime and badges, then broadcasts `{"type":"show-profile", profile}` to the OBS browser source. Uses the hub's busy/ACK lock (same as the Top 10 overlay) so the popup isn't replayed over itself. Name, pfp and chat colour are fetched fresh from Helix on every trigger.
-- The browser source runs `html/user-profile-overlay-win7.html` (`ws://<bot-ip>:8420/?overlay=profile`): a Windows 7 aeroglass card with the pfp in a glass frame (tinted to the viewer's Twitch chat colour), name, Glossels + rank + watchtime + followage, and a wrapped badge grid in the left column. It stays visible 8 seconds, then ACKs back `{"type":"done"}`.
+- The browser source runs `html/user_profile.html` (`ws://<bot-ip>:8420/?overlay=profile`): a Windows 7 aeroglass card with the pfp in a glass frame (tinted to the viewer's Twitch chat colour), name, Glossels + rank + watchtime + followage, and a wrapped badge grid in the left column. It stays visible 8 seconds, then ACKs back `{"type":"done"}`.
 - Triggered by `!watchtime`, `!followage`, `!system rank` and `!system ball`.
 
 ### Glosso-thon System (`modules/overlays/timer_overlay.js` + `goals_overlay.js`)
@@ -348,6 +351,7 @@ TwitchBot/
 │   │   │   ├── core.js             # EventSub WebSocket hub + subscription registry
 │   │   │   └── handlers.js         # Follow, raid, gift sub, ad break + generic redemption subscriptions
 │   │   ├── favourite_shoutout.js   # Text shoutout for favourited streamers on first chat
+│   │   ├── permissions.js          # Shared moderator/broadcaster/badge checks
 │   │   ├── session_gates.js        # Persists/restores per-stream gates across mid-stream restarts
 │   │   ├── shield_system.js        # Shield Mode auto-toggle on stream online/offline
 │   │   ├── stream-state.js         # Online/offline state pub/sub
@@ -447,5 +451,6 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 - **Redemption dispatcher**: All channel point redemptions flow through a generic EventSub `add`/`update` pair in `handlers.js` into `twitchRedemption.js`, which routes to the module registered for each reward id. Rewards define an `onRedeem` plus optional `onResolve`/`onReject`/`onExpire`; if no `onResolve` is given the reward is fulfilled instantly (a reward using Twitch's skip-approval queue sets `autoFulfill: false` so the dispatcher skips the redundant Helix status update). The dispatcher owns the pending store, startup reconciliation, the 5-minute expiry sweep for mod-approval rewards, and each reward's open/closed state (a reward's `startClosed` flag decides whether it begins paused on bot start, e.g. media requests).
 - **Atomic persistence**: `pendingStore.js` writes to a `.tmp` file then renames, preventing corruption on crash. All other JSON files are read on demand and written after every mutation.
 - **Cooldown system**: Per-user, per-command cooldowns (default 5s). Mods and broadcaster are exempt. `!system handshake` has a 30s cooldown.
-- **Command matching**: Most commands use regex word-boundary matching (`hasCommand()`). Commands with arguments (`!sr`, `!followage`, `!so`, `!system`, `!sysAdmin`, `!hug`) use `startsWith` instead. `!sysAdmin` is checked before `!sys` to prevent prefix collision.
+- **Permissions**: All moderator, broadcaster, and trusted-badge checks go through `modules/helpers/permissions.js` (`isModerator`, `isBroadcaster`, `isModOrBroadcaster`, `hasBadge`, `requireMod`), so command routing, cooldowns, link filtering, and shoutouts share one implementation.
+- **Command matching**: Most commands use regex word-boundary matching (`hasCommand()`). Commands with arguments (`!sr`, `!followage`, `!so`, `!system`/`!sys`, `!sysAdmin`, `!hug`) use `startsWith` instead. `!sysAdmin` is checked before `!sys` to prevent prefix collision.
 - **No build step**: Plain CommonJS Node.js. Run directly with `node bot.js`.

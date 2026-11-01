@@ -1,7 +1,7 @@
 // modules/helpers/permissions.js
 // Single source of truth for chat permission checks. tmi.js normalizes the
 // mod tag to a boolean and keeps badges as strings, so centralize both here.
-let lastDenied = 0;
+let lastDenied = 0; // timestamp of the last denial, throttles spam
 
 function isModerator(tags) {
     return Boolean(tags?.mod);

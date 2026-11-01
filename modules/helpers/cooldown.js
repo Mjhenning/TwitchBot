@@ -1,4 +1,4 @@
-// modules/cooldown.js
+// modules/helpers/cooldown.js
 const {isModOrBroadcaster} = require('./permissions');
 
 const cooldowns = new Map(); // key is userId:command, maps to timestamp
