@@ -244,7 +244,7 @@ function setupChatCommands(client, config) {
             return;
         }
 
-        if (lower.startsWith('!poke')) {
+        if (lower.startsWith('!poke') || lower.startsWith('!boop')) {
             if (handleCooldown('poke')) return;
             const target = msg.split(' ').slice(1).join(' ');
             pokeCommand(client, channel, senderName, target);
