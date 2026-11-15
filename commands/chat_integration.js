@@ -71,7 +71,9 @@ function setupChatCommands(client, config) {
         }
 
         const msg = message.trim();
-        const lower = msg.toLowerCase();
+        // strip leading @mentions (replies include them) so commands fire mid-message
+        const body = msg.replace(/^(?:@[\w-]+\s+)+/, '').trim();
+        const lower = body.toLowerCase();
         const senderName = tags['display-name'] || tags['username'];
         const userId = tags['user-id'];
         const broadcaster = isBroadcaster(tags);
@@ -103,6 +105,8 @@ function setupChatCommands(client, config) {
         }
 
         // ------------------- auto-unlurk -------------------
+        // a lurking user typing any message (including a command) comes back,
+        // but the command itself must still fire afterwards
         if (isLurking(userId)) {
 
             if (hasCommand(lower, '!lurk')) {
@@ -133,7 +137,6 @@ function setupChatCommands(client, config) {
             ];
 
             client.say(channel, returnMessages[Math.floor(Math.random() * returnMessages.length)]);
-            return; // stop everything else
         }
 
 
@@ -151,13 +154,13 @@ function setupChatCommands(client, config) {
 
         if (lower.startsWith('!sr')) {
             if (handleCooldown('sr', 30)) return;
-            await ssrCommand(client, channel, senderName, msg, broadcaster);
+            await ssrCommand(client, channel, senderName, body, broadcaster);
             return;
         }
 
         if (lower.startsWith('!followage')) {
             if (handleCooldown('followage')) return;
-            await followAgeCommand(client, channel, userId, senderName, tags, msg);
+            await followAgeCommand(client, channel, userId, senderName, tags, body);
             return;
         }
 
@@ -175,7 +178,7 @@ function setupChatCommands(client, config) {
         if (lower.startsWith('!so')) {
             if (!requireMod(tags, client, channel)) return;
             if (handleCooldown('so')) return;
-            await shoutoutCommand(client, msg);
+            await shoutoutCommand(client, body);
             return;
         }
 
@@ -223,38 +226,38 @@ function setupChatCommands(client, config) {
                 client.say(channel, `${senderName}, nice try. Admin protocols are broadcaster locked. 🫧`);
                 return;
             }
-            argSystemAdminCommand(client, channel, userId, senderName, tags, msg);
+            argSystemAdminCommand(client, channel, userId, senderName, tags, body);
             return
         }
 
         if (lower.startsWith('!system') || lower.startsWith('!sys')) {
-            argSystemCommand(client, channel, userId, senderName, tags, msg);
+            argSystemCommand(client, channel, userId, senderName, tags, body);
             return
         }
 
         if (lower.startsWith('!hug')) {
             if (handleCooldown('hug')) return;
-            hugCommand(client, channel, senderName, msg);
+            hugCommand(client, channel, senderName, body);
             return;
         }
 
         if (lower.startsWith('!pat') || lower.startsWith('!headpat')) {
             if (handleCooldown('pat')) return;
-            const target = msg.split(' ').slice(1).join(' ');
+            const target = body.split(' ').slice(1).join(' ');
             patHeadCommand(client, channel, senderName, target);
             return;
         }
 
         if (lower.startsWith('!poke') || lower.startsWith('!boop')) {
             if (handleCooldown('poke')) return;
-            const target = msg.split(' ').slice(1).join(' ');
+            const target = body.split(' ').slice(1).join(' ');
             pokeCommand(client, channel, senderName, target);
             return;
         }
 
         if (lower.startsWith('!nom')) {
             if (handleCooldown('nom')) return;
-            const target = msg.split(' ').slice(1).join(' ');
+            const target = body.split(' ').slice(1).join(' ');
             nomCommand(client, channel, senderName, target);
             return;
         }
@@ -309,7 +312,7 @@ function setupChatCommands(client, config) {
             // usage: !testgift [amount]
             // e.g.   !testgift      (one gift sub)
             //        !testgift 5    (five gift subs)
-            const parts = msg.trim().split(/\s+/);
+            const parts = body.trim().split(/\s+/);
             const count = parseInt(parts[1]) || 1;
             giftSubTestCommand(client, count);
             return;
@@ -320,7 +323,7 @@ function setupChatCommands(client, config) {
             if (handleCooldown('testraid')) return;
             // usage: !testraid [raiderName] [viewers]
             // e.g.   !testraid CoolStreamer 150
-            const parts = msg.trim().split(/\s+/);
+            const parts = body.trim().split(/\s+/);
             const raiderName = parts[1] ?? senderName;
             const viewers = parseInt(parts[2]) || 42;
             raidTestCommand(client, raiderName, viewers);
@@ -332,7 +335,7 @@ function setupChatCommands(client, config) {
             if (handleCooldown('testads')) return;
             // usage: !testads [duration] [auto|manual] [requesterName]
             // e.g.   !testads 60 manual SomeMod
-            const parts = msg.trim().split(/\s+/);
+            const parts = body.trim().split(/\s+/);
             const duration = parseInt(parts[1]) || 30;
             const isAutomatic = (parts[2] ?? 'auto') !== 'manual';
             const requester = parts[3] ?? null;
@@ -342,18 +345,18 @@ function setupChatCommands(client, config) {
 
         if (hasCommand(lower, '!thon')) {
             if (!requireMod(tags, client, channel)) return;
-            thonCommand(client, channel, senderName, msg);
+            thonCommand(client, channel, senderName, body);
             return;
         }
 
         if (hasCommand(lower, '!timer')) {
             if (!requireMod(tags, client, channel)) return;
-            timerCommand(client, channel, senderName, msg);
+            timerCommand(client, channel, senderName, body);
             return;
         }
 
         if (hasCommand(lower, '!goals')) {
-            goalsCommand(client, channel, senderName, msg, tags);
+            goalsCommand(client, channel, senderName, body, tags);
             return;
         }
 
@@ -372,7 +375,7 @@ function setupChatCommands(client, config) {
         // ------------------- daemon greeting ------------------- (at bottom to avoid overwriting commands)
         if (
             handleDaemonRelatedResponses({
-                message: msg,
+                message: body,
                 senderName,
                 client,
                 channel
