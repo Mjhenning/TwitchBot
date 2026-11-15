@@ -9,7 +9,7 @@ const {markActive} = require('../modules/functions/watchtime');
 const {clearQueue} = require('../modules/song_requests/ssr-queue');
 const {startSSRPolling} = require('../modules/song_requests/pear-desktop-music');
 const {handleCooldown: _handleCooldown} = require('../modules/helpers/cooldown');
-const {requireMod, isBroadcaster, isModOrBroadcaster} = require('../modules/helpers/permissions');
+const {requireMod, isBroadcaster} = require('../modules/helpers/permissions');
 const {checkFavouriteShoutout} = require('../modules/helpers/favourite_shoutout');
 
 const {
@@ -38,7 +38,6 @@ const {
     patHeadCommand,
     pokeCommand,
     nomCommand,
-    counterCommand,
     handleModeration,
     openMrCommand,
     closeMrCommand,
@@ -358,18 +357,6 @@ function setupChatCommands(client, config) {
         if (hasCommand(lower, '!goals')) {
             goalsCommand(client, channel, senderName, body, tags);
             return;
-        }
-
-        if (lower.startsWith("!")) {
-            const parts = lower.substring(1).split(/\s+/);
-
-            const command = parts[0];
-            const action = parts[1] ?? null;
-
-            const isMod = isModOrBroadcaster(tags);
-
-            if (await counterCommand(client, channel, command, action, isMod))
-                return;
         }
 
         // ------------------- daemon greeting ------------------- (at bottom to avoid overwriting commands)

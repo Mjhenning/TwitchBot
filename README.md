@@ -22,7 +22,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 
 ## Features
 
-- **Chat Commands**: 20+ chat commands including greetings, lore responses, socials, clipping, follow age, shoutouts, counters, lurk tracking, and hug interactions.
+- **Chat Commands**: 20+ chat commands including greetings, lore responses, socials, clipping, follow age, shoutouts, lurk tracking, and hug interactions.
 - **Song Requests (SSR)**: Viewers request songs via `!sr`. Integrates with Pear Desktop Music and YouTube Data API for search, queuing, and playback. Requests play in the order they were made; queue open/close controlled by mods.
 - **Media Requests (MR)**: Channel-point redemption triggers video download via `yt-dlp`, OBS source display, and VLC playback. Moderators approve or reject before playback. Videos must be within the redeemable length cap (default 1 min, configurable via `MR_MAX_DURATION_SECONDS`). Includes expiry sweep, atomic pending store, and startup reconciliation.
 - **Shield System**: Automatically enables Twitch Shield Mode when the stream goes offline and disables it when live, via EventSub `stream.online` / `stream.offline`.
@@ -34,7 +34,6 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 - **Profile Overlay & Watchtime**: Drives the hub's `profile` channel to an OBS Windows 7 aeroglass "user profile" popup showing a viewer's pfp, display name, Glossels balance, leaderboard rank, followage, badge set and accumulated watchtime. Triggered by `!watchtime`, `!system rank` and `!system ball`. Watchtime is tracked per viewer while they chat (`watchtime.js`) and persisted to `data/watchtime.json`. Followage comes from Twitch's followers API (`followage.js`). Badges are resolved to image URLs via Twitch's chat badges endpoints (`badges.js`). Name, pfp and Twitch chat color are fetched fresh from Helix on every trigger.
 - **Alternate Reality Game (ARG)**: An in-chat terminal simulation ("AETHER-OS") with a virtual filesystem, coherence system, bit-rot decay, port probing, lore files, file access gated by coherence level and discovered events, and a network gamble/transfer system for Glossels.
 - **Moderation**: Automatic link filtering with domain allowlists. Links are deleted and the user warned unless they have a trusted badge or the link matches an allowed domain. Song-request and media-request domains are conditionally permitted.
-- **Counters**: Configurable chat counters (e.g. death, yawn, 404) with increment, set, stats, and last-counted subcommands.
 - **Glosso-thon**: A whole-event system driven from one state file, `data/glossothon.json`, shared by both overlays. A single master switch (`!thon`) arms or disarms everything: while it is off the overlays hide, the clock parks, and the bot ignores the other thon commands and gifted subs. The bot is authoritative, so a browser reload, OBS blip or bot restart never loses progress. Mods control it entirely from chat:
   - **Timer**: the hub's `timer` channel drives an OBS browser-source countdown (`html/thon-timer.html`). `!timer` runs or un-runs (pause/unpause) it, `!timer pin` toggles whether the overlay is on screen, and `!timer add|set` adjust the remaining time manually. It persists the countdown and gifted-sub count; on restart it comes back paused at the last saved remainder, so a new stream resumes exactly where the last one left off. Gifted subs extend it via EventSub `channel.subscription.gift` (default 6 min per sub, set by `giftMinutes` in `data/glossothon.json`) while the thon is armed.
   - **Goals**: the hub's `goals` channel drives `html/thon-goals.html`, a Windows 7 aeroglass window with a goal list that fills as gifted subs come in. `!goals pin` toggles whether it stays on screen permanently; while unpinned, `!goals` shows it briefly and posts a chat progress summary. The reward list live in `data/glossothon.json` under `goals`, so the unlocks can be swapped for a different event without touching code. When a gift pushes the banked count past one or more unlock targets the bot posts a single chat announcement covering every goal it just reached, each with the sub count and reward, so a big drop that crosses several goals shares one message.
@@ -191,10 +190,6 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!sysAdmin grant cache <n>` | Admin: add Glossels to the Network Cache (broadcaster only) |
 | `!sysAdmin revoke cache <n>` | Admin: remove Glossels from the Network Cache (broadcaster only) |
 
-### Counters
-
-Any counter defined in `data/counters.json` can be invoked by its command name. Subcommands: `+N`, `-N`, `=N` (set), `stats`, `last`. Mods can set or adjust by more than 1.
-
 ### Moderation (Mod Only)
 
 | Command | Description |
@@ -349,7 +344,6 @@ TwitchBot/
 │   ├── helpers/
 │   │   ├── ad_schedule_poller.js   # Adaptive ad schedule polling + chat warnings
 │   │   ├── cooldown.js             # Per-user per-command cooldown system
-│   │   ├── counters.js             # Configurable chat counters
 │   │   ├── eventsub/
 │   │   │   ├── core.js             # EventSub WebSocket hub + subscription registry
 │   │   │   └── handlers.js         # Follow, raid, gift sub, ad break + generic redemption subscriptions
@@ -395,7 +389,6 @@ TwitchBot/
 ├── data/                           # Runtime persistence (JSON)
 │   ├── bot_refresh_token.json
 │   ├── broadcaster_refresh_token.json
-│   ├── counters.json
 │   ├── user_data.json
 │   ├── network_cache.json
 │   ├── moderation.json
@@ -429,7 +422,6 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 | `data/broadcaster_refresh_token.json` | Broadcaster OAuth refresh token (auto-refreshed) |
 | `data/user_data.json` | Cross-platform user dictionary (Twitch + Discord). Each entry: `usrName`, `usrId`, `amount`, `lastCheckin`, `discordUserId` (unknown fields are preserved across reloads) |
 | `data/network_cache.json` | Network Cache: accumulated lost Glossels from failed handshakes, drainable via rare `drained` outcome |
-| `data/counters.json` | Counter definitions and current values |
 | `data/moderation.json` | Link filter config: allowed domains, trusted badges, warn cooldown |
 | `data/ssr_queue.json` | Current song request queue |
 | `data/pendingRedemptions.json` | In-flight media request redemptions (atomic writes, survives crashes) |

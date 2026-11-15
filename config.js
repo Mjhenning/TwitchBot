@@ -3,7 +3,6 @@ require('dotenv').config();
 const path = require('path');
 
 // ---------- Paths ----------
-const COUNTER_PATH = path.join(__dirname, 'data', 'counters.json');
 const MOD_CONFIG_PATH = path.join(__dirname, 'data', 'moderation.json');
 const PENDING_REDEMPTIONS_PATH = path.join(__dirname, 'data', 'pendingRedemptions.json');
 const CURRENCY_FILE = path.join(__dirname, 'data', 'user_data.json');
@@ -73,7 +72,6 @@ const config = {
     TIMER_GIFT_MINUTES: parseInt(process.env.TIMER_GIFT_MINUTES, 10) || 6, // minutes added per gifted sub
 
     // ---------- Data ----------
-    COUNTER_PATH,
     MOD_CONFIG_PATH,
     PENDING_REDEMPTIONS_PATH,
     CURRENCY_FILE,

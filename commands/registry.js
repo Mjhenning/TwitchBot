@@ -47,8 +47,6 @@ const {
 const {shoutout} = require('../modules/functions/shoutout');
 const {sendAnnouncement} = require('../modules/functions/announcement');
 
-const {handleCounter} = require("../modules/helpers/counters");
-
 const {handleLinkBlocker} = require("../modules/moderation/link_filter");
 const {openReward, closeReward, isRewardOpen, resetRewardStates} = require('../modules/helpers/twitchRedemption');
 const {handleCooldown} = require('../modules/helpers/cooldown');
@@ -298,12 +296,6 @@ function hugCommand(client, channel, senderName, msg) {
     ];
 
     client.say(channel, defaultMessages[Math.floor(Math.random() * defaultMessages.length)]);
-}
-
-//--------------------------------- TWITCH COUNTER COMMANDS ------------------------------------
-
-async function counterCommand(client, channel, command, action, isMod) {
-    return handleCounter(client, channel, command, action, isMod);
 }
 
 //--------------------------------- TWITCH FUNCTION COMMANDS ------------------------------------
@@ -1007,7 +999,6 @@ module.exports = {
     argSystemAdminCommand,
 
     resetCommandState,
-    counterCommand,
 
     handleModeration
 };

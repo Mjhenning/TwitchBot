@@ -100,9 +100,3 @@ All commands are case-insensitive. Cooldowns are per-user per-command (5 seconds
 | `!testgift` | Test gifted sub |
 | `!testraid` | Test raid event |
 | `!testads` | Test ad break |
-
----
-
-## Fallback
-
-Any unrecognized `!word` falls through to the counter handler, which increments a chat counter for that command.
