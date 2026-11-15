@@ -8,10 +8,12 @@ All commands are case-insensitive. Cooldowns are per-user per-command (5 seconds
 
 | Command | Description |
 |---|---|
-| `!hug @user` | Send a themed hug to another viewer (special responses for Laya) |
+| `!hug @user` | Send a themed hug to another viewer (special responses for Silver and Ace, family wording only from Fox or each other) |
 | `!pat @user` / `!headpat @user` | Send a gentle pulse / headpat to another viewer (signal/perimeter theme) |
 | `!poke @user` / `!boop @user` | Trigger a brief signal spike at another viewer |
 | `!nom @user` | Send a small packet to another viewer (data/coherence theme) |
+
+> Special responses apply to targets Silver (tinysilverfoxx) and Ace (acewype) across `!hug`, `!pat`/`!headpat`, `!poke`/`!boop` and `!nom`. Family wording (sister, brother, family confirmed) only appears when Fox or the other sibling triggers the command. Pools live in `data/family.json` and load via `modules/helpers/family_responses.js`.
 
 ---
 

@@ -74,6 +74,8 @@ function setupChatCommands(client, config) {
         const body = msg.replace(/^(?:@[\w-]+\s+)+/, '').trim();
         const lower = body.toLowerCase();
         const senderName = tags['display-name'] || tags['username'];
+        // raw login is lowercase and stable, unlike display names, so family matching uses it
+        const senderLogin = (tags['username'] || '').toLowerCase();
         const userId = tags['user-id'];
         const broadcaster = isBroadcaster(tags);
 
@@ -236,28 +238,28 @@ function setupChatCommands(client, config) {
 
         if (lower.startsWith('!hug')) {
             if (handleCooldown('hug')) return;
-            hugCommand(client, channel, senderName, body);
+            hugCommand(client, channel, senderName, body, broadcaster, senderLogin);
             return;
         }
 
         if (lower.startsWith('!pat') || lower.startsWith('!headpat')) {
             if (handleCooldown('pat')) return;
             const target = body.split(' ').slice(1).join(' ');
-            patHeadCommand(client, channel, senderName, target);
+            patHeadCommand(client, channel, senderName, target, broadcaster, senderLogin);
             return;
         }
 
         if (lower.startsWith('!poke') || lower.startsWith('!boop')) {
             if (handleCooldown('poke')) return;
             const target = body.split(' ').slice(1).join(' ');
-            pokeCommand(client, channel, senderName, target);
+            pokeCommand(client, channel, senderName, target, broadcaster, senderLogin);
             return;
         }
 
         if (lower.startsWith('!nom')) {
             if (handleCooldown('nom')) return;
             const target = body.split(' ').slice(1).join(' ');
-            nomCommand(client, channel, senderName, target);
+            nomCommand(client, channel, senderName, target, broadcaster, senderLogin);
             return;
         }
 

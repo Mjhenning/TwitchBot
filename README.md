@@ -132,10 +132,12 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!dev` | Displays itch.io demo link |
 | `!raid` | In-character raid greeting |
 | `!backseat` | Polite no-backseat/spoiler reminder |
-| `!hug @user` | Send a themed hug to another viewer (special responses for Laya) |
+| `!hug @user` | Send a themed hug to another viewer (special responses for Silver and Ace, family wording only from Fox or each other) |
 | `!pat @user` / `!headpat @user` | Send a gentle pulse / headpat to another viewer (signal/perimeter theme) |
 | `!poke @user` / `!boop @user` | Trigger a brief signal spike at another viewer |
 | `!nom @user` | Send a small packet to another viewer (data/coherence theme) |
+
+> Special responses apply to targets Silver (tinysilverfoxx) and Ace (acewype) across `!hug`, `!pat`/`!headpat`, `!poke`/`!boop` and `!nom`. Family wording (sister, brother, family confirmed) only appears when Fox or the other sibling triggers the command. Pools live in `data/family.json` and load via `modules/helpers/family_responses.js`.
 | `fih` / `fish` / `feesh` | Fish acknowledgment |
 | `!clip` | Creates a Twitch clip |
 | `!followage` / `!followage @user` | Shows how long you (or someone) have been following (also triggers the profile overlay popup) |
@@ -392,6 +394,7 @@ TwitchBot/
 │   ├── user_data.json
 │   ├── network_cache.json
 │   ├── moderation.json
+│   ├── family.json
 │   ├── pendingRedemptions.json
 │   ├── ssr_queue.json
 │   ├── state.json
@@ -423,6 +426,7 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 | `data/user_data.json` | Cross-platform user dictionary (Twitch + Discord). Each entry: `usrName`, `usrId`, `amount`, `lastCheckin`, `discordUserId` (unknown fields are preserved across reloads) |
 | `data/network_cache.json` | Network Cache: accumulated lost Glossels from failed handshakes, drainable via rare `drained` outcome |
 | `data/moderation.json` | Link filter config: allowed domains, trusted badges, warn cooldown |
+| `data/family.json` | Special response pools for Silver and Ace (aliases, neutral and family lines per interaction command) |
 | `data/ssr_queue.json` | Current song request queue |
 | `data/pendingRedemptions.json` | In-flight media request redemptions (atomic writes, survives crashes) |
 | `data/timed_commands.json` | Scheduled message/function definitions |

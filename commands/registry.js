@@ -46,6 +46,7 @@ const {
 
 const {shoutout} = require('../modules/functions/shoutout');
 const {sendAnnouncement} = require('../modules/functions/announcement');
+const {pickFamilyPool} = require("../modules/helpers/family_responses");
 
 const {handleLinkBlocker} = require("../modules/moderation/link_filter");
 const {openReward, closeReward, isRewardOpen, resetRewardStates} = require('../modules/helpers/twitchRedemption');
@@ -198,7 +199,7 @@ function tailCommand(client) {
         client.say(config.CHANNEL_NAME, tailResponses[Math.floor(Math.random() * tailResponses.length)]);
 }
 
-function patHeadCommand(client, channel, senderName, target) {
+function patHeadCommand(client, channel, senderName, target, broadcaster, senderLogin) {
     if (!target || target === '@') {
         const noTarget = [
             `${senderName} tries a gentle pulse... but no recipient specified 💾`,
@@ -207,7 +208,8 @@ function patHeadCommand(client, channel, senderName, target) {
         client.say(channel, noTarget[Math.floor(Math.random() * noTarget.length)]);
         return;
     }
-    const messages = [
+    const specialPool = pickFamilyPool('pat', target, senderName, senderLogin, broadcaster);
+    const messages = specialPool || [
         `${senderName} sends a gentle pulse to ${target}... connection holds steady ✧`,
         `A soft packet reaches ${target} from ${senderName}... coherence stable 🫧`,
         `${senderName} pats ${target}... signal stays clear, no static 💾`,
@@ -217,7 +219,7 @@ function patHeadCommand(client, channel, senderName, target) {
     client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
 }
 
-function pokeCommand(client, channel, senderName, target) {
+function pokeCommand(client, channel, senderName, target, broadcaster, senderLogin) {
     if (!target || target === '@') {
         const noTarget = [
             `${senderName} tries a brief spike... nobody is at the endpoint 💾`,
@@ -226,7 +228,8 @@ function pokeCommand(client, channel, senderName, target) {
         client.say(channel, noTarget[Math.floor(Math.random() * noTarget.length)]);
         return;
     }
-    const messages = [
+    const specialPool = pickFamilyPool('poke', target, senderName, senderLogin, broadcaster);
+    const messages = specialPool || [
         `${senderName} pokes ${target}... a brief spike, static cleared ✧`,
         `Signal ripple at ${target}'s endpoint... ${senderName} reports the disturbance 💾`,
         `${senderName} triggers a light interference at ${target}... coherence restored 🫧`,
@@ -235,7 +238,7 @@ function pokeCommand(client, channel, senderName, target) {
     client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
 }
 
-function nomCommand(client, channel, senderName, target) {
+function nomCommand(client, channel, senderName, target, broadcaster, senderLogin) {
     if (!target || target === '@') {
         const noTarget = [
             `${senderName} tries to process a packet... nothing to absorb 💾`,
@@ -244,7 +247,8 @@ function nomCommand(client, channel, senderName, target) {
         client.say(channel, noTarget[Math.floor(Math.random() * noTarget.length)]);
         return;
     }
-    const messages = [
+    const specialPool = pickFamilyPool('nom', target, senderName, senderLogin, broadcaster);
+    const messages = specialPool || [
         `${senderName} sends a small packet to ${target}... data absorbed ✧`,
         `Connection to ${target} processes the input... coherence unchanged 💾`,
         `${senderName} nommed ${target}... signal near the endpoint stable 🫧`,
@@ -253,7 +257,7 @@ function nomCommand(client, channel, senderName, target) {
     client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
 }
 
-function hugCommand(client, channel, senderName, msg) {
+function hugCommand(client, channel, senderName, msg, broadcaster, senderLogin) {
     const parts = msg.trim().split(/\s+/);
     const targetRaw = parts.slice(1).join(' ');
 
@@ -268,25 +272,8 @@ function hugCommand(client, channel, senderName, msg) {
     }
 
     const target = targetRaw.replace(/^@/, '');
-    const specialKey = target.toLowerCase();
 
-    const specialHugs = {
-        'layavulpes': [
-            `${senderName} wraps Laya in a hug... signal holds steady 🫧`,
-            `${senderName} hugs Laya, coherence stabilizes, no static today ✧`,
-            `A hug from ${senderName} reaches Laya through the line... always a steady connection 💾`,
-            `${senderName} wraps Laya in a hug... signal holds steady, the perimeter stays quiet 🫧`,
-            `${senderName} hugs Laya, coherence stabilizes, the space stays safe under her watch ✧`,
-            `A hug from ${senderName} reaches Laya through the line... she keeps the static out for the rest of us 💾`
-        ]
-    };
-
-    if (specialHugs[specialKey]) {
-        const messages = specialHugs[specialKey];
-        client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
-        return;
-    }
-
+    const specialPool = pickFamilyPool('hug', target, senderName, senderLogin, broadcaster);
     const defaultMessages = [
         `${senderName} hugs ${target} ✧`,
         `${senderName} wraps ${target} in a warm signal 🫧`,
@@ -295,7 +282,8 @@ function hugCommand(client, channel, senderName, msg) {
         `Connection established... ${senderName} hugs ${target} 📡`
     ];
 
-    client.say(channel, defaultMessages[Math.floor(Math.random() * defaultMessages.length)]);
+    const messages = specialPool || defaultMessages;
+    client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
 }
 
 //--------------------------------- TWITCH FUNCTION COMMANDS ------------------------------------
