@@ -142,15 +142,15 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!accept` / `!decline` / `!cancel` | Answer a pending duel challenge / withdraw your own (silent when no duel is pending) |
 | `!bin @user` | Throw someone in the recycling bin; they resurface "after a time" |
 | `!bonk @user` | Bonk someone, static scatters |
-
-> Special responses apply to targets Silver (tinysilverfoxx) and Ace (acewype) across `!hug`, `!pat`/`!headpat`, `!poke`/`!boop` and `!nom`. Family wording (sister, brother, family confirmed) only appears when Fox or the other sibling triggers the command. Pools live in `data/family.json` and load via `modules/helpers/family_responses.js`.
->
-> Duels are requests: the named target answers with `!accept` (or `!decline`), and the challenger can `!cancel`. The winner is pure RNG, and `!rps`/`!coinflip` narration is always coherent (the loser's throw loses, the winner's call matches the flip). Requests expire silently after `DUEL_TTL_SECONDS` (default 60). `!bin` recovery fires after a hidden random delay (`BIN_RECOVERY_MIN_SECONDS` to `BIN_RECOVERY_MAX_SECONDS`, default 45–90s) and is never announced. Duel and bin state lives in memory and resets on restart.
 | `fih` / `fish` / `feesh` | Fish acknowledgment |
 | `!clip` | Creates a Twitch clip |
 | `!followage` / `!followage @user` | Shows how long you (or someone) have been following (also triggers the profile overlay popup) |
 | `!watchtime` | Shows your watchtime with a themed message and triggers the profile overlay popup |
 | `!so @user1 [@user2 ...]` | Shoutout one or more users (also sends official Twitch `/shoutout`) |
+
+> Special responses apply to targets Silver (tinysilverfoxx) and Ace (acewype) across `!hug`, `!pat`/`!headpat`, `!poke`/`!boop` and `!nom`. Family wording (sister, brother, family confirmed) only appears when Fox or the other sibling triggers the command. Pools live in `data/family.json` and load via `modules/helpers/family_responses.js`.
+>
+> Duels are requests: the named target answers with `!accept` (or `!decline`), and the challenger can `!cancel`. The winner is pure RNG, and `!rps`/`!coinflip` narration is always coherent (the loser's throw loses, the winner's call matches the flip). Requests expire silently after `DUEL_TTL_SECONDS` (default 60). `!bin` recovery fires after a hidden random delay (`BIN_RECOVERY_MIN_SECONDS` to `BIN_RECOVERY_MAX_SECONDS`, default 45–90s) and is never announced. Duel and bin state lives in memory and resets on restart.
 
 ### Song Requests
 
