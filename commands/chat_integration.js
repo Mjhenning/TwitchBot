@@ -173,6 +173,7 @@ function setupChatCommands(client, config) {
         }
 
         if (lower.startsWith('!so')) {
+            if (!requireMod(tags, client, channel)) return;
             if (handleCooldown('so')) return;
             await shoutoutCommand(client, msg);
             return;
