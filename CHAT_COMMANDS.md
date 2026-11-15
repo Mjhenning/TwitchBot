@@ -12,8 +12,16 @@ All commands are case-insensitive. Cooldowns are per-user per-command (5 seconds
 | `!pat @user` / `!headpat @user` | Send a gentle pulse / headpat to another viewer (signal/perimeter theme) |
 | `!poke @user` / `!boop @user` | Trigger a brief signal spike at another viewer |
 | `!nom @user` | Send a small packet to another viewer (data/coherence theme) |
+| `!armwrestle @user` | Challenge someone to an arm wrestle duel |
+| `!rps @user` | Challenge someone to rock paper scissors |
+| `!coinflip @user` | Challenge someone to a coin flip |
+| `!accept` / `!decline` / `!cancel` | Answer a pending duel challenge / withdraw your own (silently does nothing when no duel is pending) |
+| `!bin @user` | Throw someone in the recycling bin; they resurface "after a time" |
+| `!bonk @user` | Bonk someone, static scatters |
 
 > Special responses apply to targets Silver (tinysilverfoxx) and Ace (acewype) across `!hug`, `!pat`/`!headpat`, `!poke`/`!boop` and `!nom`. Family wording (sister, brother, family confirmed) only appears when Fox or the other sibling triggers the command. Pools live in `data/family.json` and load via `modules/helpers/family_responses.js`.
+>
+> Duels are requests: the named target answers with `!accept` (or `!decline`), and the challenger can `!cancel`. The winner is pure RNG, and `!rps`/`!coinflip` narration is always coherent (loser's throw loses, winner's call matches the flip). Requests expire silently after `DUEL_TTL_SECONDS` (default 60). `!bin` recovery fires after a hidden random delay (`BIN_RECOVERY_MIN_SECONDS` to `BIN_RECOVERY_MAX_SECONDS`, default 45–90s) and is never announced. State is in-memory only, so it resets on restart.
 
 ---
 

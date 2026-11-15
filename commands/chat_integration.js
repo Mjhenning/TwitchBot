@@ -263,6 +263,51 @@ function setupChatCommands(client, config) {
             return;
         }
 
+        if (lower.startsWith('!armwrestle')) {
+            if (handleCooldown('armwrestle')) return;
+            armWrestleCommand(client, channel, senderName, userId, senderLogin, body);
+            return;
+        }
+
+        if (lower.startsWith('!rps')) {
+            if (handleCooldown('rps')) return;
+            rpsCommand(client, channel, senderName, userId, senderLogin, body);
+            return;
+        }
+
+        if (lower.startsWith('!coinflip')) {
+            if (handleCooldown('coinflip')) return;
+            coinFlipCommand(client, channel, senderName, userId, senderLogin, body);
+            return;
+        }
+
+        if (lower.startsWith('!accept')) {
+            acceptDuelCommand(client, channel, senderName, senderLogin);
+            return;
+        }
+
+        if (lower.startsWith('!decline')) {
+            declineDuelCommand(client, channel, senderName, senderLogin);
+            return;
+        }
+
+        if (lower.startsWith('!cancel')) {
+            cancelDuelCommand(client, channel, userId);
+            return;
+        }
+
+        if (lower.startsWith('!bin')) {
+            if (handleCooldown('bin')) return;
+            binCommand(client, channel, senderName, body);
+            return;
+        }
+
+        if (lower.startsWith('!bonk')) {
+            if (handleCooldown('bonk')) return;
+            bonkCommand(client, channel, senderName, body);
+            return;
+        }
+
         // ------------------- MOD COMMANDS -------------------
         if (hasCommand(lower, '!skip')) {
             if (!requireMod(tags, client, channel)) return;

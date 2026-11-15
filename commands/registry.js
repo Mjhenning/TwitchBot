@@ -47,6 +47,8 @@ const {
 const {shoutout} = require('../modules/functions/shoutout');
 const {sendAnnouncement} = require('../modules/functions/announcement');
 const {pickFamilyPool} = require("../modules/helpers/family_responses");
+const {requestDuel, answerDuel, cancelDuel} = require("../modules/helpers/duels");
+const {throwInBin} = require("../modules/helpers/bin");
 
 const {handleLinkBlocker} = require("../modules/moderation/link_filter");
 const {openReward, closeReward, isRewardOpen, resetRewardStates} = require('../modules/helpers/twitchRedemption');
@@ -284,6 +286,71 @@ function hugCommand(client, channel, senderName, msg, broadcaster, senderLogin) 
 
     const messages = specialPool || defaultMessages;
     client.say(channel, messages[Math.floor(Math.random() * messages.length)]);
+}
+
+//--------------------------------- DUEL AND BIN COMMANDS ------------------------------------
+
+const BONK_LINES = [
+    `{senderName} bonks {target}... static scatters across the perimeter ✧`,
+    `Bonk... {target} reels as static bursts outward from {senderName} 🫧`,
+    `{senderName} bonks {target} and the static scatters... coherence holds 💾`,
+    `{target} gets bonked by {senderName}... static scatters, perimeter quiet 🫧`
+];
+
+function fill(template, vars) {
+    return String(template).replace(/\{(\w+)\}/g, (m, key) =>
+        Object.prototype.hasOwnProperty.call(vars, key) ? vars[key] : m
+    );
+}
+
+function pick(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function duelCommand(game) {
+    return function (client, channel, senderName, userId, senderLogin, msg) {
+        const target = msg.trim().split(/\s+/).slice(1).join(' ');
+        for (const line of requestDuel(game, target, senderName, userId, senderLogin)) {
+            client.say(channel, line);
+        }
+    };
+}
+
+const armWrestleCommand = duelCommand('armwrestle');
+const rpsCommand = duelCommand('rps');
+const coinFlipCommand = duelCommand('coinflip');
+
+function acceptDuelCommand(client, channel, senderName, senderLogin) {
+    for (const line of answerDuel('accept', senderName, senderLogin)) {
+        client.say(channel, line);
+    }
+}
+
+function declineDuelCommand(client, channel, senderName, senderLogin) {
+    for (const line of answerDuel('decline', senderName, senderLogin)) {
+        client.say(channel, line);
+    }
+}
+
+function cancelDuelCommand(client, channel, senderId) {
+    for (const line of cancelDuel(senderId)) {
+        client.say(channel, line);
+    }
+}
+
+function binCommand(client, channel, senderName, msg) {
+    const target = msg.trim().split(/\s+/).slice(1).join(' ');
+    client.say(channel, throwInBin(client, channel, target, senderName));
+}
+
+function bonkCommand(client, channel, senderName, msg) {
+    const target = msg.trim().split(/\s+/).slice(1).join(' ');
+    if (!target || target === '@') {
+        client.say(channel, `Usage: !bonk @user ✧`);
+        return;
+    }
+    const display = target.replace(/^@/, '').trim().slice(0, 25);
+    client.say(channel, fill(pick(BONK_LINES), {senderName, target: display}));
 }
 
 //--------------------------------- TWITCH FUNCTION COMMANDS ------------------------------------
@@ -958,6 +1025,15 @@ module.exports = {
     raidTestCommand,
     giftSubTestCommand,
     adBreakTestCommand,
+
+    armWrestleCommand,
+    rpsCommand,
+    coinFlipCommand,
+    acceptDuelCommand,
+    declineDuelCommand,
+    cancelDuelCommand,
+    binCommand,
+    bonkCommand,
 
     ssrCommand,
     skipCommand,

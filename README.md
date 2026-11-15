@@ -84,7 +84,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
    - Media queue directory path (`MEDIA_QUEUE_DIR`)
    - Channel point reward IDs (`MR_REDEEM_ID`, `GLOSSELS_REDEEM_ID`) and the mod review channel (`REWARD_REVIEW_CHANNEL`)
    - Social links (Discord, YouTube, Instagram, itch.io)
-   - Optional: `FAVOURITES_FILE` (defaults to the sibling Discord bot's `Data/favourites.json`) and tuning: `OVERLAY_WS_PORT` (default 8420), `TIMER_START_MINUTES` (default 60), `TIMER_GIFT_MINUTES` (default 6, seeds `giftMinutes` in `data/glossothon.json` when absent)
+   - Optional: `FAVOURITES_FILE` (defaults to the sibling Discord bot's `Data/favourites.json`) and tuning: `OVERLAY_WS_PORT` (default 8420), `TIMER_START_MINUTES` (default 60), `TIMER_GIFT_MINUTES` (default 6, seeds `giftMinutes` in `data/glossothon.json` when absent), `DUEL_TTL_SECONDS` (default 60), `BIN_RECOVERY_MIN_SECONDS` / `BIN_RECOVERY_MAX_SECONDS` (default 45 to 90, hidden `!bin` recovery delay)
 
 4. **Obtain OAuth refresh tokens** for both bot and broadcaster accounts and place them in:
    - `data/bot_refresh_token.json`
@@ -136,8 +136,16 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!pat @user` / `!headpat @user` | Send a gentle pulse / headpat to another viewer (signal/perimeter theme) |
 | `!poke @user` / `!boop @user` | Trigger a brief signal spike at another viewer |
 | `!nom @user` | Send a small packet to another viewer (data/coherence theme) |
+| `!armwrestle @user` | Challenge someone to an arm wrestle duel |
+| `!rps @user` | Challenge someone to rock paper scissors |
+| `!coinflip @user` | Challenge someone to a coin flip |
+| `!accept` / `!decline` / `!cancel` | Answer a pending duel challenge / withdraw your own (silent when no duel is pending) |
+| `!bin @user` | Throw someone in the recycling bin; they resurface "after a time" |
+| `!bonk @user` | Bonk someone, static scatters |
 
 > Special responses apply to targets Silver (tinysilverfoxx) and Ace (acewype) across `!hug`, `!pat`/`!headpat`, `!poke`/`!boop` and `!nom`. Family wording (sister, brother, family confirmed) only appears when Fox or the other sibling triggers the command. Pools live in `data/family.json` and load via `modules/helpers/family_responses.js`.
+>
+> Duels are requests: the named target answers with `!accept` (or `!decline`), and the challenger can `!cancel`. The winner is pure RNG, and `!rps`/`!coinflip` narration is always coherent (the loser's throw loses, the winner's call matches the flip). Requests expire silently after `DUEL_TTL_SECONDS` (default 60). `!bin` recovery fires after a hidden random delay (`BIN_RECOVERY_MIN_SECONDS` to `BIN_RECOVERY_MAX_SECONDS`, default 45–90s) and is never announced. Duel and bin state lives in memory and resets on restart.
 | `fih` / `fish` / `feesh` | Fish acknowledgment |
 | `!clip` | Creates a Twitch clip |
 | `!followage` / `!followage @user` | Shows how long you (or someone) have been following (also triggers the profile overlay popup) |
@@ -345,7 +353,9 @@ TwitchBot/
 │   │   ├── badges.js               # Resolves a viewer's badges to image URLs
 │   ├── helpers/
 │   │   ├── ad_schedule_poller.js   # Adaptive ad schedule polling + chat warnings
+│   │   ├── bin.js                  # !bin throw + hidden delayed recovery line
 │   │   ├── cooldown.js             # Per-user per-command cooldown system
+│   │   ├── duels.js                # Duel requests (!armwrestle, !rps, !coinflip) with !accept/!decline/!cancel
 │   │   ├── eventsub/
 │   │   │   ├── core.js             # EventSub WebSocket hub + subscription registry
 │   │   │   └── handlers.js         # Follow, raid, gift sub, ad break + generic redemption subscriptions

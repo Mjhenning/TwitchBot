@@ -72,6 +72,11 @@ const config = {
     TIMER_START_MINUTES: parseInt(process.env.TIMER_START_MINUTES, 10) || 60, // base countdown length in minutes
     TIMER_GIFT_MINUTES: parseInt(process.env.TIMER_GIFT_MINUTES, 10) || 6, // minutes added per gifted sub
 
+    // ---------- Interactions ----------
+    DUEL_TTL_SECONDS: parseInt(process.env.DUEL_TTL_SECONDS, 10) || 60, // lifetime of a duel request before it silently expires
+    BIN_RECOVERY_MIN_SECONDS: parseInt(process.env.BIN_RECOVERY_MIN_SECONDS, 10) || 45, // lower bound of the hidden recovery delay
+    BIN_RECOVERY_MAX_SECONDS: parseInt(process.env.BIN_RECOVERY_MAX_SECONDS, 10) || 90, // upper bound of the hidden recovery delay
+
     // ---------- Data ----------
     FAMILY_PATH,
     MOD_CONFIG_PATH,
