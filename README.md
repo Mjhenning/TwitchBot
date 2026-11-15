@@ -135,7 +135,7 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!backseat` | Polite no-backseat/spoiler reminder |
 | `!hug @user` | Send a themed hug to another viewer (special responses for Laya) |
 | `!pat @user` / `!headpat @user` | Send a gentle pulse / headpat to another viewer (signal/perimeter theme) |
-| `!poke @user` | Trigger a brief signal spike at another viewer |
+| `!poke @user` / `!boop @user` | Trigger a brief signal spike at another viewer |
 | `!nom @user` | Send a small packet to another viewer (data/coherence theme) |
 | `fih` / `fish` / `feesh` | Fish acknowledgment |
 | `!clip` | Creates a Twitch clip |
