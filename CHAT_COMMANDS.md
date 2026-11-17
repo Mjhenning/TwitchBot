@@ -1,6 +1,6 @@
 # Chat Commands Reference
 
-All commands are case-insensitive. Cooldowns are per-user per-command (5 seconds, mods exempt). `!sysAdmin` is broadcaster-only with an instant denial.
+All commands are case-insensitive. Cooldowns are per-user per-command (5 seconds, mods exempt). `!accept`, `!decline` and `!cancel` have no cooldown. Commands also fire inside Twitch replies, leading @mentions are ignored. `!sysAdmin` is broadcaster-only with an instant denial.
 
 ---
 
@@ -15,7 +15,7 @@ All commands are case-insensitive. Cooldowns are per-user per-command (5 seconds
 | `!armwrestle @user` | Challenge someone to an arm wrestle duel |
 | `!rps @user` | Challenge someone to rock paper scissors |
 | `!coinflip @user` | Challenge someone to a coin flip |
-| `!accept` / `!decline` / `!cancel` | Answer a pending duel challenge / withdraw your own (silently does nothing when no duel is pending) |
+| `!accept` / `!decline` / `!cancel` | Answer a pending duel challenge / withdraw your own (silent when no duel is pending, no cooldown) |
 | `!bin @user` | Throw someone in the recycling bin; they resurface "after a time" |
 | `!bonk @user` | Bonk someone, static scatters |
 
@@ -81,7 +81,7 @@ All commands are case-insensitive. Cooldowns are per-user per-command (5 seconds
 
 | Command | Description |
 |---|---|
-| `!so @user1 [@user2 ...]` | Shoutout one or more users (also sends official Twitch `/shoutout`) |
+| `!so @user1 [@user2 ...]` | Shoutout one or more users (mod only, also sends official Twitch `/shoutout`) |
 | `!socials` | Show social links |
 | `!discord` | Discord link |
 | `!watchtime` | Show your watchtime with a themed message |
