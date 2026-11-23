@@ -13,7 +13,8 @@ const {isBroadcaster} = require('./permissions');
 const CACHE_TTL_MS = 30 * 1000; // reload the shared file at most every 30s
 
 let greeted = new Set();     // userIds already shouted out this stream
-let favourites = null;       // lowercased usernames from the shared JSON
+let favourites = null;       // lowercased usernames allowed for twitch shoutout
+let ageRatings = new Map();  // lowercased login -> ageRating string or null
 let lastLoaded = 0;
 
 //------------------FAVOURITES LIST------------------
@@ -24,26 +25,37 @@ function loadFavourites() {
     try {
         const raw = JSON.parse(fs.readFileSync(config.FAVOURITES_FILE, 'utf8'));
         favourites = new Set();
+        ageRatings = new Map();
 
         for (const [name, val] of Object.entries(raw)) {
+            const login = name.toLowerCase();
+
             if (typeof val === 'string') {
                 // old format: treat as both
-                favourites.add(name.toLowerCase());
+                favourites.add(login);
+                ageRatings.set(login, null);
                 continue;
             }
 
             if (val && typeof val === 'object') {
                 const type = typeof val.type === 'number' ? val.type : 0;
+                const ageRating = typeof val.ageRating === 'string' && val.ageRating.trim()
+                    ? val.ageRating.trim()
+                    : null;
+
+                ageRatings.set(login, ageRating);
+
                 // discord only -> skip twitch shoutout
                 if (type === 1) continue;
                 // 0 or 2 -> allow twitch shoutout
-                favourites.add(name.toLowerCase());
+                favourites.add(login);
                 continue;
             }
         }
     } catch (err) {
         Logger.warn(`[FavShoutout] Could not load favourites list (${err.message}), will retry`);
         favourites = favourites || new Set();
+        ageRatings = ageRatings || new Map();
     }
     lastLoaded = now;
     return favourites;
@@ -76,11 +88,18 @@ onRestoreGate((gates) => {
     }
 });
 
+function getFavouriteAgeRating(login) {
+    if (!login) return null;
+    loadFavourites();
+    return ageRatings.get(login.toLowerCase()) || null;
+}
+
 // clears per-stream greeted state; called on bot start/stop
 function resetFavouriteShoutout() {
     greeted = new Set();
     favourites = null;
+    ageRatings = new Map();
     lastLoaded = 0;
 }
 
-module.exports = {checkFavouriteShoutout, resetFavouriteShoutout};
+module.exports = {checkFavouriteShoutout, resetFavouriteShoutout, getFavouriteAgeRating};

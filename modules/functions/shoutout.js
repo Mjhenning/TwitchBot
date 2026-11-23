@@ -46,6 +46,7 @@ async function getUsersAndGames(usernames, config) {
     return users.map(u => ({
         id: u.id,
         user: u.display_name,
+        login: u.login,
         game: gameById.get(u.id) || 'something mysterious',
         link: `https://www.twitch.tv/${u.login}`
     }));
@@ -104,19 +105,34 @@ const massSoUserPool = [
     `> {user}, signal reinforced. last playing {game}: {link}`
 ];
 
-const fillTemplate = (template, data) =>
-    template.replace('{user}', data.user).replace('{game}', data.game).replace('{link}', data.link);
+function getAgeWarning(login) {
+    try {
+        const {getFavouriteAgeRating} = require('../helpers/favourite_shoutout');
+        const rating = getFavouriteAgeRating(login);
+        if (!rating) return '';
+        return ` ⚠️ Mature audience (${rating}) - may not be welcoming to our community's younger audiences.`;
+    } catch {
+        return '';
+    }
+}
+
+const fillTemplate = (template, data) => {
+    const base = template.replace('{user}', data.user).replace('{game}', data.game).replace('{link}', data.link);
+    return base + getAgeWarning(data.login || data.user);
+};
 
 async function eventShoutout(event, client, config) {
     const raider = event.from_broadcaster_user_name;
+    const raiderLogin = (event.from_broadcaster_user_login || raider).toLowerCase();
     const raiderId = event.from_broadcaster_user_id;
     const viewers = event.viewers;
 
     Logger.log(`EventHandlers: ${raider} raided with ${viewers} viewers`);
 
+    const ageWarning = getAgeWarning(raiderLogin);
     client.say(
         `#${config.CHANNEL_NAME}`,
-        `🟢 Active network expanded: ${raider} arrived with ${viewers} connections! Welcome in, raiders, the Glosso-Sphere just got a little brighter ✨ Be sure to check out ${raider} and return the signal: https://www.twitch.tv/${raider} 🦊💬`
+        `🟢 Active network expanded: ${raider} arrived with ${viewers} connections! Welcome in, raiders, the Glosso-Sphere just got a little brighter ✨ Be sure to check out ${raider} and return the signal: https://www.twitch.tv/${raider} 🦊💬${ageWarning}`
     ).catch(err => Logger.error(`EventHandlers: Raid message failed: ${err}`));
 
     await sendTwitchShoutout(raiderId, raider, config);
