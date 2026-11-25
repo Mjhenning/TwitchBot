@@ -33,11 +33,11 @@ All commands are case-insensitive. Cooldowns are per-user per-command (5 seconds
 | `!song` / `!currentsong` | Show the currently playing song |
 | `!queue` / `!q` | Show the queue (current + up to 5 upcoming) |
 | `!skip` | Skip current song (mod only) |
-| `!opensr` / `!startsr` | Open song requests (mod only) |
-| `!closesr` / `!stopsr` | Close song requests and clear Limusic's queued rows (mod only) |
+| `!opensr` / `!startsr` | Open song requests and resume playback if paused (mod only) |
+| `!closesr` / `!stopsr` | Close song requests, pause playback if running, and clear Limusic's queued rows (mod only) |
 | `!clearQ` | Clear Limusic's queued rows (mod only), current song keeps playing |
 
-> Limusic owns queue order, so there is no local queue file to reconcile. Requester names in `!queue` come from Limusic. `!sr` keeps its 30 second viewer cooldown, mods are exempt.
+> Limusic owns queue order, so there is no local queue file to reconcile. Requester names in `!queue` come from Limusic. Playback control reads Limusic status first, so `!startsr` only calls play when paused and `!stopsr` only calls pause when running. `!sr` keeps its 30 second viewer cooldown, mods are exempt.
 
 ---
 

@@ -181,6 +181,31 @@ async function clearQueuedSongs() {
     return await apiRequest('POST', '/api/v1/queue/clear-queued');
 }
 
+// Playback endpoints are idempotent, but reading status first avoids fighting
+// a state change that happened between the chat command and the API call.
+async function setPlayback(targetPlaying) {
+    const status = await apiRequest('GET', '/api/v1/status');
+    const paused = Boolean(status?.paused);
+    const needsChange = targetPlaying ? paused : !paused;
+    if (!needsChange) {
+        return {changed: false, playing: targetPlaying};
+    }
+    const path = targetPlaying ? '/api/v1/playback/play' : '/api/v1/playback/pause';
+    const result = await apiRequest('POST', path);
+    return {
+        changed: true,
+        playing: typeof result?.playing === 'boolean' ? result.playing : targetPlaying
+    };
+}
+
+async function resumePlayback() {
+    return await setPlayback(true);
+}
+
+async function pausePlayback() {
+    return await setPlayback(false);
+}
+
 //-------------------POLLING-------------------
 // The poll no longer reconciles a local list. It only announces when a
 // requester-attributed row becomes the current song.
@@ -237,6 +262,8 @@ module.exports = {
     addSongToSSRQueue,
     skipSong,
     clearQueuedSongs,
+    resumePlayback,
+    pausePlayback,
     formatDurationSeconds,
     startSSRPolling,
     stopSSRPolling
