@@ -29,13 +29,15 @@ All commands are case-insensitive. Cooldowns are per-user per-command (5 seconds
 
 | Command | Description |
 |---|---|
-| `!sr <name or YouTube URL>` | Request a song (must be ≤10 min). Searches YouTube Music, accepts direct YouTube URLs, or resolves a Spotify track link to a YouTube match. |
+| `!sr <name or YouTube URL>` | Request a song (default cap 10 min). Limusic resolves the search, accepts direct YouTube URLs, and matches Spotify track links to YouTube. Duplicates are rejected. |
 | `!song` / `!currentsong` | Show the currently playing song |
 | `!queue` / `!q` | Show the queue (current + up to 5 upcoming) |
 | `!skip` | Skip current song (mod only) |
 | `!opensr` / `!startsr` | Open song requests (mod only) |
-| `!closesr` / `!stopsr` | Close song requests and clear queue (mod only) |
-| `!clearQ` | Clear the SSR queue (mod only) |
+| `!closesr` / `!stopsr` | Close song requests and clear Limusic's queued rows (mod only) |
+| `!clearQ` | Clear Limusic's queued rows (mod only), current song keeps playing |
+
+> Limusic owns queue order, so there is no local queue file to reconcile. Requester names in `!queue` come from Limusic. `!sr` keeps its 30 second viewer cooldown, mods are exempt.
 
 ---
 

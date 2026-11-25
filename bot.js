@@ -6,7 +6,7 @@ const {startShieldSystem, stopShieldSystem} = require('./modules/helpers/shield_
 const {startTimedCommands, stopTimedCommands} = require('./modules/helpers/timed_commands');
 const {startAdSchedulePoller, stopAdSchedulePoller} = require('./modules/helpers/ad_schedule_poller');
 const {resetListeners} = require('./modules/helpers/stream-state');
-const {stopSSRPolling} = require('./modules/song_requests/pear-desktop-music');
+const {stopSSRPolling} = require('./modules/song_requests/limusic');
 const {resetFavouriteShoutout} = require('./modules/helpers/favourite_shoutout');
 
 const {setupChatCommands} = require('./commands/chat_integration');

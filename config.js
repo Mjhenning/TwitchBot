@@ -27,14 +27,10 @@ const config = {
 
     REWARD_REVIEW_CHANNEL: process.env.REWARD_REVIEW_CHANNEL,
 
-    // ---------- Pear Desktop ----------
-    PEAR_HOST: process.env.PEAR_HOST,
-    PEAR_PORT: parseInt(process.env.PEAR_PORT, 10),
-    PEAR_ACCESS_TOKEN: null,
-    PEAR_ID: process.env.PEAR_ID,
-
-    // ---------- Google API ----------
-    YOUTUBE_ACCESS_KEY: process.env.YOUTUBE_ACCESS_KEY,
+    // ---------- Limusic Control API ----------
+    LIMUSIC_CONTROL_URL: process.env.LIMUSIC_CONTROL_URL || 'http://127.0.0.1:27199',
+    LIMUSIC_CONTROL_TOKEN: process.env.LIMUSIC_CONTROL_TOKEN || null,
+    SSR_MAX_DURATION_SECONDS: parseInt(process.env.SSR_MAX_DURATION_SECONDS, 10) || 600, // max song request length in seconds
 
     // ---------- OBS WebSocket ----------
     OBS_WS_URL: process.env.OBS_WS_URL,
@@ -87,11 +83,6 @@ const config = {
     FAVOURITES_FILE,
 
     DEBUG: process.env.DEBUG === 'true'
-};
-
-// ---------- Pear base ----------
-config.getPearBaseUrl = function () {
-    return `${this.PEAR_HOST}:${this.PEAR_PORT}/api/v1`;
 };
 
 module.exports = {config};
