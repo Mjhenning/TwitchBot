@@ -23,7 +23,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 ## Features
 
 - **Chat Commands**: 20+ chat commands including greetings, lore responses, socials, clipping, follow age, shoutouts, lurk tracking, and hug interactions.
-- **Song Requests (SSR)**: Viewers request songs via `!sr`. Integrates with Pear Desktop Music and YouTube Data API for search, queuing, and playback. Requests play in the order they were made; queue open/close controlled by mods.
+- **Song Requests (SSR)**: Viewers request songs via `!sr`. Limusic's Control API resolves YouTube searches, YouTube links and Spotify track links, then owns queue order and playback through its Play-next block. There is no local shadow queue. Queue open/close and clearing are controlled by mods.
 - **Media Requests (MR)**: Channel-point redemption triggers video download via `yt-dlp`, OBS source display, and VLC playback. Moderators approve or reject before playback. Videos must be within the redeemable length cap (default 1 min, configurable via `MR_MAX_DURATION_SECONDS`). Includes expiry sweep, atomic pending store, and startup reconciliation.
 - **Shield System**: Automatically enables Twitch Shield Mode when the stream goes offline and disables it when live, via EventSub `stream.online` / `stream.offline`.
 - **EventSub Integration**: Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), gifted subs (extend the Glosso-thon timer and announce reached goals), and ad break notifications with countdown warnings.
@@ -52,9 +52,8 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 | **OBS Studio** | Media playback display | WebSocket server enabled (default port 4455). Bot waits for OBS to connect before starting. |
 | **yt-dlp** | Video download for media requests | Must be on `$PATH` |
 | **VLC media player** | Video playback | HTTP API enabled on `localhost:8080` |
-| **Pear Desktop Music** | Song request playback | Local network app with HTTP API (default `192.168.1.71:26538`) |
+| **Limusic** | Song request playback | Fork with the Control API enabled. Binds to `127.0.0.1:27199` by default, or a LAN address when running on another machine |
 | **Twitch App** | Chat + API access | Requires Client ID, Client Secret, and OAuth tokens for both bot and broadcaster accounts |
-| **YouTube Data API key** | Song search and metadata | Used for `!sr` search and video duration validation |
 
 ---
 
@@ -77,14 +76,13 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
    ```
    Then edit `.env` and fill in your values:
    - Twitch `CLIENT_ID` and `CLIENT_SECRET`, plus `BOT_NAME` and `CHANNEL_NAME`
-   - YouTube Data API key (`YOUTUBE_ACCESS_KEY`)
    - OBS WebSocket URL and password
    - VLC host and password
-   - Pear Desktop Music host, port, and auth ID
+   - Limusic Control API URL and token (`LIMUSIC_CONTROL_URL`, `LIMUSIC_CONTROL_TOKEN`). Enable the API in Limusic under Settings → Integrations → Control API and copy the token from there into `.env` locally.
    - Media queue directory path (`MEDIA_QUEUE_DIR`)
    - Channel point reward IDs (`MR_REDEEM_ID`, `GLOSSELS_REDEEM_ID`) and the mod review channel (`REWARD_REVIEW_CHANNEL`)
    - Social links (Discord, YouTube, Instagram, itch.io)
-   - Optional: `FAVOURITES_FILE` (defaults to the sibling Discord bot's `Data/favourites.json`) and tuning: `OVERLAY_WS_PORT` (default 8420), `TIMER_START_MINUTES` (default 60), `TIMER_GIFT_MINUTES` (default 6, seeds `giftMinutes` in `data/glossothon.json` when absent), `DUEL_TTL_SECONDS` (default 60), `BIN_RECOVERY_MIN_SECONDS` / `BIN_RECOVERY_MAX_SECONDS` (default 45 to 90, hidden `!bin` recovery delay)
+   - Optional: `FAVOURITES_FILE` (defaults to the sibling Discord bot's `Data/favourites.json`) and tuning: `SSR_MAX_DURATION_SECONDS` (default 600), `OVERLAY_WS_PORT` (default 8420), `TIMER_START_MINUTES` (default 60), `TIMER_GIFT_MINUTES` (default 6, seeds `giftMinutes` in `data/glossothon.json` when absent), `DUEL_TTL_SECONDS` (default 60), `BIN_RECOVERY_MIN_SECONDS` / `BIN_RECOVERY_MAX_SECONDS` (default 45 to 90, hidden `!bin` recovery delay)
 
 4. **Obtain OAuth refresh tokens** for both bot and broadcaster accounts and place them in:
    - `data/bot_refresh_token.json`
@@ -107,7 +105,7 @@ node bot.js
 The bot will:
 1. Connect to OBS via WebSocket. It **will not** start chat or any other module until OBS is online.
 2. Initialize Twitch OAuth tokens (app, bot, broadcaster) and fetch user IDs.
-3. Authenticate with Pear Desktop Music (gracefully degrades if unavailable).
+3. Read the Limusic Control API URL and bearer token from `.env`. No playback login call is needed.
 4. Connect to Twitch chat via `tmi.js`.
 5. Start the Shield System (EventSub for stream online/offline).
 6. Start the main EventSub hub (follows, raids, gifted subs, ad breaks, media request redemptions).
@@ -156,13 +154,15 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 
 | Command | Description |
 |---|---|
-| `!sr <name or YouTube URL>` | Request a song (must be ≤10 min). Searches YouTube Music, accepts direct YouTube URLs, or resolves a Spotify track link to a YouTube match. |
+| `!sr <name or YouTube URL>` | Request a song (default cap 10 min). Limusic resolves searches, direct YouTube URLs and Spotify track links, rejects duplicates, and places the song in its Play-next block. |
 | `!song` / `!currentsong` | Show the currently playing song |
 | `!queue` / `!q` | Show the queue (current + up to 5 upcoming) |
 | `!skip` | Skip current song (mod only) |
 | `!opensr` / `!startsr` | Open song requests (mod only) |
-| `!closesr` / `!stopsr` | Close song requests and clear queue (mod only) |
-| `!clearQ` | Clear the SSR queue (mod only) |
+| `!closesr` / `!stopsr` | Close song requests and clear Limusic's queued rows (mod only) |
+| `!clearQ` | Clear Limusic's queued rows (mod only). The current song keeps playing. |
+
+Limusic owns queue placement and order, so there is no local `data/ssr_queue.json` to reconcile. Requester labels in `!queue` come from Limusic's `queued_by` field. A five second poll only announces when a requester-attributed row becomes the current song.
 
 ### Media Requests
 
@@ -252,7 +252,7 @@ The timer comes back paused on restart, so a new stream resumes exactly where th
 - `withTokenRetry()` wrapper handles 401 → refresh → retry for any Twitch API call.
 - Broadcaster token proactively refreshed every 3 hours.
 - If chat login is rejected (stale bot OAuth), the bot refreshes the bot token and reconnects automatically instead of staying mute.
-- `initPearToken()` authenticates with Pear Desktop Music (3s timeout, gracefully skipped if unavailable).
+- Limusic playback uses its local Control API bearer token from `.env`, so Twitch token init does not make any playback login call.
 
 ### EventSub (`modules/helpers/eventsub/`)
 - **`core.js`**: WebSocket hub. Manages the EventSub session, subscription registry, and reconnection.
@@ -307,9 +307,8 @@ The timer comes back paused on restart, so a new stream resumes exactly where th
 8. **`twitchRedemption.js`**: Central redemption dispatcher + Twitch API helpers. Routes redemption events to the registered reward module, manages the generic pending/approval lifecycle (reconciliation + expiry sweep), and can auto-fulfill instant rewards (skipped when a reward sets `autoFulfill: false` for Twitch's skip-approval queue). Tracks each reward's open/closed state (paused/unpaused on Twitch) with `openReward`/`closeReward`/`isRewardOpen`, applied on startup from each reward's `startClosed` flag. Also provides redemption status update and reward pause/unpause API helpers.
 
 ### Song Requests (`modules/song_requests/`)
-- **`pear-desktop-music.js`**: YouTube search via Data API, Pear Desktop Music API integration, in-order request placement, and SSR polling that reconciles the local request list against Pear's real queue every 5s.
-- **`spotify_resolver.js`**: Parses Spotify track links and resolves title/artist via Spotify's public oEmbed endpoint; the result feeds the YouTube search. Album/playlist links are rejected.
-- **`ssr-queue.js`**: Request list persisted to `data/ssr_queue.json` with atomic writes.
+- **`limusic.js`**: Limusic Control API adapter. Sends `/queue/request` with requester attribution and a duration cap, reads `/queue` and `/now-playing`, skips via `/playback/next`, clears queued rows, and polls only to announce the current request.
+- **`spotify_resolver.js`**: Parses Spotify track links and resolves title/artist via Spotify's public oEmbed endpoint; the resulting text query goes to Limusic's resolver. Album/playlist links are rejected.
 
 ### Personality (`modules/bot_specific/bot_response_modules.js`)
 - Responds to greetings + daemon name mentions, threat words, lore character/place names, gratitude, and compliments. Rate-limited per module to prevent spam.
@@ -383,8 +382,8 @@ TwitchBot/
 │   │   ├── timer_overlay.js        # OBS Glosso-thon countdown overlay (hub channel "timer")
 │   │   └── goals_overlay.js        # OBS Glosso-thon gifted-sub goals overlay (hub channel "goals")
 │   └── song_requests/
-│       ├── pear-desktop-music.js   # Pear Desktop Music API + YouTube search + SSR polling
-│       └── ssr-queue.js            # SSR queue persistence (JSON file)
+│       ├── limusic.js              # Limusic Control API for request, queue, skip and clear
+│       └── spotify_resolver.js     # Spotify track link to title/artist query
 ├── ARG/
 │   ├── _filesystem/                # Virtual in-chat filesystem (JSON lore files)
 │   │   ├── boot/                   # Boot logs, readme, status, bitrot
@@ -406,7 +405,6 @@ TwitchBot/
 │   ├── moderation.json
 │   ├── family.json
 │   ├── pendingRedemptions.json
-│   ├── ssr_queue.json
 │   ├── state.json
 │   ├── stream_gates.json
 │   ├── timed_commands.json
@@ -437,7 +435,6 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 | `data/network_cache.json` | Network Cache: accumulated lost Glossels from failed handshakes, drainable via rare `drained` outcome |
 | `data/moderation.json` | Link filter config: allowed domains, trusted badges, warn cooldown |
 | `data/family.json` | Special response pools for Silver and Ace (aliases, neutral and family lines per interaction command) |
-| `data/ssr_queue.json` | Current song request queue |
 | `data/pendingRedemptions.json` | In-flight media request redemptions (atomic writes, survives crashes) |
 | `data/timed_commands.json` | Scheduled message/function definitions |
 | `data/watchtime.json` | Per-viewer accumulated watchtime (seconds), flushed periodically + on shutdown |
@@ -459,7 +456,7 @@ Secrets and environment-specific values are stored in `.env` (gitignored). See `
 - **Self-registering handlers**: EventSub handler modules (e.g. `videoRedeemHandler.js`) register at require-time. Redemption reward modules call `registerReward()` on the dispatcher in `twitchRedemption.js`; other subscription types are registered in `handlers.js`. Importing the file is enough to register, no explicit wiring needed.
 - **Redemption dispatcher**: All channel point redemptions flow through a generic EventSub `add`/`update` pair in `handlers.js` into `twitchRedemption.js`, which routes to the module registered for each reward id. Rewards define an `onRedeem` plus optional `onResolve`/`onReject`/`onExpire`; if no `onResolve` is given the reward is fulfilled instantly (a reward using Twitch's skip-approval queue sets `autoFulfill: false` so the dispatcher skips the redundant Helix status update). The dispatcher owns the pending store, startup reconciliation, the 5-minute expiry sweep for mod-approval rewards, and each reward's open/closed state (a reward's `startClosed` flag decides whether it begins paused on bot start, e.g. media requests).
 - **Atomic persistence**: `pendingStore.js` writes to a `.tmp` file then renames, preventing corruption on crash. All other JSON files are read on demand and written after every mutation.
-- **Cooldown system**: Per-user, per-command cooldowns (default 5s). Mods and broadcaster are exempt. `!system handshake` has a 30s cooldown.
+- **Cooldown system**: Per-user, per-command cooldowns (default 5s). Mods and broadcaster are exempt. `!sr` and `!system handshake` have a 30s cooldown.
 - **Permissions**: All moderator, broadcaster, and trusted-badge checks go through `modules/helpers/permissions.js` (`isModerator`, `isBroadcaster`, `isModOrBroadcaster`, `hasBadge`, `requireMod`), so command routing, cooldowns, link filtering, and shoutouts share one implementation.
 - **Command matching**: Most commands use regex word-boundary matching (`hasCommand()`). Commands with arguments (`!sr`, `!followage`, `!so`, `!system`/`!sys`, `!sysAdmin`, `!hug`) use `startsWith` instead. `!sysAdmin` is checked before `!sys` to prevent prefix collision.
 - **No build step**: Plain CommonJS Node.js. Run directly with `node bot.js`.

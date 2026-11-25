@@ -176,26 +176,6 @@ async function fetchUserIds() {
 }
 
 // ========================
-// PEAR
-// ========================
-
-async function initPearToken() {
-    if (!config.PEAR_ACCESS_TOKEN) {
-        try {
-            const res = await axios.post(
-                `${config.PEAR_HOST}:${config.PEAR_PORT}/auth/${config.PEAR_ID}`,
-                {},
-                {timeout: 3000}
-            );
-            config.PEAR_ACCESS_TOKEN = res.data.accessToken;
-            if (config.DEBUG) Logger.log('[DEBUG] Pear token fetched');
-        } catch (err) {
-            Logger.warn(`[WARN] Pear unavailable, SSR features disabled: ${err.message}`);
-        }
-    }
-}
-
-// ========================
 // INIT
 // ========================
 
@@ -208,7 +188,6 @@ async function initTokens() {
     await refreshBroadcasterToken();
 
     await fetchUserIds();
-    await initPearToken();
 
     if (config.DEBUG) {
         Logger.log(`[DEBUG] READY: ${JSON.stringify({
@@ -224,7 +203,6 @@ async function initTokens() {
 
 module.exports = {
     initTokens,
-    initPearToken,
     refreshBroadcasterToken,
     refreshBotToken,
     refreshAppToken,

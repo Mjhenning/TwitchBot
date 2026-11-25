@@ -1,6 +1,6 @@
 // modules/song_requests/spotify_resolver.js
 // Resolves Spotify track links to a title/artist query for YouTube search.
-// Spotify can't be streamed through Pear, so a track link is only a reference.
+// Spotify can't be streamed through Limusic, so a track link is only a reference.
 const axios = require('axios');
 const {Logger} = require('../../services');
 

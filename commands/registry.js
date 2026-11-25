@@ -11,15 +11,14 @@ const {getFollowage} = require('../modules/functions/followage');
 const {startLurk, isLurking} = require('../modules/functions/lurk_tracker');
 const {simulateFollow, simulateRaid, simulateGiftSub, simulateAdBreak} = require("../modules/functions/testing_events");
 
-const {clearQueue} = require('../modules/song_requests/ssr-queue');
 const {
     getCurrentSong,
     getQueueWithCurrent,
-    searchSong,
-    getSongByVideoId,
     addSongToSSRQueue,
-    skipSong
-} = require('../modules/song_requests/pear-desktop-music');
+    skipSong,
+    clearQueuedSongs,
+    formatDurationSeconds
+} = require('../modules/song_requests/limusic');
 const {parseSpotify, getTrackInfo} = require('../modules/song_requests/spotify_resolver');
 
 const {
@@ -453,28 +452,61 @@ function adBreakTestCommand(client, durationSeconds = 30, isAutomatic = true, re
 // ------------------- SSR global cooldown -------------------
 let ssrEnabled = false;
 
+function formatSsrError(senderName, err, input) {
+    switch (err.code) {
+        case 'duplicate': {
+            const position = Number.isFinite(err.data?.position) ? err.data.position + 1 : null;
+            return position
+                ? `⚠️ ${senderName}, that song is already queued at position ${position} ✧`
+                : `⚠️ ${senderName}, that song is already queued ✧`;
+        }
+        case 'too_long':
+            return `⚠️ ${senderName}, that song is too long (${formatDurationSeconds(err.data?.duration_sec)})... max is ${formatDurationSeconds(config.SSR_MAX_DURATION_SECONDS)} ✧`;
+        case 'duration_unknown':
+            return `⚠️ ${senderName}, Limusic couldn't read that song's length... try a different one ✧`;
+        case 'explicit_content':
+            return `⚠️ ${senderName}, explicit tracks can't be requested ✧`;
+        case 'not_found':
+            return `⚠️ Couldn't find "${input}"... try a different search ✧`;
+        case 'unsupported_url':
+            return `⚠️ ${senderName}, use a YouTube link, video ID or song name ✧`;
+        case 'playlist_not_supported':
+            return `⚠️ ${senderName}, playlists aren't supported, use one song ✧`;
+        case 'resolve_timeout':
+            return `⚠️ ${senderName}, that lookup timed out... try again ✧`;
+        case 'busy':
+            return `⚠️ ${senderName}, Limusic is busy right now... try again shortly ✧`;
+        case 'listen_together_guest':
+        case 'remote_linked':
+            return `⚠️ ${senderName}, another device is controlling playback right now ✧`;
+        case 'missing_token':
+            return `⚠️ Song requests aren't configured yet ✧`;
+        default:
+            return `⚠️ Couldn't queue "${input}" right now... try again in a moment ✧`;
+    }
+}
+
 async function ssrCommand(client, channel, senderName, msg, isBroadcaster) {
     if (!ssrEnabled && !isBroadcaster) {
         client.say(channel, `⚠️ Song requests are currently closed ✧`);
         return;
     }
 
-    const query = msg.slice('!sr'.length).trim();
+    const input = msg.slice('!sr'.length).trim();
 
-    if (!query) {
+    if (!input) {
         client.say(channel, `${senderName}... provide a song name, YouTube link, or Spotify link ✧`);
         return;
     }
 
-    const urlMatch = query.match(/(?:youtube\.com\/watch\?v=|music\.youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    const spotify = parseSpotify(query);
+    const spotify = parseSpotify(input);
 
     if (spotify?.type === 'other') {
         client.say(channel, `⚠️ ${senderName}, only Spotify track links are supported (no albums or playlists yet) ✧`);
         return;
     }
 
-    let result;
+    let requestInput = input;
     let viaSpotify = false;
 
     if (spotify?.type === 'track') {
@@ -483,33 +515,40 @@ async function ssrCommand(client, channel, senderName, msg, isBroadcaster) {
             client.say(channel, `⚠️ Couldn't look up that Spotify track... try a name search ✧`);
             return;
         }
-        result = await searchSong(track.query);
+        requestInput = track.query;
         viaSpotify = true;
-    } else {
-        result = urlMatch
-            ? await getSongByVideoId(urlMatch[1])
-            : await searchSong(query);
     }
 
-    if (!result) {
-        client.say(channel, `⚠️ Couldn't find "${query}"... try a different search ✧`);
-        return;
+    try {
+        const queued = await addSongToSSRQueue(requestInput, senderName);
+        const source = viaSpotify ? ' (matched from Spotify)' : '';
+        const link = queued.videoId ? ` -> https://music.youtube.com/watch?v=${queued.videoId}` : '';
+        client.say(channel, `✅ ${senderName}, queued: ${queued.title}${link} 💾${source}`);
+    } catch (err) {
+        const expectedCodes = new Set([
+            'duplicate', 'too_long', 'duration_unknown', 'explicit_content', 'not_found',
+            'unsupported_url', 'playlist_not_supported', 'resolve_timeout', 'busy',
+            'listen_together_guest', 'remote_linked', 'missing_token'
+        ]);
+        if (expectedCodes.has(err.code)) {
+            Logger.warn(`[Registry] Song request from ${senderName} rejected: ${err.code}`);
+        } else {
+            Logger.error(`[Registry] Failed to queue song request from ${senderName}: ${err.message}`);
+        }
+        client.say(channel, formatSsrError(senderName, err, input));
     }
-
-    if (result.tooLong) {
-        client.say(channel, `⚠️ ${senderName}, that song is too long (${result.durationText})... max is 10 minutes ✧`);
-        return;
-    }
-
-    await addSongToSSRQueue(result.videoId, result.title, senderName);
-
-    const source = viaSpotify ? ' (matched from Spotify)' : '';
-    client.say(channel, `✅ ${senderName}, queued: ${result.title} -> https://music.youtube.com/watch?v=${result.videoId} 💾${source}`);
 }
 
 async function skipCommand(client, channel) {
-    await skipSong();
-    client.say(channel, `⏭️ Skipping current song... ✧`);
+    try {
+        const result = await skipSong();
+        client.say(channel, result?.uncertain
+            ? `⏭️ Skip requested, checking playback... ✧`
+            : `⏭️ Skipping current song... ✧`);
+    } catch (err) {
+        Logger.error(`[Registry] Skip failed: ${err.message}`);
+        client.say(channel, `⚠️ Couldn't skip right now ✧`);
+    }
 }
 
 async function qCommand(client, channel) {
@@ -517,30 +556,50 @@ async function qCommand(client, channel) {
         const queueText = await getQueueWithCurrent();
         client.say(channel, queueText);
     } catch (err) {
-        Logger.error(`[ERROR] Failed to fetch queue: ${err.message}`);
-        client.say(channel, 'Failed to fetch queue.');
+        Logger.error(`[Registry] Failed to fetch queue: ${err.message}`);
+        client.say(channel, `⚠️ Couldn't fetch the queue right now ✧`);
     }
 }
 
 async function currentSongCommand(client, channel) {
-    const song = await getCurrentSong();
-    if (song) {
-        client.say(channel, `🎶 ${song.artist} - ${song.title} 🎶`);
-    } else {
+    try {
+        const song = await getCurrentSong();
+        if (song) {
+            client.say(channel, `🎶 ${song.artist} - ${song.title} 🎶`);
+        } else {
+            client.say(channel, "🎶 No song is currently playing. 🎶");
+        }
+    } catch (err) {
+        Logger.error(`[Registry] Failed to fetch current song: ${err.message}`);
         client.say(channel, "🎶 No song is currently playing. 🎶");
     }
 }
 
-function clearQCommand(client, channel) {
-    clearQueue();
-    client.say(channel, `🗑️ SR queue cleared ✧`);
+async function clearQCommand(client, channel) {
+    try {
+        await clearQueuedSongs();
+        client.say(channel, `🗑️ SR queue cleared ✧`);
+    } catch (err) {
+        Logger.error(`[Registry] Failed to clear queue: ${err.message}`);
+        client.say(channel, `⚠️ Couldn't clear the queue right now ✧`);
+    }
 }
 
-function closeQCommand(client, channel) {
+async function closeQCommand(client, channel) {
     ssrEnabled = false;
     setGate('ssrEnabled', false);
-    clearQueue();
-    client.say(channel, `🛑 Song requests closed and queue cleared ✧`);
+
+    let cleared = true;
+    try {
+        await clearQueuedSongs();
+    } catch (err) {
+        cleared = false;
+        Logger.error(`[Registry] Failed to clear queue on close: ${err.message}`);
+    }
+
+    client.say(channel, cleared
+        ? `🛑 Song requests closed and queue cleared ✧`
+        : `🛑 Song requests closed, but the queue couldn't be cleared ✧`);
 }
 
 function openQCommand(client, channel) {

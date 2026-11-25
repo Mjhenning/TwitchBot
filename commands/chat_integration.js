@@ -6,8 +6,7 @@ const {Logger} = require('../services');
 const {handleDaemonRelatedResponses} = require('../modules/bot_specific/bot_response_modules');
 const {endLurk, isLurking} = require('../modules/functions/lurk_tracker');
 const {markActive} = require('../modules/functions/watchtime');
-const {clearQueue} = require('../modules/song_requests/ssr-queue');
-const {startSSRPolling} = require('../modules/song_requests/pear-desktop-music');
+const {startSSRPolling} = require('../modules/song_requests/limusic');
 const {handleCooldown: _handleCooldown} = require('../modules/helpers/cooldown');
 const {requireMod, isBroadcaster} = require('../modules/helpers/permissions');
 const {checkFavouriteShoutout} = require('../modules/helpers/favourite_shoutout');
@@ -325,19 +324,19 @@ function setupChatCommands(client, config) {
 
         if (hasCommand(lower, '!opensr') || hasCommand(lower, '!startsr')) {
             if (!requireMod(tags, client, channel)) return;
-            openQCommand(client, channel);
+            await openQCommand(client, channel);
             return;
         }
 
         if (hasCommand(lower, '!closesr') || hasCommand(lower, '!stopsr')) {
             if (!requireMod(tags, client, channel)) return;
-            closeQCommand(client, channel);
+            await closeQCommand(client, channel);
             return;
         }
 
         if (hasCommand(lower, '!clearq')) {
             if (!requireMod(tags, client, channel)) return;
-            clearQCommand(client, channel);
+            await clearQCommand(client, channel);
             return;
         }
 
@@ -431,17 +430,9 @@ function setupChatCommands(client, config) {
 
 module.exports = {setupChatCommands};
 
-process.on('exit', clearQueue);           // normal exit
-process.on('SIGINT', () => {
-    clearQueue();
-    process.exit();
-});   // Ctrl+C
-process.on('SIGTERM', () => {
-    clearQueue();
-    process.exit();
-});  // kill command
+process.on('SIGINT', () => process.exit());   // Ctrl+C
+process.on('SIGTERM', () => process.exit());  // kill command
 process.on('uncaughtException', (err) => {
     Logger.error(err);
-    clearQueue();
     process.exit();
 });
