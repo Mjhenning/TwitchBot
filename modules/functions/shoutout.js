@@ -110,6 +110,11 @@ function getAgeWarning(login) {
         const {getFavouriteAgeRating} = require('../helpers/favourite_shoutout');
         const rating = getFavouriteAgeRating(login);
         if (!rating) return '';
+
+        // only 18+ and higher get a warning
+        const match = String(rating).trim().match(/^(\d+)/);
+        if (!match || Number(match[1]) < 18) return '';
+
         return ` ⚠️ Mature audience (${rating}) - may not be welcoming to our community's younger audiences.`;
     } catch {
         return '';
