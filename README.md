@@ -23,7 +23,7 @@ A feature-rich Twitch chat bot built in Node.js for the channel **F0XTA1L**. TA1
 ## Features
 
 - **Chat Commands**: 20+ chat commands including greetings, lore responses, socials, clipping, follow age, shoutouts, lurk tracking, and hug interactions.
-- **Song Requests (SSR)**: Viewers request songs via `!sr`. Limusic's Control API resolves YouTube searches, YouTube links and Spotify track links, then owns queue order and playback through its Play-next block. There is no local shadow queue. Queue open/close and clearing are controlled by mods.
+- **Song Requests (SSR)**: Viewers request songs via `!sr`. Limusic's Control API resolves YouTube searches, YouTube links and Spotify track links, then owns queue order and playback through its Play-next block. There is no local shadow queue. Queue open/close, playback control, and clearing are controlled by mods.
 - **Media Requests (MR)**: Channel-point redemption triggers video download via `yt-dlp`, OBS source display, and VLC playback. Moderators approve or reject before playback. Videos must be within the redeemable length cap (default 1 min, configurable via `MR_MAX_DURATION_SECONDS`). Includes expiry sweep, atomic pending store, and startup reconciliation.
 - **Shield System**: Automatically enables Twitch Shield Mode when the stream goes offline and disables it when live, via EventSub `stream.online` / `stream.offline`.
 - **EventSub Integration**: Handles follow events (custom welcome), raids (auto-shoutout with official Twitch `/shoutout` API), gifted subs (extend the Glosso-thon timer and announce reached goals), and ad break notifications with countdown warnings.
@@ -158,11 +158,11 @@ The bot tears down all modules and disconnects when OBS goes offline, then auto-
 | `!song` / `!currentsong` | Show the currently playing song |
 | `!queue` / `!q` | Show the queue (current + up to 5 upcoming) |
 | `!skip` | Skip current song (mod only) |
-| `!opensr` / `!startsr` | Open song requests (mod only) |
-| `!closesr` / `!stopsr` | Close song requests and clear Limusic's queued rows (mod only) |
+| `!opensr` / `!startsr` | Open song requests and resume playback if paused (mod only) |
+| `!closesr` / `!stopsr` | Close song requests, pause playback if running, and clear Limusic's queued rows (mod only) |
 | `!clearQ` | Clear Limusic's queued rows (mod only). The current song keeps playing. |
 
-Limusic owns queue placement and order, so there is no local `data/ssr_queue.json` to reconcile. Requester labels in `!queue` come from Limusic's `queued_by` field. A five second poll only announces when a requester-attributed row becomes the current song.
+Limusic owns queue placement and order, so there is no local `data/ssr_queue.json` to reconcile. Requester labels in `!queue` come from Limusic's `queued_by` field. A five second poll only announces when a requester-attributed row becomes the current song. Playback control reads `/api/v1/status` first, so `!startsr` only calls play when paused and `!stopsr` only calls pause when running.
 
 ### Media Requests
 
@@ -307,7 +307,7 @@ The timer comes back paused on restart, so a new stream resumes exactly where th
 8. **`twitchRedemption.js`**: Central redemption dispatcher + Twitch API helpers. Routes redemption events to the registered reward module, manages the generic pending/approval lifecycle (reconciliation + expiry sweep), and can auto-fulfill instant rewards (skipped when a reward sets `autoFulfill: false` for Twitch's skip-approval queue). Tracks each reward's open/closed state (paused/unpaused on Twitch) with `openReward`/`closeReward`/`isRewardOpen`, applied on startup from each reward's `startClosed` flag. Also provides redemption status update and reward pause/unpause API helpers.
 
 ### Song Requests (`modules/song_requests/`)
-- **`limusic.js`**: Limusic Control API adapter. Sends `/queue/request` with requester attribution and a duration cap, reads `/queue` and `/now-playing`, skips via `/playback/next`, clears queued rows, and polls only to announce the current request.
+- **`limusic.js`**: Limusic Control API adapter. Sends `/queue/request` with requester attribution and a duration cap, reads `/queue`, `/now-playing` and `/status`, skips via `/playback/next`, clears queued rows, resumes or pauses playback only when state needs changing, and polls only to announce the current request.
 - **`spotify_resolver.js`**: Parses Spotify track links and resolves title/artist via Spotify's public oEmbed endpoint; the resulting text query goes to Limusic's resolver. Album/playlist links are rejected.
 
 ### Personality (`modules/bot_specific/bot_response_modules.js`)
@@ -382,7 +382,7 @@ TwitchBot/
 │   │   ├── timer_overlay.js        # OBS Glosso-thon countdown overlay (hub channel "timer")
 │   │   └── goals_overlay.js        # OBS Glosso-thon gifted-sub goals overlay (hub channel "goals")
 │   └── song_requests/
-│       ├── limusic.js              # Limusic Control API for request, queue, skip and clear
+│       ├── limusic.js              # Limusic Control API for request, queue, playback and clear
 │       └── spotify_resolver.js     # Spotify track link to title/artist query
 ├── ARG/
 │   ├── _filesystem/                # Virtual in-chat filesystem (JSON lore files)

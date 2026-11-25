@@ -17,6 +17,8 @@ const {
     addSongToSSRQueue,
     skipSong,
     clearQueuedSongs,
+    resumePlayback,
+    pausePlayback,
     formatDurationSeconds
 } = require('../modules/song_requests/limusic');
 const {parseSpotify, getTrackInfo} = require('../modules/song_requests/spotify_resolver');
@@ -589,23 +591,49 @@ async function closeQCommand(client, channel) {
     ssrEnabled = false;
     setGate('ssrEnabled', false);
 
-    let cleared = true;
+    let paused = false;
+    let pauseFailed = false;
+    try {
+        const result = await pausePlayback();
+        paused = Boolean(result?.changed);
+    } catch (err) {
+        pauseFailed = true;
+        Logger.warn(`[Registry] Failed to pause playback on close: ${err.message}`);
+    }
+
+    let cleared = false;
     try {
         await clearQueuedSongs();
+        cleared = true;
     } catch (err) {
-        cleared = false;
         Logger.error(`[Registry] Failed to clear queue on close: ${err.message}`);
     }
 
-    client.say(channel, cleared
-        ? `🛑 Song requests closed and queue cleared ✧`
-        : `🛑 Song requests closed, but the queue couldn't be cleared ✧`);
+    const details = [];
+    if (paused) details.push('playback paused');
+    else if (pauseFailed) details.push('playback could not be paused');
+    details.push(cleared ? 'queue cleared' : 'queue could not be cleared');
+    client.say(channel, `🛑 Song requests closed, ${details.join(', ')} ✧`);
 }
 
-function openQCommand(client, channel) {
+async function openQCommand(client, channel) {
     ssrEnabled = true;
     setGate('ssrEnabled', true);
-    client.say(channel, `✅ Song requests are now open! Use !sr to request a song 🎶`);
+
+    let resumed = false;
+    let resumeFailed = false;
+    try {
+        const result = await resumePlayback();
+        resumed = Boolean(result?.changed);
+    } catch (err) {
+        resumeFailed = true;
+        Logger.warn(`[Registry] Failed to resume playback on open: ${err.message}`);
+    }
+
+    let suffix = '';
+    if (resumed) suffix = ' Playback resumed.';
+    else if (resumeFailed) suffix = ' Playback could not be resumed.';
+    client.say(channel, `✅ Song requests are now open! Use !sr to request a song 🎶${suffix}`);
 }
 
 //--------------------------------- MEDIA REQUESTS ------------------------------------
