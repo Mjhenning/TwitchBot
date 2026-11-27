@@ -1,22 +1,38 @@
 // modules/song_requests/limusic.js
 const axios = require('axios');
+const WebSocket = require('ws');
 const {config} = require('../../config');
 const {Logger} = require('../../services');
 
 // Limusic is authoritative for queue order and placement, so the bot no
-// longer keeps a shadow queue or tries to move rows into position.
+// longer keeps a shadow queue or tries to move rows into position. Song swaps
+// come from the Control API WebSocket instead of a 5s HTTP poll.
 
 const READ_TIMEOUT_MS = 10_000; // milliseconds
 const ADD_TIMEOUT_MS = 15_000; // resolver has a 12s ceiling of its own
 const SKIP_TIMEOUT_MS = 25_000; // docs ask for at least 20s on next
+const WS_HANDSHAKE_TIMEOUT_MS = 5_000; // milliseconds
+const WS_RECONNECT_BASE_MS = 5_000; // milliseconds
+const WS_RECONNECT_MAX_MS = 60_000; // milliseconds
 
-let ssrPollInterval = null;
+let ssrSocket = null;
+let reconnectTimer = null;
+let listenerClient = null;
+let listenerChannel = null;
+let listenerStopped = true;
+let listenerDownLogged = false;
+let reconnectDelayMs = WS_RECONNECT_BASE_MS;
 let lastAnnouncedVideoId = null;
-let pollInitialized = false;
+let listenerInitialized = false;
+let lastKnownPlaying = null;
 
 //-------------------HELPERS-------------------
 function getBaseUrl() {
     return String(config.LIMUSIC_CONTROL_URL || 'http://127.0.0.1:27199').replace(/\/+$/, '');
+}
+
+function getWebSocketUrl() {
+    return `${getBaseUrl().replace(/^http/, 'ws')}/api/v1/ws`;
 }
 
 function createError(code, status, message, data = {}, originalCode = null) {
@@ -181,21 +197,28 @@ async function clearQueuedSongs() {
     return await apiRequest('POST', '/api/v1/queue/clear-queued');
 }
 
-// Playback endpoints are idempotent, but reading status first avoids fighting
-// a state change that happened between the chat command and the API call.
-async function setPlayback(targetPlaying) {
+// Playback endpoints are idempotent, but checking state first avoids fighting
+// a change that raced the chat command. The live socket carries state already,
+// so HTTP status is only needed when the listener is not connected.
+async function getPausedState() {
+    if (ssrSocket?.readyState === WebSocket.OPEN && typeof lastKnownPlaying === 'boolean') {
+        return !lastKnownPlaying;
+    }
     const status = await apiRequest('GET', '/api/v1/status');
-    const paused = Boolean(status?.paused);
+    return Boolean(status?.paused);
+}
+
+async function setPlayback(targetPlaying) {
+    const paused = await getPausedState();
     const needsChange = targetPlaying ? paused : !paused;
     if (!needsChange) {
         return {changed: false, playing: targetPlaying};
     }
     const path = targetPlaying ? '/api/v1/playback/play' : '/api/v1/playback/pause';
     const result = await apiRequest('POST', path);
-    return {
-        changed: true,
-        playing: typeof result?.playing === 'boolean' ? result.playing : targetPlaying
-    };
+    const playing = typeof result?.playing === 'boolean' ? result.playing : targetPlaying;
+    lastKnownPlaying = playing;
+    return {changed: true, playing};
 }
 
 async function resumePlayback() {
@@ -206,54 +229,147 @@ async function pausePlayback() {
     return await setPlayback(false);
 }
 
-//-------------------POLLING-------------------
-// The poll no longer reconciles a local list. It only announces when a
-// requester-attributed row becomes the current song.
-async function reconcileSsrQueue(client, channel) {
-    const data = await apiRequest('GET', '/api/v1/queue?from=current&limit=2');
-    const current = data?.items?.[0];
-    const videoId = current?.video_id;
+//-------------------SSR LISTENER-------------------
+function markListenerUp() {
+    reconnectDelayMs = WS_RECONNECT_BASE_MS;
+    if (listenerDownLogged) {
+        Logger.log('[Limusic] SSR listener reconnected');
+        listenerDownLogged = false;
+    }
+    if (config.DEBUG) Logger.log('[Limusic] SSR listener connected');
+}
+
+function handleSnapshotFrame(frame) {
+    lastAnnouncedVideoId = frame?.current?.video_id || null;
+    if (typeof frame?.playing === 'boolean') lastKnownPlaying = frame.playing;
+}
+
+function announceNowPlaying(frame) {
+    const track = frame?.current;
+    const videoId = track?.video_id;
     if (!videoId) return;
 
-    if (!pollInitialized) {
-        pollInitialized = true;
+    if (!listenerInitialized) {
+        listenerInitialized = true;
         lastAnnouncedVideoId = videoId;
         return;
     }
     if (videoId === lastAnnouncedVideoId) return;
     lastAnnouncedVideoId = videoId;
+    if (!track.queued_by) return;
 
-    const requester = current.queued_by;
-    if (!requester) return;
-
-    const title = current.title || 'Unknown';
-    const next = data?.items?.[1];
-    const upNext = next?.title && next?.queued_by
-        ? ` Up next: ${next.title} (requested by ${next.queued_by})`
-        : '';
-    client.say(channel, `🎶 Now playing SR request from ${requester}: ${title} ✧${upNext}`);
+    const title = track.title || 'Unknown';
+    listenerClient.say(listenerChannel, `🎶 Now playing SR request from ${track.queued_by}: ${title} ✧`);
 }
 
-function startSSRPolling(client, channel) {
-    if (ssrPollInterval) return;
-    const formattedChannel = channel.startsWith('#') ? channel : `#${channel}`;
-    ssrPollInterval = setInterval(async () => {
-        try {
-            await reconcileSsrQueue(client, formattedChannel);
-        } catch (err) {
-            Logger.error(`[Limusic] SSR polling failed: ${err.message}`);
+function handleWsMessage(raw) {
+    let frame;
+    try {
+        frame = JSON.parse(raw.toString());
+    } catch (err) {
+        return;
+    }
+
+    if (frame.type === 'hello' || frame.type === 'resync') {
+        listenerInitialized = true;
+        handleSnapshotFrame(frame);
+        return;
+    }
+    if (frame.type === 'playback_state') {
+        if (typeof frame.playing === 'boolean') lastKnownPlaying = frame.playing;
+        return;
+    }
+    if (frame.type === 'now_playing') announceNowPlaying(frame);
+}
+
+function scheduleReconnect() {
+    if (listenerStopped || reconnectTimer) return;
+    const delay = reconnectDelayMs;
+    reconnectDelayMs = Math.min(WS_RECONNECT_MAX_MS, reconnectDelayMs * 2);
+    if (!listenerDownLogged) {
+        Logger.warn(`[Limusic] SSR listener offline, retrying with backoff up to ${WS_RECONNECT_MAX_MS / 1000}s`);
+        listenerDownLogged = true;
+    }
+    if (config.DEBUG) Logger.log(`[Limusic] SSR listener retry in ${delay / 1000}s`);
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        openListenerSocket();
+    }, delay);
+    reconnectTimer.unref?.();
+}
+
+function openListenerSocket() {
+    if (listenerStopped || ssrSocket) return;
+
+    let url;
+    let headers;
+    try {
+        url = getWebSocketUrl();
+        headers = buildHeaders(false);
+    } catch (err) {
+        Logger.error(`[Limusic] ${err.message}`);
+        return;
+    }
+
+    let socket;
+    try {
+        socket = new WebSocket(url, {headers, handshakeTimeout: WS_HANDSHAKE_TIMEOUT_MS});
+    } catch (err) {
+        Logger.error(`[Limusic] SSR listener failed to start: ${err.message}`);
+        scheduleReconnect();
+        return;
+    }
+    ssrSocket = socket;
+
+    socket.on('open', markListenerUp);
+    socket.on('message', handleWsMessage);
+    socket.on('error', err => {
+        if (config.DEBUG) Logger.warn(`[Limusic] SSR listener error: ${err.message}`);
+    });
+    socket.on('unexpected-response', (request, response) => {
+        Logger.warn(`[Limusic] SSR listener rejected: ${response.statusCode}`);
+        response.resume();
+        socket.terminate();
+        scheduleReconnect();
+    });
+    socket.on('close', (code, reason) => {
+        if (ssrSocket === socket) ssrSocket = null;
+        lastKnownPlaying = null;
+        if (listenerStopped) return;
+        const text = reason?.toString();
+        if (text && !listenerDownLogged) {
+            Logger.warn(`[Limusic] SSR listener closed: ${text}`);
+            listenerDownLogged = true;
         }
-    }, 5000);
+        scheduleReconnect();
+    });
 }
 
-function stopSSRPolling() {
-    if (ssrPollInterval) {
-        clearInterval(ssrPollInterval);
-        ssrPollInterval = null;
+function startSSRListener(client, channel) {
+    if (!listenerStopped && (ssrSocket || reconnectTimer)) return;
+    listenerStopped = false;
+    listenerClient = client;
+    listenerChannel = channel.startsWith('#') ? channel : `#${channel}`;
+    reconnectDelayMs = WS_RECONNECT_BASE_MS;
+    openListenerSocket();
+}
+
+function stopSSRListener() {
+    listenerStopped = true;
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+    if (ssrSocket) {
+        const socket = ssrSocket;
+        ssrSocket = null;
+        socket.terminate();
     }
     lastAnnouncedVideoId = null;
-    pollInitialized = false;
-    Logger.log('[Limusic] Polling stopped');
+    listenerInitialized = false;
+    lastKnownPlaying = null;
+    listenerDownLogged = false;
+    Logger.log('[Limusic] SSR listener stopped');
 }
 
 module.exports = {
@@ -265,6 +381,6 @@ module.exports = {
     resumePlayback,
     pausePlayback,
     formatDurationSeconds,
-    startSSRPolling,
-    stopSSRPolling
+    startSSRListener,
+    stopSSRListener
 };

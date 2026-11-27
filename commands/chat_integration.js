@@ -6,7 +6,7 @@ const {Logger} = require('../services');
 const {handleDaemonRelatedResponses} = require('../modules/bot_specific/bot_response_modules');
 const {endLurk, isLurking} = require('../modules/functions/lurk_tracker');
 const {markActive} = require('../modules/functions/watchtime');
-const {startSSRPolling} = require('../modules/song_requests/limusic');
+const {startSSRListener} = require('../modules/song_requests/limusic');
 const {handleCooldown: _handleCooldown} = require('../modules/helpers/cooldown');
 const {requireMod, isBroadcaster} = require('../modules/helpers/permissions');
 const {checkFavouriteShoutout} = require('../modules/helpers/favourite_shoutout');
@@ -64,7 +64,7 @@ function hasCommand(msg, command) {
 
 // ------------------- main -------------------
 function setupChatCommands(client, config) {
-    startSSRPolling(client, config.CHANNEL_NAME);
+    startSSRListener(client, config.CHANNEL_NAME);
 
     client.on('message', async (channel, tags, message, self) => {
         if (self) return;
