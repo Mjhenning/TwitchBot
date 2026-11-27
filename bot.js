@@ -6,7 +6,7 @@ const {startShieldSystem, stopShieldSystem} = require('./modules/helpers/shield_
 const {startTimedCommands, stopTimedCommands} = require('./modules/helpers/timed_commands');
 const {startAdSchedulePoller, stopAdSchedulePoller} = require('./modules/helpers/ad_schedule_poller');
 const {resetListeners} = require('./modules/helpers/stream-state');
-const {stopSSRPolling} = require('./modules/song_requests/limusic');
+const {stopSSRListener} = require('./modules/song_requests/limusic');
 const {resetFavouriteShoutout} = require('./modules/helpers/favourite_shoutout');
 
 const {setupChatCommands} = require('./commands/chat_integration');
@@ -213,9 +213,9 @@ async function stopBot() {
         Logger.error(`[Bot] stopTimedCommands error: ${e}`);
     }
     try {
-        stopSSRPolling();
+        stopSSRListener();
     } catch (e) {
-        Logger.error(`[Bot] stopSSRPolling error: ${e}`);
+        Logger.error(`[Bot] stopSSRListener error: ${e}`);
     }
     try {
         sysResetSession();

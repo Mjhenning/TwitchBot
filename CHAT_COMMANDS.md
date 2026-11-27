@@ -37,7 +37,7 @@ All commands are case-insensitive. Cooldowns are per-user per-command (5 seconds
 | `!closesr` / `!stopsr` | Close song requests, pause playback if running, and clear Limusic's queued rows (mod only) |
 | `!clearQ` | Clear Limusic's queued rows (mod only), current song keeps playing |
 
-> Limusic owns queue order, so there is no local queue file to reconcile. Requester names in `!queue` come from Limusic. Playback control reads Limusic status first, so `!startsr` only calls play when paused and `!stopsr` only calls pause when running. `!sr` keeps its 30 second viewer cooldown, mods are exempt.
+> Limusic owns queue order, so there is no local queue file or periodic HTTP queue poll. Requester names in `!queue` come from Limusic, and song swaps come from its read-only WebSocket stream. Playback control uses socket state when connected and falls back to `/api/v1/status` otherwise, so `!startsr` only calls play when paused and `!stopsr` only calls pause when running. `!sr` keeps its 30 second viewer cooldown, mods are exempt.
 
 ---
 
